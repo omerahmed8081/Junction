@@ -108,6 +108,10 @@ async def lifespan(_: FastAPI):
         print(f"[kitchen] replayed {len(stored_services)} logged service(s) into the ledger")
     baskets.update(stored_baskets)
     orders.update(stored_orders)
+    # Orders go back into the ledger too, or a restart would drop the on-order
+    # figure to zero while the orders themselves sat in the database.
+    for record in stored_orders.values():
+        _book_on_order(record)
     if stored_mandate:
         kitchen.mandate = stored_mandate
     if stored_baskets or stored_orders:
@@ -119,6 +123,35 @@ async def lifespan(_: FastAPI):
     gateway.close()
     if pool is not None:
         pool.close()
+
+
+def _book_on_order(record: OrderRecord) -> None:
+    """Tell the kitchen's own ledger that these goods are coming.
+
+    On order, not stock: they become stock when they arrive, which is what
+    `Inventory.receive` is for and nothing calls yet - there is no goods-in
+    screen, so pretending they had arrived would overstate the shelves.
+
+    `shortfalls` already subtracts what is on order, with the comment that this
+    is what stops the agent proposing the same order every morning. It never
+    did, because nothing put anything on order. This is that wiring.
+
+    The same function books an order when it is placed and when it is replayed
+    at startup, so the two cannot drift: the ledger after a restart is the
+    ledger before it. Calling it twice for one order is harmless.
+    """
+    if record.status != "placed":
+        return
+    if any(pending.order_id == record.order_id for pending in inventory.on_order):
+        return                                  # already booked; do not double count
+    lines = [(line.product_id, float(line.delivered_amount), line.delivered_unit)
+             for line in record.lines if line.delivered_amount]
+    if not lines:
+        return
+    for product_id, _, unit in lines:
+        inventory.units.setdefault(product_id, unit)
+    inventory.add_on_order(record.order_id, lines,
+                           record.delivery_date or record.requested_date)
 
 
 def _save() -> None:
@@ -343,6 +376,7 @@ def _auto_order(state: agent.BasketState | None, steps: list) -> str:
 
     if result.order is not None:
         orders[result.order.order_id] = result.order
+        _book_on_order(result.order)
         audit.log.record("auto_order", basket_id=state.basket.basket_id, actor="agent",
                          order_id=result.order.order_id, crossed_gateway=True,
                          result={"net_total": result.order.net_total, "rule": rule},
@@ -566,6 +600,7 @@ def approve_basket(basket_id: str, req: ApproveRequest) -> OrderResponse:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     if result.order is not None:
         orders[result.order.order_id] = result.order
+        _book_on_order(result.order)
     audit.log.record_steps(getattr(result, "steps", []) or [], basket_id,
                            order_id=result.order.order_id if result.order else "")
     audit.log.record("approve", basket_id=basket_id, actor="human",

@@ -9,7 +9,7 @@ closed Sunday averaged into a weekday, and a delivery counted twice.
 from __future__ import annotations
 
 import sys
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -232,3 +232,123 @@ if __name__ == "__main__":
         if name.startswith("test_") and callable(fn):
             fn(); print("ok  ", name); passed += 1
     print(f"\n{passed} passed")
+
+
+# ------------------------------- an order the kitchen placed, in its own ledger
+
+
+def an_order(order_id="o_new", product_id=MILK, amount=1000.0, unit="L",
+             status="placed", delivery=date(2026, 11, 16)):
+    from shared.schemas import DeliveryAnswer, OrderRecord, QuoteLine
+
+    line = QuoteLine(
+        product_id=product_id, name="Valio Eila milk 1 l lactose free",
+        quantity_sales_units=amount, sales_unit="ST",
+        delivered_amount=amount, delivered_unit=unit,
+        price_per_sales_unit=1.01, line_net=amount * 1.01,
+        line_vat=0.0, line_gross=amount * 1.01,
+        delivery=DeliveryAnswer(can_fulfil="full"))
+    return OrderRecord(
+        order_id=order_id, quote_id="q_1", customer="c_1", agent_id="a",
+        status=status, placed_at=datetime(2026, 11, 14, 12, tzinfo=timezone.utc),
+        requested_date=delivery, delivery_date=delivery,
+        net_total=amount * 1.01, vat_total=0.0, gross_total=amount * 1.01, lines=[line])
+
+
+def a_kitchen():
+    """The kitchen module with a ledger of its own, put back afterwards."""
+    import os
+    os.environ["TTA_SKIP_DOTENV"] = "1"
+    import kitchen.main as main
+    return main
+
+
+def test_an_order_lands_in_the_ledger_as_on_order_not_stock():
+    """Not stock: nothing has arrived. `receive` is what turns it into stock,
+    and there is no goods-in screen yet."""
+    main = a_kitchen()
+    held = main.inventory
+    try:
+        main.inventory = Inventory.from_seed()
+        # The seeded restaurant already has milk on order, so this is the
+        # change the new order makes, not the total.
+        on_order_before = main.inventory.on_order_totals().get(MILK, 0.0)
+        stock_before = main.inventory.stock().get(MILK, 0.0)
+        main._book_on_order(an_order())
+
+        assert main.inventory.on_order_totals()[MILK] - on_order_before == 1000.0
+        assert main.inventory.stock().get(MILK, 0.0) == stock_before, "it was counted as stock"
+    finally:
+        main.inventory = held
+
+
+def test_booking_the_same_order_twice_does_not_double_count():
+    """It is booked when placed and again when replayed at startup, and the two
+    paths deliberately share one function."""
+    main = a_kitchen()
+    held = main.inventory
+    try:
+        main.inventory = Inventory.from_seed()
+        before = main.inventory.on_order_totals().get(MILK, 0.0)
+        main._book_on_order(an_order())
+        main._book_on_order(an_order())
+        assert main.inventory.on_order_totals()[MILK] - before == 1000.0
+    finally:
+        main.inventory = held
+
+
+def test_a_refused_order_is_not_booked():
+    main = a_kitchen()
+    held = main.inventory
+    try:
+        main.inventory = Inventory.from_seed()
+        before = main.inventory.on_order_totals()
+        main._book_on_order(an_order(status="rejected"))
+        assert main.inventory.on_order_totals() == before
+    finally:
+        main.inventory = held
+
+
+def test_the_ledger_after_a_restart_equals_the_ledger_before_it():
+    """The invariant the whole design rests on: nothing is stored for the
+    inventory, so a restart must reproduce it from the seed and the orders."""
+    main = a_kitchen()
+    held = main.inventory
+    try:
+        main.inventory = Inventory.from_seed()
+        main._book_on_order(an_order("o_1"))
+        main._book_on_order(an_order("o_2", product_id=CREAM, amount=40.0, unit="ST"))
+        before = (main.inventory.stock(), main.inventory.on_order_totals())
+
+        # what the lifespan does on the way back up
+        main.inventory = Inventory.from_seed()
+        for record in (an_order("o_1"), an_order("o_2", product_id=CREAM,
+                                                 amount=40.0, unit="ST")):
+            main._book_on_order(record)
+        after = (main.inventory.stock(), main.inventory.on_order_totals())
+
+        assert before == after
+    finally:
+        main.inventory = held
+
+
+def test_ordering_what_is_running_low_stops_it_being_suggested_again():
+    """A4/A5: the suggestion kept nagging after the order went through, because
+    nothing ever put the order on order. `shortfalls` already subtracted it."""
+    main = a_kitchen()
+    held = main.inventory
+    try:
+        main.inventory = Inventory.from_seed()
+        until = suggestions.window_until(main.inventory)
+        short = {s["product_id"]: s for s in main.inventory.shortfalls(until)}
+        assert short, "the seeded restaurant is short of nothing, so this proves nothing"
+
+        product_id, row = next(iter(short.items()))
+        main._book_on_order(an_order("o_fix", product_id=product_id,
+                                     amount=row["shortfall"] * 2,
+                                     unit=main.inventory.units.get(product_id, "")))
+
+        again = {s["product_id"] for s in main.inventory.shortfalls(until)}
+        assert product_id not in again, "it is still being suggested after the order"
+    finally:
+        main.inventory = held

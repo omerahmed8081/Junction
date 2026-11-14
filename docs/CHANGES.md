@@ -7,6 +7,48 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Sunday 15 November
 
+### 06:20 - what the kitchen orders shows up in its own ledger
+
+`Inventory.add_on_order` and `Inventory.receive` have been there since the
+ledger was written, and nothing called either. `shortfalls` already subtracted
+what was on order, with the comment that this is what stops the agent
+proposing the same order every morning - and it never did, because nothing
+ever put anything on order. That is A4/A5 from the review.
+
+An accepted order is now booked into the ledger on both paths that record one,
+the chef's approval and the agent's own ordering, and replayed at startup
+beside the logged services. One function does all three, so the ledger after a
+restart is the ledger before it.
+
+**On order, not stock.** Goods become stock when they arrive, which is what
+`receive` is for. There is no goods-in screen, so pretending they had arrived
+would overstate the shelves.
+
+**Nothing new is stored.** The order is the fact, and it was already in
+Postgres; the on-order figure is added up from it per request, the way a
+balance is added up from transactions. Storing the figure as well would be a
+second copy that could disagree with the first, which is the bug this project
+keeps tripping over. A reset needs no new step: `clean_slate` deletes the
+orders, the kitchen rebuilds from seed, and the ledger is back to its opening
+position on its own.
+
+Six tests, including the invariant the design rests on - the ledger rebuilt
+from seed plus orders equals the ledger that was running - and that booking
+one order twice does not double count, since placing and replaying share a
+function. End to end: milk on order goes 43 to 1,043 with stock unchanged.
+
+### 06:05 - an ordered basket can no longer be edited
+
+`PATCH /api/basket/{id}` had no status check, while `DELETE` on the same
+resource has had one all along. An order already placed with Aimo could be
+edited through the API, and a basket blocked for a signature that would not
+verify, or for a security event, could be edited quietly back into a draft -
+an edit runs `_refresh`, which sets the status to `draft`.
+
+Editing a *quoted* basket stays allowed on purpose: the chef saw Aimo's price
+and changed their mind, which is what confirming before approving is for, and
+the edit voids the quote rather than being refused.
+
 ### 05:10 - the reset button left the audit rows in the table
 
 The 04:35 entry fixed half of this. The audit log keeps rows in memory when the
