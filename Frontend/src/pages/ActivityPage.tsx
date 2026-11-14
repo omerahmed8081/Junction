@@ -11,7 +11,7 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { AuditRow } from "../api/types";
 import { Banner, Card, EmptyState, ErrorNote, PageTitle, Skeleton } from "../components/ui";
-import { amount, day, dayTime, money, time } from "../lib/format";
+import { amount, day, dayTime, money, time, readableDetail, stepLabel } from "../lib/format";
 
 
 export function ActivityPage() {
@@ -124,9 +124,9 @@ export function ActivityPage() {
                       <tr key={s.id ?? i} className={security ? "bg-danger-soft" : undefined}>
                         <td className="tabular py-2 pr-3 align-top text-ink-soft">{time(s.at)}</td>
                         <td className="py-2 pr-3 align-top font-semibold">
-                          {security && <span className="mr-1 inline-flex items-center gap-1 text-danger"><ShieldAlert className="size-4" aria-hidden />{t("activity.security")}:</span>}{s.step ?? s.action}
+                          {security && <span className="mr-1 inline-flex items-center gap-1 text-danger"><ShieldAlert className="size-4" aria-hidden />{t("activity.security")}:</span>}{stepLabel(s.step ?? s.action)}
                         </td>
-                        <td className="py-2 pr-3 align-top" lang="en">{s.detail}</td>
+                        <td className="py-2 pr-3 align-top" lang="en">{readableDetail(s.detail)}</td>
                         <td className="py-2 align-top">{(s.side === "aimo" || s.crossed_gateway)
                           ? <span className="font-semibold">→ {t("activity.yes")}</span>
                           : <span className="text-ink-soft">{t("activity.no")}</span>}</td>

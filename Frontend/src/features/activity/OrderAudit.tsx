@@ -7,7 +7,7 @@ import { ShieldAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../api/client";
 import { Banner, EmptyState, ErrorNote, Skeleton } from "../../components/ui";
-import { time } from "../../lib/format";
+import { readableDetail, stepLabel, time } from "../../lib/format";
 
 export function OrderAudit({ orderId, open }: { orderId: string; open: boolean }) {
   const { t } = useTranslation();
@@ -47,7 +47,7 @@ export function OrderAudit({ orderId, open }: { orderId: string; open: boolean }
                   fromAimo ? "bg-primary text-on-primary" : "bg-card")}>
                   {fromAimo ? t("audit.aimo") : t("audit.kitchen")}
                 </span>
-                <span className="font-semibold">{row.step ?? row.action}</span>
+                <span className="font-semibold">{stepLabel(row.step ?? row.action)}</span>
                 {flagged && (
                   <span className="inline-flex items-center gap-1 text-xs font-semibold text-danger">
                     <ShieldAlert className="size-4" aria-hidden />{t("activity.security")}
@@ -55,9 +55,9 @@ export function OrderAudit({ orderId, open }: { orderId: string; open: boolean }
                 )}
                 {row.approver_role && <span className="text-xs text-ink-soft">· {row.approver_role}</span>}
               </div>
-              {row.detail && <p className="mt-1" lang="en">{row.detail}</p>}
+              {row.detail && <p className="mt-1" lang="en">{readableDetail(row.detail)}</p>}
               {row.reason && !row.detail?.includes(row.reason) && (
-                <p className="mt-0.5 text-xs text-ink-soft" lang="en">{row.reason}</p>
+                <p className="mt-0.5 text-xs text-ink-soft" lang="en">{readableDetail(row.reason)}</p>
               )}
             </li>
           );

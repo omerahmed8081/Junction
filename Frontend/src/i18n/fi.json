@@ -338,7 +338,12 @@
     "approval_missing": "Hyväksyntä puuttuu",
     "approval_invalid": "Hyväksyntä ei varmentunut",
     "over_order_limit": "Tilauskohtainen raja ylittyy",
-    "over_weekly_limit": "Viikkoraja ylittyy"
+    "over_weekly_limit": "Viikkoraja ylittyy",
+    "over_daily_limit": "Yli päivärajan",
+    "idempotency_key_reused": "Pyyntötunnus on jo käytetty toiseen tilaukseen",
+    "mandate_wrong_agent": "Valtuutus on annettu toiselle agentille",
+    "mandate_wrong_customer": "Valtuutus koskee toista asiakasta",
+    "approval_for_another_quote": "Hyväksyntä koskee eri hintaa"
   },
   "unitOne": {
     "ST": "kpl",
@@ -406,5 +411,33 @@
     "gen_chef": "kokin",
     "gen_manager": "päällikön",
     "gen_owner": "omistajan"
+  },
+  "step": {
+    "parse_need": "Luki pyynnön",
+    "policy_preview": "Tarkisti säännöt",
+    "policy_binding": "Sääntötarkistus allekirjoitetulle hinnalle",
+    "rank": "Valitsi parhaan vaihtoehdon",
+    "create_quote": "Pyysi Aimoa lukitsemaan hinnan",
+    "verify_quote": "Tarkisti Aimon allekirjoituksen",
+    "search_products": "Haki Aimon valikoimasta",
+    "check_delivery": "Tarkisti hinnan ja toimituksen",
+    "named_product": "Käytti annettua tuotenumeroa",
+    "split_need": "Jakoi useaan tuotteeseen",
+    "suggest_cover": "Ehdotti puutteen kattamista",
+    "sign_approval": "Allekirjoitti hyväksynnän",
+    "place_order": "Lähetti tilauksen Aimolle",
+    "order_placed": "Tilaus tehty",
+    "order_refused": "Tilaus hylätty",
+    "reprice": "Tarkisti rivit uudelleen",
+    "reorder": "Laati täydennystilauksen",
+    "respec": "Vaihtoi tuotteen",
+    "approve": "Hyväksyi",
+    "auto_order": "Sääntö teki tilauksen automaattisesti",
+    "confirm": "Vahvisti hinnan",
+    "delete_basket": "Poisti luonnoksen",
+    "edit_basket": "Muutti ostoskoria",
+    "rule_added": "Lisäsi pysyvän säännön",
+    "rule_removed": "Poisti säännön käytöstä",
+    "security_event": "Tietoturvatapahtuma"
   }
 }

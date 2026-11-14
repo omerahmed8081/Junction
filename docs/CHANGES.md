@@ -139,6 +139,24 @@ ran. It signs for the right audience now.
 **Needs `python scripts/apply_sql.py sql/audit.sql` before it works.** Without
 the table the list stays in memory and says `degraded`.
 
+### 02:30 - the Activity page speaks kitchen, not code
+
+The step column showed the agent's codes (`parse_need`, `policy_binding`,
+`create_quote` ...). It now shows words, in English and Finnish: "Read the
+request", "Rules check on signed price", "Asked Aimo to lock the price".
+
+- **Only the screen changed.** The codes are still what the backend writes and
+  what the audit tables and tests hold; `stepLabel()` in `lib/format.ts` turns a
+  code into its label from the new `step` group in `en.json` / `fi.json`. A code
+  with no label yet reads as words, so a new step never shows up blank.
+- Refusal codes inside a detail sentence ("over_daily_limit") read as their
+  label ("over the daily limit") via `readableDetail()`. The sentence stays in
+  English, as the backend wrote it.
+- Five refusal labels that were missing: `over_daily_limit`,
+  `idempotency_key_reused`, `mandate_wrong_agent`, `mandate_wrong_customer`,
+  `approval_for_another_quote`.
+- To label a new step: add it to `step` in both translation files. No code change.
+
 ### 02:10 - bug report 1, the gateway half
 
 Seven items from the review, each with a test, and the endpoint code itself

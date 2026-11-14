@@ -92,3 +92,33 @@ export function parseAmount(text: string): number {
   if (/^\d+([.,]\d+)?$/.test(s)) return Number(s.replace(",", "."));
   return NaN;
 }
+
+/**
+ * A step code from the agent's log ("parse_need", "create_quote") as words a
+ * chef reads: "Read the request". The codes themselves stay as they are in the
+ * audit tables and the tests; only what the screen shows changes. A code with
+ * no label yet still reads as words ("some_new_step" -> "Some new step").
+ */
+export function stepLabel(code: string | null | undefined): string {
+  if (!code) return "";
+  const key = `step.${code}`;
+  if (i18n.exists(key)) return i18n.t(key);
+  const words = code.replace(/_/g, " ").toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/**
+ * The backend's detail sentences are English and sometimes carry a refusal
+ * code ("over_daily_limit: ..."). Each known code becomes its English label,
+ * lower-case mid-sentence ("over the daily limit"), so the sentence stays one
+ * language and reads naturally.
+ */
+export function readableDetail(text: string | null | undefined): string {
+  if (!text) return "";
+  return text.replace(/\b[a-z]+(?:_[a-z]+)+\b/g, (code, offset: number) => {
+    const key = `refusal.${code}`;
+    if (!i18n.exists(key, { lng: "en" })) return code;
+    const label = i18n.t(key, { lng: "en" });
+    return offset === 0 ? label : label.charAt(0).toLowerCase() + label.slice(1);
+  });
+}
