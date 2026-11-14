@@ -17,7 +17,7 @@ import { StatusSteps } from "../features/order/StatusSteps";
 import { SuggestionsPanel } from "../features/order/SuggestionsPanel";
 import { useBasketActions, useBasketQuery } from "../features/order/useBasket";
 import { codeLabel, day, dayTime, timeLeft } from "../lib/format";
-import { clearChat, forgetBasket, getCurrentBasket, setCurrentBasket } from "../lib/session";
+import { clearChat, getCurrentBasket, setCurrentBasket } from "../lib/session";
 
 export function OrderPage() {
   const { t } = useTranslation();
@@ -53,7 +53,8 @@ export function OrderPage() {
 
   const gone = query.error instanceof ApiError && query.error.kind === "missing";
   useEffect(() => {
-    if (gone && basketId) { forgetBasket(basketId); if (getCurrentBasket() === basketId) setCurrentBasket(null); }
+    // The basket is gone from the server, so stop pointing at it.
+    if (gone && basketId && getCurrentBasket() === basketId) setCurrentBasket(null);
   }, [gone, basketId]);
 
   const busy = actions.edit.isPending || actions.confirm.isPending || actions.approve.isPending || actions.remove.isPending;

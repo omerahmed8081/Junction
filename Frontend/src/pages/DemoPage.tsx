@@ -5,14 +5,14 @@ import { RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
 import { Banner, Button, Card, ErrorNote, PageTitle } from "../components/ui";
-import { clearChat, clearSteps, forgetAllBaskets } from "../lib/session";
+import { clearChat, setCurrentBasket } from "../lib/session";
 
 export function DemoPage() {
   const { t } = useTranslation();
   const client = useQueryClient();
   const reset = useMutation({
     mutationFn: async () => { await api.resetKitchen(); await api.resetGateway(); },
-    onSuccess: () => { forgetAllBaskets(); clearSteps(); clearChat(); client.clear(); },
+    onSuccess: () => { clearChat(); setCurrentBasket(null); client.clear(); },
   });
   return (
     <>

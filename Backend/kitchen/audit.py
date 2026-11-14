@@ -120,6 +120,20 @@ class KitchenAudit:
         self._failed_at = 0.0
         self._recent: tuple[str, str, str] | None = None
 
+    def forget_memory(self) -> int:
+        """Drop the rows held in memory. For the labelled demo reset only.
+
+        When the database is unreachable, rows go into `_fallback` and `recent`
+        reads them from there. A reset truncates the table but the process keeps
+        running, so without this the cleared log reappears - which is how the
+        frontend ended up showing audit rows for orders that no longer existed.
+        """
+        held = len(self._fallback)
+        self._fallback.clear()
+        self._recent = None      # the de-duplicator, or the next identical
+                                 # step after a reset would be swallowed
+        return held
+
     def _worth_retrying(self) -> bool:
         """Aiven's free tier powers off when idle and takes about half a minute
         to wake, so one timeout must not send us to memory until a restart."""

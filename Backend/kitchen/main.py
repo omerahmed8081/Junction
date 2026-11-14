@@ -10,6 +10,7 @@ They move to the kitchen's own database schema with the order flow (block 2).
 from __future__ import annotations
 
 import os
+import secrets
 from contextlib import asynccontextmanager
 from datetime import date
 from pathlib import Path
@@ -61,6 +62,20 @@ inventory = Inventory.from_seed()
 # Services logged since start, kept so a restart can replay them: the ledger is
 # derived from the seed plus these, rather than saved as raw movements.
 logged_services: list[dict] = []
+
+
+def _new_generation() -> str:
+    return secrets.token_hex(4)
+
+
+# Which run of this kitchen's data the browser is looking at. It changes when
+# the process starts and when the demo reset runs, and `/api/kitchen` reports
+# it, so a browser holding a chat transcript from before a reset can tell and
+# drop it. Without this, `scripts/clean_slate.py` from a terminal left the
+# transcript sitting in sessionStorage with nothing to tell the page it was
+# stale. It is deliberately not stored: a new process has nothing in its own
+# memory either, so the transcript should go then too.
+GENERATION = _new_generation()
 
 
 @asynccontextmanager
@@ -617,14 +632,25 @@ def demo_reset() -> dict:
     into each other's data, so a full reset calls both. Run this before the
     video take and before the pitch, or the weekly limit creeps up on you.
     """
-    counts = {"baskets": len(baskets), "orders": len(orders)}
+    global GENERATION, inventory
+    counts = {"baskets": len(baskets), "orders": len(orders),
+              "logged_services": len(logged_services)}
     baskets.clear()
     orders.clear()
+    # The ledger is seed plus the services logged since. Clearing the stored
+    # services without rebuilding left the portions in the running ledger, so
+    # the stock on screen stayed where the last rehearsal had left it. Nothing
+    # holds a reference to this object; every reader takes it as an argument.
+    logged_services.clear()
+    inventory = Inventory.from_seed()
     kitchen.mandate = None
     kitchen.stopped = False                     # a reset starts the agent again
     storage.clear()
+    counts["audit_rows_in_memory"] = audit.log.forget_memory()
+    GENERATION = _new_generation()              # the browser drops its transcript
     mandate = kitchen.mandate_in_force()        # a fresh one, so the next order works
-    return {"cleared": counts, "mandate": mandate.payload.jti}
+    return {"cleared": counts, "generation": GENERATION,
+            "mandate": mandate.payload.jti}
 
 
 # ------------------------------------------------ inventory and suggestions
@@ -712,7 +738,11 @@ def whose_kitchen() -> dict:
     """
     return {"name": os.environ.get("KITCHEN_NAME", "Kitchen ordering"),
             "agent_name": ordering.AGENT_NAME,
-            "customer": ordering.CUSTOMER_ID}
+            "customer": ordering.CUSTOMER_ID,
+            # The frontend already calls this on every page load, so it is the
+            # cheapest place to tell a browser its transcript is from a
+            # previous run. See GENERATION at the top of this file.
+            "generation": GENERATION}
 
 
 @app.delete("/api/mandate")

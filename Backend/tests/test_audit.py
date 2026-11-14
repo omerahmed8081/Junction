@@ -255,3 +255,50 @@ if __name__ == "__main__":
         if name.startswith("test_") and callable(fn):
             fn(); print("ok  ", name); passed += 1
     print(passed)
+
+
+# ------------------------------------------------ what a reset must not leave
+
+
+def test_a_reset_clears_the_rows_held_in_memory():
+    """With no database, rows live in a deque that `recent` reads. A reset used
+    to truncate the table and leave the deque, so the frontend showed audit
+    history for orders that no longer existed."""
+    from kitchen import audit as kitchen_audit
+
+    log = kitchen_audit.KitchenAudit()                  # no pool: memory only
+    log.record(kitchen_audit.KitchenRecord(
+        at=NOW, step="search", basket_id="b_1", detail="looked for milk"))
+    assert log.recent(), "nothing was recorded, so this proves nothing"
+
+    held = log.forget_memory()
+    assert held == 1
+    assert log.recent() == []
+
+
+def test_a_reset_lets_an_identical_step_be_recorded_again():
+    """The de-duplicator swallows a repeat of the same step. After a reset the
+    chef runs the same sentence again, and that must still be recorded."""
+    from kitchen import audit as kitchen_audit
+
+    log = kitchen_audit.KitchenAudit()
+    entry = lambda: kitchen_audit.KitchenRecord(          # noqa: E731
+        at=NOW, step="search", basket_id="b_1", detail="looked for milk")
+    log.record(entry())
+    log.record(entry())
+    assert len(log.recent()) == 1, "the de-duplicator is not doing its job"
+
+    log.forget_memory()
+    log.record(entry())
+    assert len(log.recent()) == 1, "the repeat after a reset was swallowed"
+
+
+def test_the_gateway_reset_clears_its_memory_too():
+    from gateway import audit as gateway_audit
+
+    log = gateway_audit.AuditLog()  # no pool: memory only
+    log.record(at=NOW, agent_id="a", customer_id="c_1", key_fingerprint="fp",
+               action="search_products", outcome="ok", status=200, duration_ms=3)
+    assert log.recent("c_1")
+    assert log.forget_memory() == 1
+    assert log.recent("c_1") == []

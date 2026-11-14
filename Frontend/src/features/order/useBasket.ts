@@ -9,7 +9,7 @@ import { api } from "../../api/client";
 import type { Basket, ChatResponse, LineEdit, OrderResponse } from "../../api/types";
 import { useAnnounce } from "../../components/Announcer";
 import { money } from "../../lib/format";
-import { addChatMessage, clearChat, forgetBasket, logSecurityEvent, logSteps, rememberBasket, setCurrentBasket } from "../../lib/session";
+import { addChatMessage, clearChat, setCurrentBasket } from "../../lib/session";
 
 export function useBasketQuery(id: string | null) {
   return useQuery({ queryKey: ["basket", id], queryFn: () => api.basket(id!), enabled: !!id, retry: false });
@@ -25,10 +25,8 @@ export function useBasketActions(basketId: string | null, onBasket?: (basket: Ba
   const announce = useAnnounce();
   const { t } = useTranslation();
 
-  const accept = (basket: Basket | null | undefined, steps: ChatResponse["steps"]) => {
-    logSteps(steps, basket?.basket_id ?? basketId);
+  const accept = (basket: Basket | null | undefined, _steps: ChatResponse["steps"]) => {
     if (!basket) return;
-    rememberBasket(basket.basket_id);
     client.setQueryData(["basket", basket.basket_id], basket);
     announce(t("basket.updated", { net: money(basket.net_total) }));
     onBasket?.(basket);
@@ -59,7 +57,6 @@ export function useBasketActions(basketId: string | null, onBasket?: (basket: Ba
   const remove = useMutation({
     mutationFn: () => api.deleteBasket(basketId!),
     onSuccess: () => {
-      forgetBasket(basketId!);
       setCurrentBasket(null);
       clearChat();
       client.removeQueries({ queryKey: ["basket", basketId] });
@@ -71,7 +68,6 @@ export function useBasketActions(basketId: string | null, onBasket?: (basket: Ba
     mutationFn: () => api.approve(basketId!),
     onSuccess: (r: OrderResponse) => {
       accept(r.basket, r.steps);
-      if (r.refusal?.security_event) logSecurityEvent(`${r.refusal.reason}: ${r.refusal.detail}`, basketId);
       afterOrderChange();
     },
   });

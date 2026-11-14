@@ -9,7 +9,6 @@ import { useTranslation } from "react-i18next";
 import { api } from "../../api/client";
 import { Banner, Button, ErrorNote } from "../../components/ui";
 import { DISHES } from "../../fixtures/dishes";
-import { logSteps, rememberBasket } from "../../lib/session";
 
 type Props = { open: boolean; onOpenChange: (open: boolean) => void; onBasket: (basketId: string) => void };
 
@@ -27,8 +26,7 @@ export function ServiceDialog({ open, onOpenChange, onBasket }: Props) {
   const log = useMutation({
     mutationFn: () => api.logService(Object.fromEntries(Object.entries(parsed).filter(([, n]) => n > 0))),
     onSuccess: (r) => {
-      logSteps(r.steps, r.basket?.basket_id);
-      if (r.basket) { rememberBasket(r.basket.basket_id); client.setQueryData(["basket", r.basket.basket_id], r.basket); }
+      if (r.basket) client.setQueryData(["basket", r.basket.basket_id], r.basket);
       void client.invalidateQueries({ queryKey: ["suggestions"] });
       void client.invalidateQueries({ queryKey: ["inventory"] });
     },

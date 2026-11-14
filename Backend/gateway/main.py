@@ -520,5 +520,9 @@ def demo_reset(caller: agents.Caller = Depends(demo_caller)) -> dict:
     customer = caller.customer_id
     removed = store.forget_customer(customer)
     registry.forget_customer(removed)
+    # The rows held in memory while the database was away would otherwise
+    # survive the reset and show up as history for orders that are gone.
+    held = audit.log.forget_memory()
     return {"customer": customer, "orders_cleared": len(removed),
+            "audit_rows_in_memory": held,
             "weekly_net_now": store.weekly_net(customer, datetime.now(timezone.utc))}

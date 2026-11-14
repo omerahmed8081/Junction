@@ -7,6 +7,54 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Sunday 15 November
 
+### 04:35 - state that outlived a reset
+
+Three things survived a reset that should not have. All three had the same
+shape: a copy somewhere that nothing cleared.
+
+**1. Audit rows held in memory.** When the database is unreachable, both audit
+logs keep rows in a deque and `recent()` reads from there. The reset truncated
+the table and left the deque, and the process kept running - so the cleared log
+came back. This is why the Activity page showed entries for orders the Orders
+page said did not exist. Both sides now have `forget_memory()`, called by their
+reset, and it clears the de-duplicator too, or the first repeated step after a
+reset would be swallowed.
+
+**2. The chat transcript.** It lives in `sessionStorage`, so the kitchen could
+be reset from a terminal and the browser heard nothing. `/api/kitchen` now
+reports a `generation` - new on process start and on reset - and the shell
+drops the transcript, the remembered basket and the query cache when it
+changes. `/api/kitchen` was already fetched on every page load, so this costs
+no extra request.
+
+The generation is deliberately not stored, so a plain restart also counts as a
+new run and clears the transcript, even though the baskets themselves now
+survive in Postgres. That errs toward freshness: it can clear something still
+valid, but it can never fail to clear something stale. The baskets are intact
+in Approvals either way.
+
+**3. The ledger.** The reset cleared the stored services but not the running
+`Inventory`, which is seed plus the services logged since - so stock on screen
+stayed where the last rehearsal left it. It is rebuilt from seed now.
+
+**Also removed: two browser stores that were written and never read.**
+`tta.steps` collected up to 300 agent steps on every turn and `tta.baskets` a
+list of basket ids; `useSteps` and `useKnownBaskets` were called nowhere,
+because the pages read the server. A write-only store is how a page ends up
+showing yesterday's data, so they are gone, along with `logSteps`,
+`logSecurityEvent`, `rememberBasket` and `forgetBasket`. Nothing on screen
+changes: agent steps are shown from the chat messages that carry them, and
+security events come from the server's audit log. Stale copies of both keys are
+removed from any browser that still has them, the first time it syncs.
+
+`lib/session.ts` now holds four things and every one is read somewhere.
+
+317 tests. The generation logic was also run outside the app against stubbed
+storage, since the frontend has no test runner: a first visit keeps a
+just-typed message, the same generation does nothing however often it is seen,
+a new one clears, a backend that reports none changes nothing, and the role
+survives.
+
 ### 03:40 - all of the state is in Postgres now
 
 Some things lived in the database and some in a JSON file, and the two

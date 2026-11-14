@@ -1,13 +1,14 @@
 // The frame around every page: skip link, header, navigation (top bar on
 // tablet and desktop, bottom tabs on a phone), language switch, <main>.
+import { useEffect } from "react";
 import { clsx } from "clsx";
 import { Activity, ChefHat, ClipboardCheck, Package, ShoppingBasket, SlidersHorizontal } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
 import { NavLink, Outlet } from "react-router-dom";
 import { useWaitingBaskets } from "../features/approvals/useWaitingBaskets";
-import { ROLES, setRole, useRole, type Role } from "../lib/session";
+import { ROLES, setRole, syncGeneration, useRole, type Role } from "../lib/session";
 
 const ITEMS = [
   { to: "/", key: "order", icon: ShoppingBasket },
@@ -70,6 +71,15 @@ export function AppShell() {
   // The kitchen names itself, so a second tenant needs no frontend change.
   const name = useQuery({ queryKey: ["kitchen"], queryFn: api.kitchen, staleTime: Infinity });
   const waiting = useWaitingBaskets().baskets.length;
+  // The kitchen tells us which run of its data we are looking at. If it has
+  // been reset or restarted since this browser last looked - including from a
+  // terminal, which the page would otherwise never hear about - drop the
+  // transcript and the remembered basket, and drop the cached answers with
+  // them. Everything on screen then comes from the server as it is now.
+  const client = useQueryClient();
+  useEffect(() => {
+    if (syncGeneration(name.data?.generation)) client.clear();
+  }, [name.data?.generation, client]);
   return (
     <div className="flex min-h-dvh flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:font-semibold">

@@ -145,6 +145,18 @@ class AuditLog:
         self.last_error = ""
         self._failed_at = 0.0
 
+    def forget_memory(self) -> int:
+        """Drop the rows held in memory. For the labelled demo reset only.
+
+        When the database is unreachable, rows go into `_fallback` and `recent`
+        reads them from there. A reset truncates the table but the process keeps
+        running, so without this the cleared log reappears - which is how the
+        frontend ended up showing audit rows for orders that no longer existed.
+        """
+        held = len(self._fallback)
+        self._fallback.clear()
+        return held
+
     def _worth_retrying(self) -> bool:
         import time
         return not self.degraded or (time.monotonic() - self._failed_at) > RETRY_AFTER_SECONDS
