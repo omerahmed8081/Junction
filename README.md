@@ -90,6 +90,7 @@ silently corrupts the API key.
 | `DATABASE_URL` | gateway | The product catalogue. Search and quotes fail without it; `/health` reports `degraded` |
 | **`KITCHEN_JWKS`** | gateway | The kitchen's JWKS URL. **Unset and every order is refused** while search, price and quote still work. Defaults to the kitchen on the same host |
 | `AGENT_KEYS` | gateway | `key\|agent_id\|customer_id\|label`, comma separated. Each key is one customer, and Aimo prices by customer. Defaults to the two demo agents |
+| `AUTO_ORDER` | kitchen | Whether the agent places a basket its own standing rules cleared. Default on; needs a rule *and* a mandate that does not require approval |
 | `MANDATE_PER_DAY_EUR` | kitchen | The daily budget a new mandate is signed with. Default 2000; the week's default is 5000 |
 | `LOCAL_UTC_OFFSET_HOURS` | gateway | Which day "today" means for the daily budget. Default 2, Finland in winter |
 | `AGENT_API_KEY` | kitchen | The key this kitchen presents to the gateway. Defaults to `demo-kitchen-key` |

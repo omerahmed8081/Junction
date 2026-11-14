@@ -7,6 +7,37 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Saturday 14 November
 
+### 23:00 - the agent can finish the job
+
+A standing rule used to mark a basket `auto_ok` and then leave it sitting there
+waiting for the click it had just said was unnecessary. Now the chat puts it
+through.
+
+**Two separate permissions have to line up**, and either one missing does
+nothing: a standing rule the owner set covers the basket, and the mandate in
+force does not require Aimo to be shown a human approval. The first is the
+kitchen deciding nobody needs to look; the second is Aimo agreeing not to
+demand proof that somebody did.
+
+- The order is placed with `approver_role: "agent"`, which the backend accepts
+  **only** for an `auto_ok` basket. A test places a `chef` and a `manager`
+  basket as the agent and checks both are refused, because that is the guard
+  that matters - the agent can always sign a perfectly valid approval, so the
+  level is the only thing stopping it.
+- A rule says nobody *has* to look, not that nobody may: a person can still
+  approve an `auto_ok` basket, and that is tested too.
+- Anything that goes wrong leaves the basket a draft for a person, and says so
+  in the chat. An order that quietly fails to go through is worse than one that
+  waits.
+- `AUTO_ORDER=false` turns it off without touching the rules.
+
+Found while wiring it: the approval check compared the approver's role against
+`ROLE_RANK`, which holds roles, and `auto_ok` is a *level* nobody holds. It fell
+through to the default and the agent failed the very check it had just passed.
+Levels now have their own ranking.
+
+3 more tests, 251 passing.
+
 ### 22:40 - a daily budget
 
 `MandateLimits` gained `max_net_per_day`, default **EUR 2,000** against the

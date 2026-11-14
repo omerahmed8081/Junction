@@ -67,6 +67,10 @@ MANDATE_CATEGORIES = [c for c in (os.environ.get("MANDATE_CATEGORIES") or "").sp
 # off on anything a person would have had to look at.
 ROLE_RANK = {"agent": 0, "chef": 1, "manager": 2, "owner": 3}
 AUTO_LEVEL = "auto_ok"
+# What each approval level demands of whoever approves. Separate from ROLE_RANK
+# because a level is not a role: "auto_ok" is a level nobody holds, and leaving
+# it out of the lookup made the agent fail the very check it was added for.
+LEVEL_RANK = {AUTO_LEVEL: 0, "chef": 1, "manager": 2, "owner": 3}
 
 # Refusals the basket can recover from by itself: the world moved, so re-check
 # and come back with a basket that matches reality. Everything else (a mandate
@@ -290,7 +294,7 @@ def approve(state, approver_role: str, gateway: GatewayClient,
         raise OrderingError(
             "the agent may only place an order your rules already cleared; "
             "this one needs a person")
-    if ROLE_RANK[role] < ROLE_RANK.get(needed, 1):
+    if ROLE_RANK[role] < LEVEL_RANK.get(needed, 1):
         # The chef cannot wave through what the policy sent to a manager. The
         # gateway cannot check this for us: it sees a signature, not a person.
         raise OrderingError(f"this basket needs {needed} approval, not {role}")

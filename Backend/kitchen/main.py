@@ -210,6 +210,14 @@ def chat(req: ChatRequest) -> ChatResponse:
 
     if state is None:
         return ChatResponse(reply="I could not find anything to add.", basket=None)
+    # A basket the kitchen's own rules already cleared can go straight through.
+    # Two separate permissions have to line up: a standing rule the owner set,
+    # and a mandate that does not require Aimo to see a human approval. Either
+    # one missing and this does nothing.
+    ordered_now = _auto_order(state, all_steps)
+    if ordered_now:
+        replies.append(ordered_now)
+
     if failed:
         replies.append("I could not reach Aimo for " + _join(failed)
                        + ". Ask again and I will add " + ("it" if len(failed) == 1 else "them") + ".")
@@ -229,6 +237,67 @@ def _join(names: list[str]) -> str:
 def _day(when: date) -> str:
     """Tuesday 17 November: how a chef says a delivery date."""
     return f"{narrate.WEEKDAYS[when.weekday()]} {when.day} {narrate.MONTHS[when.month - 1]}"
+
+
+AUTO_ORDER = (os.environ.get("AUTO_ORDER", "true").strip().lower()
+              in {"1", "true", "yes", "on"})
+
+
+def _auto_order(state: agent.BasketState | None, steps: list) -> str:
+    """Order without asking, when the kitchen has already said it may.
+
+    Only when all of these hold: the feature is on, the basket is a draft with
+    lines, the kitchen's own policy cleared it (`auto_ok`, which only a standing
+    rule produces), and the mandate in force does not require Aimo to be shown a
+    human approval. Anything that goes wrong leaves the basket as a draft for a
+    person, because a failure to order quietly is worse than an order that waits.
+    """
+    if not AUTO_ORDER or state is None or not state.basket.lines:
+        return ""
+    if state.basket.status != "draft":
+        return ""
+    if not state.basket.policy or state.basket.policy.level != ordering.AUTO_LEVEL:
+        return ""
+    if kitchen.mandate_in_force().payload.approval_required:
+        return ""
+
+    rule = (state.basket.policy.reasons or [""])[0]
+    try:
+        _, confirm_steps = ordering.confirm(state.basket, gateway, kitchen)
+        steps.extend(confirm_steps)
+        result = ordering.approve(state, "agent", gateway, kitchen, steps)
+    except (OrderingError, GatewayError, GatewayRefused) as exc:
+        audit.log.record("auto_order", basket_id=state.basket.basket_id,
+                         reason=str(exc)[:200],
+                         detail=narrate.sentence("auto_order", f"could not go through: {exc}"))
+        return "I could not put it through on its own, so it is waiting for you."
+
+    if result.order is not None:
+        orders[result.order.order_id] = result.order
+        audit.log.record("auto_order", basket_id=state.basket.basket_id, actor="agent",
+                         order_id=result.order.order_id, crossed_gateway=True,
+                         result={"net_total": result.order.net_total, "rule": rule},
+                         detail=narrate.sentence(
+                             "auto_order",
+                             f"{result.order.order_id} for {result.order.net_total} EUR net, "
+                             f"under {rule.lower() or 'your rule'}"))
+        return (f"No approval needed, so I ordered it: {result.order.order_id}, "
+                f"EUR {result.order.net_total:,.2f} net. {rule}")
+
+    refusal = result.refusal.reason if result.refusal else "unknown"
+    audit.log.record("auto_order", basket_id=state.basket.basket_id, actor="agent",
+                     reason=refusal, crossed_gateway=True,
+                     detail=narrate.sentence("auto_order", f"Aimo did not accept it: {refusal}"))
+    return _sentence_for(result)
+
+
+def _sentence_for(result) -> str:
+    """Why an order the rules cleared still did not go through."""
+    if result.outcome == "adjusted":
+        return ("I tried to order it on your rule, but Aimo's answer had changed, "
+                "so the basket is back to a draft for you to look at. ") + (result.reply or "")
+    return ("I tried to order it on your rule, but Aimo would not accept it. "
+            + (result.reply or ""))
 
 
 def _apply_change(state: agent.BasketState, change, message: str) -> ChatResponse:

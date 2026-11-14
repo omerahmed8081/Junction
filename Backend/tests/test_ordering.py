@@ -26,6 +26,7 @@ from kitchen.gateway_client import GatewayRefused  # noqa: E402
 from kitchen.need import parse_with_rules  # noqa: E402
 from kitchen.ordering import KitchenSigner, OrderingError  # noqa: E402
 from shared.schemas import (  # noqa: E402
+    PolicyDecision,
     CheckDeliveryItem,
     CheckDeliveryResponse,
     LineEdit,
@@ -436,6 +437,41 @@ def test_a_swap_still_works_when_the_candidates_were_not_persisted():
         restored, [LineEdit(product_id="464306", swap_to_product_id="464401")], gateway)
     assert "Swapped" in reply
     assert [l.product_id for l in restored.basket.lines] == ["464401"]
+
+
+# ---- what the agent may place on its own -------------------------------
+
+def test_the_agent_may_place_what_a_rule_cleared():
+    state, gateway, kitchen = drafted()
+    state.basket.policy = PolicyDecision(level="auto_ok", reasons=["Your rule: milk"], binding=False)
+    ordering.confirm(state.basket, gateway, kitchen, now=NOW)
+    result = ordering.approve(state, "agent", gateway, kitchen, now=NOW)
+    assert result.outcome == "ordered" and result.order is not None
+    assert result.order.approver_role == "agent"
+
+
+def test_the_agent_may_not_place_anything_else():
+    """The guard that matters: without a rule clearing it, the agent is refused
+    even though it can sign a perfectly valid approval."""
+    for level in ("chef", "manager"):
+        state, gateway, kitchen = drafted()
+        state.basket.policy = PolicyDecision(level=level, reasons=[], binding=False)
+        ordering.confirm(state.basket, gateway, kitchen, now=NOW)
+        try:
+            ordering.approve(state, "agent", gateway, kitchen, now=NOW)
+        except OrderingError as exc:
+            assert "needs a person" in str(exc), level
+            continue
+        raise AssertionError(f"the agent should not have been able to approve a {level} basket")
+
+
+def test_a_person_can_still_approve_what_a_rule_cleared():
+    """A rule says nobody *has* to look, not that nobody may."""
+    state, gateway, kitchen = drafted()
+    state.basket.policy = PolicyDecision(level="auto_ok", reasons=["Your rule: milk"], binding=False)
+    ordering.confirm(state.basket, gateway, kitchen, now=NOW)
+    result = ordering.approve(state, "chef", gateway, kitchen, now=NOW)
+    assert result.outcome == "ordered" and result.order.approver_role == "chef"
 
 
 if __name__ == "__main__":
