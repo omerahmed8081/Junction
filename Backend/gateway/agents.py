@@ -25,10 +25,24 @@ from dataclasses import dataclass
 DEMO_KITCHEN_KEY = "demo-kitchen-key"
 DEMO_SECOND_CLIENT_KEY = "demo-second-client-key"
 
-DEFAULT_AGENTS = (
-    f"{DEMO_KITCHEN_KEY}|agent:kitchen-demo|123|Nordic Bistro (demo kitchen)",
-    f"{DEMO_SECOND_CLIENT_KEY}|agent:second-client|456|Second client (no mandate)",
-)
+# Read from the same environment the kitchen reads, so the customer the kitchen
+# signs a mandate for and the customer this key maps to cannot drift apart. They
+# did once: the mandate was then refused as mandate_wrong_customer, with search
+# and quoting still working, which is a confusing way to find out.
+DEMO_AGENT_ID = os.environ.get("AGENT_ID", "agent:kitchen-demo")
+DEMO_CUSTOMER_ID = os.environ.get("AIMO_CUSTOMER_ID", "123")
+DEMO_AGENT_NAME = os.environ.get("AGENT_NAME", "Kitchen agent")
+
+
+def _defaults() -> tuple[str, ...]:
+    return (
+        f"{DEMO_KITCHEN_KEY}|{DEMO_AGENT_ID}|{DEMO_CUSTOMER_ID}|{DEMO_AGENT_NAME}",
+        f"{DEMO_SECOND_CLIENT_KEY}|agent:second-client|"
+        f"{os.environ.get('SECOND_CLIENT_CUSTOMER_ID', '456')}|Second client (no mandate)",
+    )
+
+
+DEFAULT_AGENTS = _defaults()
 
 
 def fingerprint(api_key: str) -> str:
@@ -70,7 +84,9 @@ def _parse(spec: str) -> dict[str, Caller]:
 
 def registry() -> dict[str, Caller]:
     """Read every call, so a key added to the environment needs no restart."""
-    return _parse(os.environ.get("AGENT_KEYS") or ",".join(DEFAULT_AGENTS))
+    # _defaults() is read each time, so changing AGENT_ID or AIMO_CUSTOMER_ID in
+    # the environment takes effect without editing this file.
+    return _parse(os.environ.get("AGENT_KEYS") or ",".join(_defaults()))
 
 
 def lookup(api_key: str | None) -> Caller | None:

@@ -24,7 +24,22 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 import psycopg                                                  # noqa: E402
 
-TABLES = [("gateway", "audit_log"), ("kitchen", "audit_log")]
+TABLES = [("gateway", "audit_log"), ("kitchen", "audit_log"), ("kitchen", "rules")]
+
+
+def show_all(conn) -> None:
+    """Every table in the two schemas, with its row count."""
+    rows = conn.execute(
+        "SELECT table_schema, table_name FROM information_schema.tables "
+        "WHERE table_schema IN ('gateway', 'kitchen') ORDER BY table_schema, table_name"
+    ).fetchall()
+    if not rows:
+        print("\nNo tables in the gateway or kitchen schemas.")
+        return
+    print("\nEverything in the database:")
+    for schema, table in rows:
+        count = conn.execute(f"SELECT count(*) FROM {schema}.{table}").fetchone()[0]
+        print(f"    {schema}.{table:<16} {count:>8,} rows")
 
 
 def show(conn) -> None:
@@ -62,6 +77,7 @@ def main() -> int:
         with psycopg.connect(url, connect_timeout=20, autocommit=True) as conn:
             if args.check:
                 show(conn)
+                show_all(conn)
                 return 0
 
             path = Path(args.path)

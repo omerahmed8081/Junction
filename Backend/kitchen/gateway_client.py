@@ -127,6 +127,20 @@ class GatewayClient:
     def order(self, order_id: str) -> OrderRecord:
         return OrderRecord(**self._get(f"/gateway/orders/{order_id}"))
 
+    def audit(self, order_id: str) -> list[dict]:
+        """What Aimo recorded about one of our orders.
+
+        An ordinary agent request: the gateway answers only for the customer
+        behind our key, so this cannot reach another kitchen's rows. Returns an
+        empty list rather than raising, because a missing half of the story
+        should not take the page down.
+        """
+        try:
+            return self._get(f"/gateway/audit?order_id={order_id}&limit=200").get("records", [])
+        except Exception as exc:        # noqa: BLE001
+            print(f"[kitchen] could not read Aimo's audit for {order_id}: {exc}")
+            return []
+
 
 def _refusal(path: str, response: "httpx.Response") -> GatewayRefused:
     """Turn the gateway's 409 body into something the chat can explain."""

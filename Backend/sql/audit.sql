@@ -88,11 +88,38 @@ CREATE INDEX IF NOT EXISTS kitchen_audit_basket ON kitchen.audit_log (basket_id,
 CREATE INDEX IF NOT EXISTS kitchen_audit_at ON kitchen.audit_log (id DESC);
 CREATE INDEX IF NOT EXISTS kitchen_audit_order ON kitchen.audit_log (order_id) WHERE order_id <> '';
 
+-- ------------------------------------------------------------- kitchen rules --
+-- What the kitchen has decided may go through without anyone looking: "milk
+-- under 200 euro, do not ask me". These are the kitchen's own and Aimo never
+-- reads them; what Aimo enforces is the signed mandate. A rule can only relax
+-- an approval the kitchen would otherwise ask for itself, so the worst a wrong
+-- one can do is skip a click.
+CREATE TABLE IF NOT EXISTS kitchen.rules (
+    id                 bigserial PRIMARY KEY,
+    created_at         timestamptz NOT NULL DEFAULT now(),
+    name               text        NOT NULL DEFAULT '',
+
+    -- what the rule is about: any | category | product | claim | name
+    match_kind         text        NOT NULL DEFAULT 'any',
+    match_value        text        NOT NULL DEFAULT '',
+
+    -- the ceiling it applies under. NULL means no ceiling, which is why the
+    -- mandate still sits above all of this.
+    max_net_per_order  numeric(12, 2),
+
+    -- rules are switched off, never deleted: a rule that was in force when an
+    -- order went through has to stay readable afterwards
+    active             boolean     NOT NULL DEFAULT true
+);
+
+CREATE INDEX IF NOT EXISTS kitchen_rules_active ON kitchen.rules (id) WHERE active;
+
 -- ------------------------------------------------------------------ grants --
 -- Append-only in production: the service may add rows and read them, nothing more.
 -- Replace app_user with the real role.
 --
 -- REVOKE UPDATE, DELETE, TRUNCATE ON gateway.audit_log, kitchen.audit_log FROM app_user;
+-- (kitchen.rules is not append-only: switching a rule off is an UPDATE.)
 -- GRANT INSERT, SELECT ON gateway.audit_log, kitchen.audit_log TO app_user;
 -- GRANT USAGE, SELECT ON SEQUENCE gateway.audit_log_id_seq, kitchen.audit_log_id_seq TO app_user;
 --

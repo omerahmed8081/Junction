@@ -22,7 +22,7 @@ from fastapi import FastAPI, HTTPException  # noqa: E402
 from psycopg_pool import ConnectionPool  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
-from kitchen import agent, audit, edits, keys, ordering, storage, suggestions  # noqa: E402
+from kitchen import agent, audit, edits, keys, ordering, rules, storage, suggestions  # noqa: E402
 from kitchen.inventory import Inventory  # noqa: E402
 from kitchen.gateway_client import GatewayClient, GatewayError, GatewayRefused  # noqa: E402
 from kitchen import narrate  # noqa: E402
@@ -41,6 +41,7 @@ from shared.schemas import (  # noqa: E402
     ChatResponse,
     MandateRequest,
     MandateView,
+    RuleRequest,
     OrderRecord,
     OrderResponse,
 )
@@ -68,6 +69,7 @@ async def lifespan(_: FastAPI):
         try:
             pool = ConnectionPool(url, min_size=1, max_size=2, open=True)
             audit.log.set_pool(pool)
+            rules.store.set_pool(pool)
         except Exception as exc:        # noqa: BLE001
             print(f"[kitchen] no audit database, keeping rows in memory: {exc}")
     else:
@@ -374,7 +376,8 @@ def approve_basket(basket_id: str, req: ApproveRequest) -> OrderResponse:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     if result.order is not None:
         orders[result.order.order_id] = result.order
-    audit.log.record_steps(getattr(result, "steps", []) or [], basket_id)
+    audit.log.record_steps(getattr(result, "steps", []) or [], basket_id,
+                           order_id=result.order.order_id if result.order else "")
     audit.log.record("approve", basket_id=basket_id, actor="human",
                      approver_role=req.approver_role,
                      order_id=result.order.order_id if result.order else "",
@@ -419,6 +422,7 @@ def get_mandate() -> MandateView:
     """What this kitchen's agent is currently allowed to order."""
     mandate = kitchen.mandate_in_force()
     return MandateView(mandate_id=mandate.payload.jti, agent_id=mandate.payload.sub,
+                       agent_name=ordering.AGENT_NAME,
                        customer=mandate.payload.customer, expires_at=mandate.expires_at,
                        limits=mandate.payload.limits,
                        allowed_categories=mandate.payload.allowed_categories,
@@ -493,6 +497,86 @@ def read_audit(limit: int = 200, basket_id: str = "", order_id: str = "",
             "note": ("the database was unreachable, these rows are from memory and "
                      "are lost on restart") if audit.log.degraded else "",
             "records": rows}
+
+
+@app.get("/api/orders/{order_id}/audit")
+def order_audit(order_id: str) -> dict:
+    """Everything both sides recorded about one order, oldest first.
+
+    One call for the Activity tab: click an order, see the whole story. The
+    kitchen's own rows come from its log; Aimo's come from the gateway, which
+    answers only for the customer behind our key. Each row says which side it
+    is from, so "what Aimo sees" stays visible as the smaller half.
+    """
+    ours = audit.log.recent(limit=500, order_id=order_id)
+    # Only the approval row carries the order id; everything before it belongs
+    # to the basket that became this order, and that is most of the story.
+    basket_id = next((b.basket.basket_id for b in baskets.values()
+                      if b.basket.order_id == order_id), "")
+    if basket_id:
+        seen = {r.get("id") for r in ours}
+        ours += [r for r in audit.log.recent(limit=500, basket_id=basket_id)
+                 if r.get("id") not in seen]
+    for row in ours:
+        row["side"] = "kitchen"
+    theirs = gateway.audit(order_id) if gateway else []
+    for row in theirs:
+        row["side"] = "aimo"
+    rows = sorted(ours + theirs, key=lambda r: str(r.get("at") or ""))
+    return {"order_id": order_id, "count": len(rows),
+            "kitchen_rows": len(ours), "aimo_rows": len(theirs),
+            "degraded": audit.log.degraded, "records": rows}
+
+
+@app.get("/api/rules")
+def list_rules(include_inactive: bool = False) -> dict:
+    """The kitchen's standing rules, in the order they were set."""
+    found = rules.store.all(active_only=not include_inactive)
+    return {"count": len(found), "degraded": rules.store.degraded,
+            "note": ("the database was unreachable, these rules are in memory and "
+                     "are lost on restart") if rules.store.degraded else "",
+            "rules": [r.as_json() for r in found]}
+
+
+@app.post("/api/rules")
+def add_rule(req: RuleRequest) -> dict:
+    """Set a standing rule: what may go through without anyone looking.
+
+    A rule only ever relaxes an approval the kitchen would ask for itself, and
+    the signed mandate still sits above it, so the worst a wrong rule can do is
+    skip a click.
+    """
+    if req.match not in rules.MATCHES:
+        raise HTTPException(status_code=422,
+                            detail=f"match must be one of {', '.join(rules.MATCHES)}")
+    if req.match != "any" and not req.value.strip():
+        raise HTTPException(status_code=422, detail=f"a {req.match} rule needs a value")
+    if req.max_net_per_order is not None and req.max_net_per_order <= 0:
+        raise HTTPException(status_code=422, detail="the ceiling must be above 0")
+
+    rule = rules.store.add(rules.Rule(
+        name=req.name.strip(), match=req.match, value=req.value.strip(),
+        max_net_per_order=req.max_net_per_order))
+    audit.log.record("rule_added", actor="human", result=rule.as_json(),
+                     detail=narrate.sentence("rule_added", rule.said()))
+    for state in baskets.values():                  # the drafts on screen follow the new rule
+        agent._refresh(state.basket)
+    _save()
+    return rule.as_json()
+
+
+@app.delete("/api/rules/{rule_id}")
+def remove_rule(rule_id: int) -> dict:
+    """Switch a rule off. Rules are never deleted: one that was in force when an
+    order went through has to stay readable afterwards."""
+    if not rules.store.remove(rule_id):
+        raise HTTPException(status_code=404, detail=f"no rule {rule_id}")
+    audit.log.record("rule_removed", actor="human", result={"rule_id": rule_id},
+                     detail=narrate.sentence("rule_removed", f"rule {rule_id} switched off"))
+    for state in baskets.values():
+        agent._refresh(state.basket)
+    _save()
+    return {"rule_id": rule_id, "active": False}
 
 
 @app.get("/api/inventory", response_model=InventoryView)

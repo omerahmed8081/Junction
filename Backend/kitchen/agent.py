@@ -23,7 +23,7 @@ from datetime import date, datetime, timezone
 from kitchen.gateway_client import GatewayClient
 from kitchen.need import ParsedNeed
 from shared.money import basket_totals, line_totals
-from kitchen import narrate
+from kitchen import narrate, rules
 from shared.schemas import (
     AgentStep,
     Alternative,
@@ -501,6 +501,13 @@ def preview_policy(basket: Basket) -> PolicyDecision | None:
     # logic allows ordering any quantity against a sentinel, and 10 of the 14
     # orderable milks carry one, so requiring a manager would send almost every
     # basket to approval. It stays on the line as the flag availability_unknown.
+    # A standing rule the kitchen set for itself can clear an approval it would
+    # otherwise ask for. It can only ever relax, never block, and never clears a
+    # reason about the order being wrong (kitchen/rules.py).
+    allowed = rules.applies(rules.store.all(), basket, reasons)
+    if allowed is not None:
+        return PolicyDecision(level="auto_ok", binding=False,
+                              reasons=[f"Your rule: {allowed.said()}"])
     return PolicyDecision(level="manager" if reasons else "chef", reasons=reasons, binding=False)
 
 

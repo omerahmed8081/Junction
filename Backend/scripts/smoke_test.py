@@ -109,7 +109,12 @@ def main() -> int:
     # ---- 3. the dashboard's reads ----------------------------------------
     step(kitchen, "GET /api/inventory", "GET", "/api/inventory")
     step(kitchen, "GET /api/suggestions", "GET", "/api/suggestions")
-    step(kitchen, "GET /api/mandate", "GET", "/api/mandate")
+    mandate = step(kitchen, "GET /api/mandate", "GET", "/api/mandate")
+    if mandate:
+        record("mandate names an agent and a customer", PASS,
+               f"{mandate.get('agent_name') or mandate.get('agent_id')}, "
+               f"customer {mandate.get('customer')}"
+               + ("" if mandate.get("approval_required") else ", no approval needed"))
     step(kitchen, "GET /api/orders", "GET", "/api/orders")
 
     # ---- 4. the spine: sentence -> basket -> quote -> approval -> order ---

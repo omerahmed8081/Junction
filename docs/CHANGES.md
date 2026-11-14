@@ -7,6 +7,52 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Saturday 14 November
 
+### 21:40 - standing rules, and one order's whole story
+
+**`GET /api/orders/{id}/audit`** - one call for the Activity tab. Click an
+order, get both halves of its story in one list, oldest first, each row tagged
+`side: "kitchen"` or `side: "aimo"`. The kitchen's rows come from its own log;
+Aimo's come from the gateway as an ordinary agent request, so it can only ever
+return rows for the customer behind our key. Only the approval row carries the
+order id, so the basket that became the order is pulled in too - that is most
+of the story.
+
+**Standing rules** (`kitchen/rules.py`, `kitchen.rules`). "Milk under 200 euro,
+do not ask me." A rule says in advance that a kind of order is routine enough
+that nobody needs to look.
+
+- Matches on `any`, `category`, `product`, `claim` or `name`, with an optional
+  ceiling. `GET/POST/DELETE /api/rules`.
+- A rule **only relaxes**, never blocks, and the signed mandate still sits above
+  it, so the worst a wrong rule can do is skip a click.
+- **Every line has to match.** A rule about milk does not wave through a basket
+  that also holds rice - nobody said anything about the rice.
+- **It never clears a reason about the order being wrong.** Partial delivery, a
+  product that differs from what was asked for, a pack size that disagrees with
+  the price: a person still looks, whatever the rules say. A rule clears reasons
+  about size, which is what it is for.
+- Rules are switched off, never deleted: one in force when an order went through
+  has to stay readable afterwards.
+- A cleared basket gets `policy.level = "auto_ok"` with the rule quoted back as
+  the reason, and `approver_role: "agent"` is accepted for it - and only for it.
+  The agent cannot sign off on anything a person would have had to look at.
+
+These stay in the kitchen's schema and Aimo never reads them. What Aimo enforces
+is the mandate, signed. Shipping the rule list to the wholesaler would hand them
+the customer's internal approval policy, which is the one thing this design is
+trying not to do.
+
+`tests/test_rules.py`, 15 tests, most of them pinning what a rule may not do.
+242 passing.
+
+Also: `AGENT_NAME` is a per-kitchen environment variable and `MandateView` now
+carries `agent_name`, so the rules screen can show "Saaristo kitchen agent"
+while the signature stays made out to `agent:saaristo-kitchen`. The gateway's
+demo agent entry reads `AGENT_ID` and `AIMO_CUSTOMER_ID` from the same
+environment the kitchen does, so the customer a mandate is signed for and the
+customer a key maps to cannot drift apart - they did once, and the symptom was
+search and quoting working while every order was refused.
+
 ### 21:05 - changing a basket by saying so
 
 "make it 20", "drop the rice", "only 10 kg of butter". The basket's buttons

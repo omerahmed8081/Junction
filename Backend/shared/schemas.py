@@ -471,7 +471,9 @@ class ChatRequest(BaseModel):
 class ApproveRequest(BaseModel):
     """Who is approving. The policy decides what their role is allowed to pass."""
 
-    approver_role: Literal["chef", "manager", "owner"] = "manager"
+    # "agent" means nobody looked, and the backend accepts it only for a basket
+    # the kitchen's own rules already cleared.
+    approver_role: Literal["agent", "chef", "manager", "owner"] = "manager"
 
 
 class OrderResponse(BaseModel):
@@ -503,12 +505,24 @@ class MandateRequest(BaseModel):
     days: int | None = None
 
 
+class RuleRequest(BaseModel):
+    """A standing rule the kitchen sets for itself (kitchen/rules.py)."""
+
+    name: str = ""
+    match: str = "any"                          # any | category | product | claim | name
+    value: str = ""
+    max_net_per_order: float | None = None      # None means no ceiling of its own
+
+
 class MandateView(BaseModel):
     """The mandate in force, for the rules screen. The JWS is included so the
     trace can show exactly what was signed."""
 
     mandate_id: str
     agent_id: str
+    # What a person should see on the rules screen. The id stays machine-shaped
+    # because it is what the signature is actually made out to.
+    agent_name: str = ""
     customer: str
     expires_at: datetime
     limits: MandateLimits

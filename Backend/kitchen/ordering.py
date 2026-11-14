@@ -42,6 +42,7 @@ from shared.schemas import (
 from shared.signing import Signer, VerificationError, now_seconds
 
 AGENT_ID = os.environ.get("AGENT_ID", "agent:kitchen-demo")
+AGENT_NAME = os.environ.get("AGENT_NAME", "Kitchen agent")
 CUSTOMER_ID = os.environ.get("AIMO_CUSTOMER_ID", "123")
 CHEF_LIMIT_EUR = float(os.environ.get("CHEF_LIMIT_EUR", "500"))
 
@@ -54,7 +55,11 @@ MANDATE_CATEGORIES = [c for c in (os.environ.get("MANDATE_CATEGORIES") or "").sp
 
 # Who may approve what. The policy engine decides the level; this says which
 # roles satisfy it, so a chef cannot wave through a basket needing a manager.
-ROLE_RANK = {"chef": 1, "manager": 2, "owner": 3}
+# "agent" is not a person. It ranks below everyone and may only ever approve a
+# basket the kitchen's own rules already cleared (auto_ok), so it cannot sign
+# off on anything a person would have had to look at.
+ROLE_RANK = {"agent": 0, "chef": 1, "manager": 2, "owner": 3}
+AUTO_LEVEL = "auto_ok"
 
 # Refusals the basket can recover from by itself: the world moved, so re-check
 # and come back with a basket that matches reality. Everything else (a mandate
@@ -271,6 +276,10 @@ def approve(state, approver_role: str, gateway: GatewayClient,
     needed = basket.policy.level if basket.policy else "chef"
     if needed == "blocked":
         raise OrderingError("this basket is blocked and cannot be approved")
+    if role == "agent" and needed != AUTO_LEVEL:
+        raise OrderingError(
+            "the agent may only place an order your rules already cleared; "
+            "this one needs a person")
     if ROLE_RANK[role] < ROLE_RANK.get(needed, 1):
         # The chef cannot wave through what the policy sent to a manager. The
         # gateway cannot check this for us: it sees a signature, not a person.
