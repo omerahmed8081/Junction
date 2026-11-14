@@ -249,7 +249,10 @@
     "networkHint": "Check that it is running on port 8002. Nothing was ordered.",
     "rule": "That was not allowed",
     "server": "Something went wrong",
-    "load": "Could not load this"
+    "load": "Could not load this",
+    "upstream": "Aimo did not answer",
+    "upstreamHint": "The connection to Aimo dropped. Nothing was ordered and the basket is unchanged. Try again in a moment.",
+    "details": "Technical details"
   },
   "flag": {
     "availability_unknown": "Stock not confirmed by Aimo",

@@ -1,0 +1,15 @@
+[Unit]
+Description=Trusted Trade Agents: Aimo gateway (port 8001)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=tta
+WorkingDirectory=/opt/tta/Backend
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/tta/Backend/.venv/bin/uvicorn gateway.main:app --host 127.0.0.1 --port 8001
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

@@ -7,12 +7,17 @@ import type {
 
 export class ApiError extends Error {
   status: number;
-  /** "network" = service unreachable, "rule" = the backend said no (409), "missing" = 404. */
-  kind: "network" | "rule" | "missing" | "invalid" | "server";
-  constructor(status: number, message: string) {
+  /**
+   * "network"  = the kitchen service itself did not answer
+   * "upstream" = the kitchen answered 502: the gateway or Aimo behind it failed
+   * "rule"     = the backend said no (409), "missing" = 404, "invalid" = 422
+   */
+  kind: "network" | "upstream" | "rule" | "missing" | "invalid" | "server";
+  constructor(status: number, message: string, fromProxy = false) {
     super(message);
     this.status = status;
-    this.kind = status === 0 || status === 502 || status === 503 || status === 504 ? "network"
+    this.kind = status === 0 || fromProxy || status === 503 || status === 504 ? "network"
+      : status === 502 ? "upstream"
       : status === 409 ? "rule" : status === 404 ? "missing" : status === 422 ? "invalid" : "server";
   }
 }
@@ -42,7 +47,10 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const text = await response.text();
   let parsed: unknown = null;
   try { parsed = text ? JSON.parse(text) : null; } catch { parsed = text; }
-  if (!response.ok) throw new ApiError(response.status, detailText(parsed));
+  // When the kitchen service is not running, the dev server's proxy answers 502
+  // with an empty plain-text body. The services themselves always answer in JSON.
+  const json = (response.headers.get("content-type") ?? "").includes("application/json");
+  if (!response.ok) throw new ApiError(response.status, detailText(parsed), response.status >= 500 && !json);
   return parsed as T;
 }
 

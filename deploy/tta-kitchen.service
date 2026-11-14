@@ -1,0 +1,15 @@
+[Unit]
+Description=Trusted Trade Agents: kitchen service (port 8002)
+After=network-online.target tta-gateway.service
+Wants=network-online.target
+
+[Service]
+User=tta
+WorkingDirectory=/opt/tta/Backend
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/tta/Backend/.venv/bin/uvicorn kitchen.main:app --host 127.0.0.1 --port 8002
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
