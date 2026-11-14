@@ -1,0 +1,139 @@
+// Small building blocks used on every screen: button, chip, banner, card,
+// skeleton, empty and error states. Colours come from the tokens in index.css.
+import { clsx } from "clsx";
+import { LoaderCircle, TriangleAlert, CircleCheck, Info, ShieldAlert } from "lucide-react";
+import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import { ApiError } from "../api/client";
+
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: "primary" | "secondary" | "ghost";
+  size?: "md" | "sm" | "lg";
+  loading?: boolean;
+  icon?: ReactNode;
+};
+
+export function Button({ variant = "secondary", size = "md", loading, icon, className, children, disabled, ...rest }: ButtonProps) {
+  return (
+    <button
+      type="button"
+      {...rest}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      className={clsx(
+        "inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-colors duration-150 cursor-pointer select-none",
+        "disabled:cursor-not-allowed disabled:opacity-55",
+        size === "sm" && "min-h-9 px-3 text-sm",
+        size === "md" && "min-h-11 px-4 text-sm",       // 44 px: the minimum touch target
+        size === "lg" && "min-h-12 px-5 text-base",
+        variant === "primary" && "bg-primary text-on-primary hover:bg-primary-hover",
+        variant === "secondary" && "border border-border-strong bg-surface text-ink hover:bg-sunken",
+        variant === "ghost" && "text-ink hover:bg-sunken",
+        className,
+      )}
+    >
+      {loading ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : icon}
+      {children}
+    </button>
+  );
+}
+
+type Tone = "neutral" | "warn" | "ok" | "info" | "danger";
+
+export function Chip({ tone = "neutral", children, className }: { tone?: Tone; children: ReactNode; className?: string }) {
+  return (
+    <span
+      className={clsx(
+        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium leading-5",
+        tone === "neutral" && "border-border bg-surface text-ink-soft",
+        tone === "warn" && "border-warn-border border-dashed bg-warn-soft text-warn",     // dashed + icon + words, not colour alone
+        tone === "ok" && "border-ok/30 bg-ok-soft text-ok",
+        tone === "info" && "border-info/25 bg-info-soft text-info",
+        tone === "danger" && "border-danger/40 bg-danger-soft text-danger",
+        className,
+      )}
+    >
+      {tone === "warn" && <TriangleAlert className="size-3.5 shrink-0" aria-hidden />}
+      {children}
+    </span>
+  );
+}
+
+const bannerIcon = { neutral: Info, info: Info, ok: CircleCheck, warn: TriangleAlert, danger: ShieldAlert } as const;
+
+export function Banner({ tone = "info", title, children, actions, alert, className }: {
+  tone?: Tone; title?: ReactNode; children?: ReactNode; actions?: ReactNode; alert?: boolean; className?: string;
+}) {
+  const Icon = bannerIcon[tone];
+  return (
+    <div
+      role={alert ? "alert" : undefined}
+      className={clsx(
+        "flex gap-3 rounded-lg border border-l-4 p-3 text-sm",
+        tone === "info" && "border-info/30 border-l-info bg-info-soft",
+        tone === "neutral" && "border-border border-l-border-strong bg-surface",
+        tone === "ok" && "border-ok/30 border-l-ok bg-ok-soft",
+        tone === "warn" && "border-warn-border/60 border-l-warn-border bg-warn-soft",
+        tone === "danger" && "border-danger/40 border-l-danger bg-danger-soft",
+        className,
+      )}
+    >
+      <Icon className={clsx("mt-0.5 size-5 shrink-0", tone === "danger" ? "text-danger" : tone === "warn" ? "text-warn" : tone === "ok" ? "text-ok" : "text-info")} aria-hidden />
+      <div className="min-w-0 flex-1">
+        {title && <p className="font-semibold text-ink">{title}</p>}
+        {children && <div className="text-ink">{children}</div>}
+        {actions && <div className="mt-2 flex flex-wrap gap-2">{actions}</div>}
+      </div>
+    </div>
+  );
+}
+
+export function Card({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
+  return <div {...rest} className={clsx("rounded-(--radius-card) border border-border bg-surface", className)} />;
+}
+
+export function Skeleton({ lines = 3 }: { lines?: number }) {
+  const widths = ["w-2/3", "w-11/12", "w-1/2", "w-3/4"];
+  return (
+    <div className="space-y-2.5" aria-hidden>
+      {Array.from({ length: lines }, (_, i) => <div key={i} className={clsx("h-3 animate-pulse rounded bg-sunken", widths[i % widths.length])} />)}
+    </div>
+  );
+}
+
+export function EmptyState({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
+  return (
+    <div className="rounded-(--radius-card) border border-dashed border-border-strong p-6 text-center">
+      <p className="font-semibold">{title}</p>
+      {hint && <p className="mt-1 text-sm text-ink-soft">{hint}</p>}
+      {action && <div className="mt-3 flex justify-center">{action}</div>}
+    </div>
+  );
+}
+
+/** Says what happened, what is safe, and what to do. Used for failed loads and failed actions. */
+export function ErrorNote({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+  const { t } = useTranslation();
+  const api = error instanceof ApiError ? error : null;
+  const network = !api || api.kind === "network";
+  return (
+    <Banner
+      alert
+      tone={network ? "danger" : "warn"}
+      title={network ? t("error.network") : api?.kind === "rule" ? t("error.rule") : t("error.server")}
+      actions={onRetry && <Button size="sm" onClick={onRetry}>{t("action.retry")}</Button>}
+    >
+      {/* Backend sentences are English; mark them so a Finnish screen reader switches voice. */}
+      {network ? t("error.networkHint") : <span lang="en">{api?.message}</span>}
+    </Banner>
+  );
+}
+
+export function PageTitle({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
+  return (
+    <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+      <h1 className="text-2xl font-bold tracking-tight">{children}</h1>
+      {aside}
+    </div>
+  );
+}

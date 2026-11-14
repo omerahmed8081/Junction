@@ -1,0 +1,46 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+
+/* Design tokens. Components use these names, never raw colours. */
+@theme {
+  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --color-bg: #f6f7f5;
+  --color-surface: #ffffff;
+  --color-sunken: #eef0ec;
+  --color-border: #d5d9d2;
+  --color-border-strong: #8a9186;      /* 3:1 on white, for input outlines */
+  --color-ink: #161a15;                /* body text, 16:1 on white */
+  --color-ink-soft: #4a5247;           /* secondary text, 8:1 on white */
+
+  --color-primary: #14532d;            /* deep green, 9:1 on white */
+  --color-primary-hover: #0f3f22;
+  --color-on-primary: #ffffff;
+  --color-primary-soft: #e6f2ea;
+
+  --color-warn: #8a4b00;               /* text on warn-soft: 6:1 */
+  --color-warn-soft: #fdf1dc;
+  --color-warn-border: #d99a2b;
+  --color-danger: #9f1c1c;             /* 7:1 on white */
+  --color-danger-soft: #fdeaea;
+  --color-ok: #14532d;
+  --color-ok-soft: #e6f2ea;
+  --color-info-soft: #e8eef7;
+  --color-info: #1e3a6e;
+
+  --radius-card: 0.625rem;
+}
+
+html { background: var(--color-bg); color: var(--color-ink); }
+body { font-family: var(--font-sans); font-size: 1rem; line-height: 1.5; min-height: 100dvh; }
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* One focus style everywhere, never removed. */
+:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; border-radius: 4px; }
+
+/* Keep a focused field clear of the sticky action bar on small screens. */
+html { scroll-padding-bottom: 7rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

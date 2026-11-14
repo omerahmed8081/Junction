@@ -1,0 +1,43 @@
+# Frontend/.gitignore
+
+# Dependencies: restored with `npm install` from package-lock.json (which IS committed)
+node_modules/
+
+# Build output: recreated with `npm run build`
+dist/
+dist-ssr/
+*.tsbuildinfo
+
+# Vite cache
+.vite/
+node_modules/.vite/
+
+# Local settings: may hold real addresses or keys. Commit .env.example instead.
+.env
+.env.local
+.env.*.local
+
+# The tunnel program, if downloaded into this folder (about 40 MB)
+cloudflared
+cloudflared.exe
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test and coverage output
+coverage/
+playwright-report/
+test-results/
+
+# Editors and operating systems
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.suo
+.DS_Store
+Thumbs.db
