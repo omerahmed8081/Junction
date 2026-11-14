@@ -3,27 +3,25 @@
 Valio Aimo challenge, Junction 2026. An open, guarded interface that lets a kitchen's
 purchasing agent find, price and order from Aimo, with a human approving every order.
 
-## Where things are
+## Four documents, and that is all
 
 | | |
 |---|---|
-| **The plan, and what is built** | [`ARCHITECTURE.md`](ARCHITECTURE.md) - frozen, apart from the Status section at the top |
-| **What changed, newest first** | [`docs/CHANGES.md`](docs/CHANGES.md) - add a line when you push |
-| **The shapes we pass each other** | [`docs/CONTRACTS.md`](docs/CONTRACTS.md) - field names are agreed; raise a change in the group |
-| **What the real API does** | [`docs/HOUR0_FINDINGS.md`](docs/HOUR0_FINDINGS.md) |
-| **What Valio told us** | [`docs/MENTOR_ANSWERS.md`](docs/MENTOR_ANSWERS.md) |
-| **Who is building what** | [`docs/WORKSPLIT.md`](docs/WORKSPLIT.md) |
-| Notes that have served their purpose | [`docs/history/`](docs/history) |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | The plan, frozen, with a **Status** section saying what is built, and section 18 on what the live API actually does |
+| [`docs/CHANGES.md`](docs/CHANGES.md) | What changed, newest first. Add a line when you push |
+| [`docs/CONTRACTS.md`](docs/CONTRACTS.md) | The shapes the services pass each other. Field names are agreed; raise a change in the group |
+| this file | Where things are and how to run them |
 
 ## Layout
 
 ```
 Backend/
-  shared/     units, money, schemas, timeparse   imported by both services, imports neither
-  gateway/    Aimo's side: catalogue, price and availability, quotes and orders
-  kitchen/    the restaurant's side: agent, policy, ledger, trace
-  tests/      68 tests, all offline
-  scripts/    one-off tools, see below
+  shared/     units, money, schemas, timeparse, signing   both services import it, it imports neither
+  gateway/    Aimo's side: catalogue, price and availability, quotes, orders
+  kitchen/    the kitchen's side: agent, policy, ordering, inventory, suggestions, trace
+  tests/      161 tests, all offline
+  scripts/    tools, below
+  Data/       the product catalogue (gitignored, 84 MB) and the seeded restaurant
 Frontend/     the two screens; fixtures/sample_basket.json is a real basket to build against
 docs/
 ```
@@ -42,21 +40,19 @@ pip install -r requirements.txt
 copy .env.example .env                                   # then fill it in
 ```
 
-All the tests, with no database, model or network:
+Everything offline, with no database, model or network:
 
 ```
 python tests/test_units.py && python tests/test_money.py && python tests/test_timeparse.py
-python tests/test_aimo_client.py && python tests/test_delivery.py && python tests/test_agent.py
+python tests/test_signing.py && python tests/test_aimo_client.py && python tests/test_delivery.py
+python tests/test_agent.py && python tests/test_inventory.py && python tests/test_orders.py
+python tests/test_ordering.py
+
+python scripts/sample_basket.py --order                  # a sentence to a placed order
+python scripts/sample_basket.py --order --stock-moves 400 # the basket repairing itself
 ```
 
-A real basket, also offline, from the recorded API responses:
-
-```
-python scripts/sample_basket.py
-python scripts/sample_basket.py --quantity 1200
-```
-
-Both services (each in its own terminal, `.env` filled in):
+Both services, each in its own terminal with `.env` filled in:
 
 ```
 uvicorn gateway.main:app --reload --port 8001     # docs at /docs
@@ -67,11 +63,13 @@ uvicorn kitchen.main:app --reload --port 8002     # what the frontend calls
 
 | Script | For |
 |---|---|
-| `scripts/hour0_check.py` | Call the live API and print prices, cutoffs and totals |
+| `scripts/hour0_check.py` | Call the live API and print prices, cut-offs and totals |
 | `scripts/find_products.py` | Find real product ids with their pack size; `--price` marks what is orderable |
-| `scripts/sample_basket.py` | Print or export a real basket, offline |
+| `scripts/sample_basket.py` | A real basket, or a whole order, offline |
+| `scripts/generate_seed.py` | Regenerate the seeded restaurant |
 | `scripts/load_catalogue.py` | Load the product JSON into Postgres |
 | `scripts/label_categories.py` | Name the 349 category codes |
 
 The 84 MB product file is gitignored: download it from the challenge portal into
-`Backend/Data/`. The API key is read from `JUNCTION_API_KEY` and is never committed.
+`Backend/Data/`. Keys are read from the environment and are never committed; the private
+signing keys live in `Backend/.keys/`, also gitignored.

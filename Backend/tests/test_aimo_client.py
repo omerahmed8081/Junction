@@ -4,7 +4,7 @@ sentinel availability means.
 All offline: the HTTP client is replaced with a stub and sleeping is recorded
 rather than done, so the suite stays fast and never touches Aimo.
 
-The rules come from Valio's answers (docs/MENTOR_ANSWERS.md):
+The rules come from Valio's answers (docs/ARCHITECTURE.md section 18):
   * 429 blocks us for 30 seconds, so wait it out rather than failing.
   * A few hundred calls a minute is fine; the same burst in ten seconds is not.
   * availableAmount >= 999999 means availability is unknown, not unlimited.

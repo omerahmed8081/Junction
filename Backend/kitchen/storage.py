@@ -37,7 +37,8 @@ def _dump(value: Any) -> Any:
 
 
 def save(baskets: dict[str, BasketState], orders: dict[str, OrderRecord],
-         mandate: Mandate | None, path: Path | None = None) -> None:
+         mandate: Mandate | None, path: Path | None = None,
+         services: list[dict] | None = None) -> None:
     """Write everything out. Called after any change; cheap at this size."""
     path = path or STATE_FILE
     payload = {
@@ -53,6 +54,9 @@ def save(baskets: dict[str, BasketState], orders: dict[str, OrderRecord],
         "orders": {oid: record.model_dump(mode="json") for oid, record in orders.items()},
         "mandate": ({"jws": mandate.jws, "payload": mandate.payload.model_dump(mode="json")}
                     if mandate else None),
+        # Services are kept as "what was cooked", not as the movements they
+        # produced, so replaying them rebuilds the ledger from the seed.
+        "services": list(services or []),
     }
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".tmp")
@@ -60,16 +64,16 @@ def save(baskets: dict[str, BasketState], orders: dict[str, OrderRecord],
     temporary.replace(path)
 
 
-def load(path: Path | None = None) -> tuple[dict[str, BasketState], dict[str, OrderRecord], Mandate | None]:
+def load(path: Path | None = None) -> tuple[dict[str, BasketState], dict[str, OrderRecord], Mandate | None, list[dict]]:
     """Read it back. A missing or unreadable file starts empty rather than crashing."""
     path = path or STATE_FILE
     if not path.exists():
-        return {}, {}, None
+        return {}, {}, None, []
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except Exception as exc:        # noqa: BLE001
         print(f"[kitchen] ignoring unreadable state file {path}: {exc}")
-        return {}, {}, None
+        return {}, {}, None, []
 
     baskets: dict[str, BasketState] = {}
     for basket_id, stored in (payload.get("baskets") or {}).items():
@@ -96,7 +100,9 @@ def load(path: Path | None = None) -> tuple[dict[str, BasketState], dict[str, Or
                               payload=MandatePayload(**stored_mandate["payload"]))
         except Exception as exc:        # noqa: BLE001
             print(f"[kitchen] ignoring stored mandate: {exc}")
-    return baskets, orders, mandate
+    services = [s for s in (payload.get("services") or [])
+                if isinstance(s, dict) and s.get("date") and isinstance(s.get("portions"), dict)]
+    return baskets, orders, mandate, services
 
 
 def clear(path: Path | None = None) -> None:

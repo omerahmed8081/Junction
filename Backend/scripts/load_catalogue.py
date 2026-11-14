@@ -1,4 +1,4 @@
-"""Load the product catalogue into Postgres (NIGHT_SHIFT brief 1, step 1).
+"""Load the product catalogue into Postgres (docs/ARCHITECTURE.md section 4).
 
 Creates the `gateway` schema and one table, `gateway.products`, then loads every
 product with the columns the search endpoint needs. Safe to re-run: it drops and

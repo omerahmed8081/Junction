@@ -1,4 +1,4 @@
-"""Price and delivery answers for a shortlist (NIGHT_SHIFT brief 1, step 4).
+"""Price and delivery answers for a shortlist (docs/ARCHITECTURE.md section 4).
 
 Pure: it turns Aimo's raw price and availability payloads into the contract's
 CheckDeliveryResponse and does no I/O, so it is tested on the recorded hour 0

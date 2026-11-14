@@ -1,4 +1,4 @@
-"""From a parsed need to a priced basket (NIGHT_SHIFT brief 1, step 5).
+"""From a parsed need to a priced basket (docs/ARCHITECTURE.md section 8).
 
 No model in this file. The model's part ends at kitchen/need.py; from here on
 every quantity comes from shared/units.py and every euro from shared/money.py.
@@ -18,7 +18,7 @@ import os
 import re
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from kitchen.gateway_client import GatewayClient
 from kitchen.need import ParsedNeed
@@ -45,6 +45,9 @@ CHEF_LIMIT_EUR = float(os.environ.get("CHEF_LIMIT_EUR", "500"))
 # for "milk" does not mean sour milk or coffee milk, though Aimo files them in
 # the same category. A product carrying one of these that the request did not
 # mention ranks after every plain product, whatever its price.
+FILLER_WORDS = {"the", "and", "with", "lactose", "free", "laktoositon",
+                "organic", "luomu", "fresh", "frozen", "uhf", "uht", "esl"}
+
 QUALIFIERS = {
     "sour", "coffee", "cafe", "cafè", "café", "latte", "portion", "chocolate", "cocoa",
     "vanilla", "strawberry", "banana", "flavoured", "flavored", "kefir", "acidofilus",
@@ -135,8 +138,14 @@ def _rank_key(c: Candidate, kind: str):
     )
 
 
-def find_candidates(need: ParsedNeed, gateway: GatewayClient, steps: list[AgentStep]) -> tuple[list[Candidate], dict[str, int]]:
-    """Every product the search returned, each marked orderable or with the reason it is not."""
+def find_candidates(need: ParsedNeed, gateway: GatewayClient, steps: list[AgentStep],
+                    extra_ids: list[str] | None = None) -> tuple[list[Candidate], dict[str, int]]:
+    """Every product the search returned, each marked orderable or with the reason it is not.
+
+    `extra_ids` are looked up by id as well as searched for, so a reorder always
+    considers the product the kitchen actually uses even if the text search for
+    similar products would have missed it.
+    """
     kind = _kind(need.unit)
     found = gateway.search_products(SearchRequest(
         text=need.product_text, claims=need.claims, brand=need.brand,
@@ -145,7 +154,17 @@ def find_candidates(need: ParsedNeed, gateway: GatewayClient, steps: list[AgentS
     _step(steps, "search_products", f"'{need.product_text}' {need.claims or ''}: "
           f"{len(found.products)} of {found.total_matched} candidates", crossed=True)
 
-    candidates = [Candidate(s, convert_summary(s, need.quantity, need.unit)) for s in found.products]
+    products = list(found.products)
+    missing = [pid for pid in (extra_ids or [])
+               if pid not in {p.product_id for p in products}]
+    if missing:
+        # A reorder must consider the product the kitchen actually uses, even
+        # when a search for similar products would not have turned it up.
+        byid = gateway.search_products(SearchRequest(product_ids=missing, limit=len(missing)))
+        products = byid.products + products
+        _step(steps, "search_products", f"by id: {', '.join(missing)}", crossed=True)
+
+    candidates = [Candidate(s, convert_summary(s, need.quantity, need.unit)) for s in products]
     asked = _words(need.product_text)
     for c in candidates:
         c.off_request = bool((_words(c.summary.name) & QUALIFIERS) - asked)
@@ -605,6 +624,78 @@ def add_need(state: BasketState | None, need: ParsedNeed, gateway: GatewayClient
         reply += (f" Even together they fall short of {need.quantity:g} {need.unit}; "
                   f"the shortfall is on the last line.")
     return state, reply, steps
+
+
+def add_reorder(state: BasketState | None, product_id: str, quantity: float, unit: str,
+                requested_date: date, gateway: GatewayClient, reason: str = "",
+                source: str = "suggestion:low_stock") -> tuple[BasketState, str, list[AgentStep]]:
+    """More of a product the kitchen already uses, for the running-low trigger.
+
+    A reorder is not a search: the kitchen knows which cream it wants, and
+    picking a cheaper one because it ranked higher would change the dish. So the
+    named product wins if it can be ordered at all, and only if it cannot does
+    the agent fall back to the best alternative and say so on the line.
+
+    Similar products are still looked up, so the chef has alternatives to swap
+    to without another round trip.
+    """
+    steps: list[AgentStep] = []
+    _step(steps, "reorder", f"{quantity:g} {unit} of {product_id} by {requested_date}"
+          + (f" ({reason})" if reason else ""))
+    state = state or BasketState(Basket(basket_id=f"b_{uuid.uuid4().hex[:10]}",
+                                        requested_date=requested_date, source=source))
+    state.basket.source = source
+
+    named = gateway.search_products(SearchRequest(product_ids=[product_id], limit=1))
+    _step(steps, "search_products", f"id {product_id}", crossed=True)
+    if not named.products:
+        _refresh(state.basket)
+        return state, f"{product_id} is not in Aimo's catalogue any more.", steps
+    summary = named.products[0]
+
+    # The product's own name becomes the search for alternatives, with the claim
+    # words stripped the same way a chat request would be.
+    need = ParsedNeed(product_text=_reorder_text(summary.name), quantity=quantity,
+                      unit=unit.upper(), claims=list(summary.claims),
+                      requested_date=requested_date, parser="reorder")
+    ranked, reasons = find_candidates(need, gateway, steps, extra_ids=[product_id])
+    wanted = next((c for c in ranked if c.summary.product_id == product_id), None)
+
+    if wanted is None:
+        if not ranked:
+            _refresh(state.basket)
+            return state, _explain_empty(need, reasons), steps
+        # The usual product cannot be ordered, so the closest is offered and
+        # flagged: a substitution the chef did not ask for needs a human.
+        lines = [build_line(ranked[0], need, ranked)]
+        lines[0].flags.append("differs_from_request")
+        lines[0].reason = (f"{summary.name} cannot be ordered for {requested_date}, "
+                           f"so this is the closest that can; " + lines[0].reason)
+    else:
+        lines = cover_need([wanted] + [c for c in ranked if c is not wanted], need, steps)
+
+    covered = {l.product_id for l in lines}
+    state.basket.lines = [l for l in state.basket.lines if l.product_id not in covered] + lines
+    for line in lines:
+        state.needs[line.product_id] = need
+    state.candidates.update({c.summary.product_id: c for c in ranked})
+    _refresh(state.basket)
+    _step(steps, "policy_preview", f"{state.basket.policy.level}: {state.basket.policy.reasons or 'within the chef limit'}")
+
+    first = lines[0]
+    lead = f"{reason} " if reason else ""
+    approval = ("A manager will need to approve it." if state.basket.policy.level == "manager"
+                else "You can approve it yourself.")
+    return state, (f"{lead}Drafted {first.quantity_sales_units:g} {first.sales_unit} of "
+                   f"{first.name}: EUR {first.line_net:,.2f} net, delivery "
+                   f"{first.delivery.delivery_date}. {approval}"), steps
+
+
+def _reorder_text(name: str) -> str:
+    """A few words from a product name, to find products like it."""
+    words = [w for w in re.split(r"[\s,/()]+", name.lower())
+             if w and not w.isdigit() and w not in FILLER_WORDS and len(w) > 2]
+    return " ".join(words[:3])
 
 
 def apply_edits(state: BasketState, edits: list[LineEdit], gateway: GatewayClient) -> tuple[str, list[AgentStep]]:

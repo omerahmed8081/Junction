@@ -1,4 +1,4 @@
-"""Catalogue search over gateway.products (NIGHT_SHIFT brief 1, step 3).
+"""Catalogue search over gateway.products (docs/ARCHITECTURE.md section 4).
 
 Catalogue data only: no price and no stock ever comes out of this module. The one
 place it touches Aimo's API is the optional cutoff filter (`deliverable_by`), and
@@ -129,6 +129,11 @@ def resolve_category(conn, req: SearchRequest, query: str) -> str | None:
 
 def search(conn, req: SearchRequest, cutoff_filter: Callable[[list[str], date], set[str]] | None = None) -> SearchResponse:
     """Run one search. `cutoff_filter(ids, date)` returns the ids still orderable by that date."""
+    # Named ids short-circuit the text search: a reorder already knows what it
+    # wants, and the rest of the filters would only get in the way.
+    if req.product_ids:
+        found = summaries(conn, req.product_ids)
+        return SearchResponse(products=found[: req.limit], total_matched=len(found))
     query = clean_text(req.text, req.claims)
     category = resolve_category(conn, req, query)
     where, params = _filters(req, query, category)

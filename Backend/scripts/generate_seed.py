@@ -1,4 +1,4 @@
-"""Synthetic seed data for the demo restaurant (NIGHT_SHIFT.md, brief 2).
+"""Synthetic seed data for the demo restaurant (docs/ARCHITECTURE.md section 11).
 
     cd Backend
     python scripts/generate_seed.py            # writes Data/seed/*.json

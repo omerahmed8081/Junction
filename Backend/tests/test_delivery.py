@@ -26,7 +26,7 @@ def check(product_id: str, quantity: float, now: datetime = WHEN_RECORDED):
 
 
 def test_cheapest_milk_is_fully_deliverable():
-    # NIGHT_SHIFT step 4 check: 464306 for 1,000 units on 2026-11-17.
+    # The demo request: 464306 for 1,000 units on 2026-11-17.
     r = check("464306", 1000)
     assert r.delivery.can_fulfil == "full" and r.delivery.fulfil_amount == 1000
     assert r.delivery.delivery_date == date(2026, 11, 16)

@@ -56,6 +56,10 @@ class SearchRequest(BaseModel):
     """
 
     text: str | None = None
+    # Look specific products up by id. Used for a reorder, where the kitchen
+    # already knows which product it wants more of and needs its name, pack
+    # size and claims to build a line.
+    product_ids: list[str] = Field(default_factory=list)
     claims: list[str] = Field(default_factory=list)
     category: str | None = None
     category_label: str | None = None
@@ -229,6 +233,72 @@ class Basket(BaseModel):
 
     order_id: str | None = None
     demo_scenario: str | None = None            # set when the scenario switch is on
+
+
+# ------------------------------------------------ inventory and suggestions
+
+
+class StockRow(BaseModel):
+    """One product as the kitchen sees it. `on_order` is never part of `stock`."""
+
+    product_id: str
+    name: str | None = None
+    unit: str                                  # "L" | "KG"
+    stock: float
+    on_order: float = 0.0
+    expected_usage: float = 0.0                # over the forecast window
+    runs_out_on: date | None = None
+    dishes: list[str] = Field(default_factory=list)
+
+
+class InventoryView(BaseModel):
+    as_of: date
+    window_until: date
+    rows: list[StockRow]
+
+
+class ServiceRequest(BaseModel):
+    """What the kitchen cooked. One number per dish, not per ingredient.
+
+    `portions` is keyed by dish id. Omit `service_date` for today. It is not
+    called `date`, because a field of that name shadows the `date` type inside
+    the class and pydantic then cannot resolve the annotation.
+    """
+
+    portions: dict[str, float]
+    service_date: date | None = None
+
+
+class Suggestion(BaseModel):
+    """Something the kitchen will run out of, and the maths behind saying so."""
+
+    product_id: str
+    name: str | None = None
+    unit: str
+    shortfall: float
+    needed: float
+    buffer: float
+    stock: float
+    on_order: float
+    runs_out_on: date | None = None
+    dishes: list[str] = Field(default_factory=list)
+    reason: str
+    basket_id: str | None = None               # set when a draft was built for it
+
+
+class ServiceResponse(BaseModel):
+    reply: str
+    as_of: date
+    products_used: int
+    suggestions: list[Suggestion] = Field(default_factory=list)
+    basket: Basket | None = None               # a draft for the most urgent one
+    steps: list["AgentStep"] = Field(default_factory=list)
+
+
+class SuggestionsResponse(BaseModel):
+    as_of: date
+    window_until: date
+    suggestions: list[Suggestion] = Field(default_factory=list)
 
 
 # ------------------------------------------------- quotes, mandates, approvals

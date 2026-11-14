@@ -10,6 +10,7 @@ They move to the kitchen's own database schema with the order flow (block 2).
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from datetime import date
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -19,12 +20,18 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
-from kitchen import agent, keys, ordering, storage  # noqa: E402
+from kitchen import agent, keys, ordering, storage, suggestions  # noqa: E402
+from kitchen.inventory import Inventory  # noqa: E402
 from kitchen.gateway_client import GatewayClient, GatewayError, GatewayRefused  # noqa: E402
 from kitchen.need import parse_need  # noqa: E402
 from kitchen.ordering import KitchenSigner, OrderingError  # noqa: E402
 from shared.schemas import (  # noqa: E402
     ApproveRequest,
+    InventoryView,
+    ServiceRequest,
+    ServiceResponse,
+    StockRow,
+    SuggestionsResponse,
     Basket,
     BasketEditRequest,
     ChatRequest,
@@ -39,6 +46,10 @@ gateway: GatewayClient | None = None
 baskets: dict[str, agent.BasketState] = {}
 orders: dict[str, OrderRecord] = {}
 kitchen = KitchenSigner()
+inventory = Inventory.from_seed()
+# Services logged since start, kept so a restart can replay them: the ledger is
+# derived from the seed plus these, rather than saved as raw movements.
+logged_services: list[dict] = []
 
 
 @asynccontextmanager
@@ -47,7 +58,12 @@ async def lifespan(_: FastAPI):
     gateway = gateway or GatewayClient()
     # Baskets, orders and the mandate survive a restart: losing a basket on
     # stage is the one failure worth a file on disk (see kitchen/storage.py).
-    stored_baskets, stored_orders, stored_mandate = storage.load()
+    stored_baskets, stored_orders, stored_mandate, stored_services = storage.load()
+    for entry in stored_services:
+        inventory.record_service(date.fromisoformat(entry["date"]), entry["portions"])
+        logged_services.append(entry)
+    if stored_services:
+        print(f"[kitchen] replayed {len(stored_services)} logged service(s) into the ledger")
     baskets.update(stored_baskets)
     orders.update(stored_orders)
     if stored_mandate:
@@ -62,7 +78,7 @@ async def lifespan(_: FastAPI):
 def _save() -> None:
     """Persist after every change. Cheap at this size, and it keeps the demo safe."""
     try:
-        storage.save(baskets, orders, kitchen.mandate)
+        storage.save(baskets, orders, kitchen.mandate, services=logged_services)
     except Exception as exc:        # noqa: BLE001
         # Never fail a request because the state file could not be written.
         print(f"[kitchen] could not save state: {exc}")
@@ -230,3 +246,97 @@ def demo_reset() -> dict:
     storage.clear()
     mandate = kitchen.mandate_in_force()        # a fresh one, so the next order works
     return {"cleared": counts, "mandate": mandate.payload.jti}
+
+
+# ------------------------------------------------ inventory and suggestions
+
+
+def _stock_rows() -> list[StockRow]:
+    until = suggestions.window_until(inventory)
+    stock, on_order = inventory.stock(), inventory.on_order_totals()
+    usage = inventory.expected_usage(inventory.as_of + date.resolution, until)
+    rows = []
+    for product_id in sorted(set(stock) | set(on_order) | set(usage)):
+        rows.append(StockRow(
+            product_id=product_id, unit=inventory.units.get(product_id, ""),
+            stock=round(stock.get(product_id, 0.0), 3),
+            on_order=round(on_order.get(product_id, 0.0), 3),
+            expected_usage=round(usage.get(product_id, 0.0), 3),
+            runs_out_on=inventory._runs_out_on(
+                product_id, stock.get(product_id, 0.0) + on_order.get(product_id, 0.0),
+                inventory.as_of + date.resolution, until),
+            dishes=sorted({r.name for r in inventory.recipes.values()
+                           if any(i["product_id"] == product_id for i in r.ingredients)}),
+        ))
+    return rows
+
+
+@app.get("/api/inventory", response_model=InventoryView)
+def get_inventory() -> InventoryView:
+    """Stock, what is on order, and what the menu will use. `on_order` is never
+    part of `stock`: an order becomes stock when it is received."""
+    return InventoryView(as_of=inventory.as_of,
+                         window_until=suggestions.window_until(inventory),
+                         rows=_stock_rows())
+
+
+@app.get("/api/suggestions", response_model=SuggestionsResponse)
+def get_suggestions() -> SuggestionsResponse:
+    """What the kitchen will run out of. Reads the ledger only, so it is cheap
+    and makes no call to Aimo; draft a basket for one with the endpoint below."""
+    return SuggestionsResponse(as_of=inventory.as_of,
+                               window_until=suggestions.window_until(inventory),
+                               suggestions=suggestions.find(inventory))
+
+
+@app.post("/api/suggestions/{product_id}/basket", response_model=ChatResponse)
+def draft_suggestion(product_id: str) -> ChatResponse:
+    """Turn one suggestion into a draft basket, through the normal agent path."""
+    found = next((s for s in suggestions.find(inventory) if s.product_id == product_id), None)
+    if found is None:
+        raise HTTPException(status_code=404,
+                            detail=f"{product_id} is not short at the moment")
+    try:
+        state, reply, steps = suggestions.draft(found, inventory, gateway, baskets)
+    except GatewayError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    _save()
+    return ChatResponse(reply=reply, basket=state.basket, steps=steps)
+
+
+@app.post("/api/service", response_model=ServiceResponse)
+def log_service(req: ServiceRequest) -> ServiceResponse:
+    """"What did you cook today?" - one number per dish.
+
+    The recipes turn that into stock out, which is the whole reason a chef is
+    asked about dishes rather than about ingredients. Then the running-low
+    trigger runs, and the most urgent shortfall comes back as a draft basket.
+    """
+    when = req.service_date or inventory.as_of
+    unknown = [d for d in req.portions if d not in inventory.recipes]
+    if unknown:
+        raise HTTPException(status_code=422,
+                            detail=f"no recipe for {', '.join(unknown)}")
+    written = inventory.record_service(when, req.portions)
+    logged_services.append({"date": when.isoformat(), "portions": req.portions})
+
+    found = suggestions.find(inventory)
+    basket = None
+    steps: list = []
+    if found:
+        try:
+            state, _, steps = suggestions.draft(found[0], inventory, gateway, baskets)
+            basket = state.basket
+        except GatewayError as exc:
+            # The service was still logged; the draft can be retried.
+            print(f"[kitchen] logged the service but could not draft a basket: {exc}")
+    _save()
+
+    dishes = ", ".join(f"{count:g} x {inventory.recipes[d].name}"
+                       for d, count in req.portions.items() if count)
+    reply = f"Logged {dishes or 'nothing'} for {when}. "
+    reply += (f"{len(found)} product(s) are running low; "
+              f"{found[0].reason}" if found else "Nothing is running low.")
+    return ServiceResponse(reply=reply, as_of=inventory.as_of,
+                           products_used=len({m.product_id for m in written}),
+                           suggestions=found, basket=basket, steps=steps)

@@ -7,6 +7,93 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Saturday 14 November
 
+### 16:15 - eleven documents down to four
+
+Notes had piled up faster than anyone could read them, so they are now:
+
+```
+README.md              where things are, how to run them
+docs/ARCHITECTURE.md   the frozen plan + Status (what is built) + what the live API does
+docs/CHANGES.md        this file
+docs/CONTRACTS.md      the shapes the services pass each other
+```
+
+- `ARCHITECTURE.md` moved into `docs/` and lost 250 lines of review history (the old sections
+  18 to 23, which recorded how each draft was revised and nobody needs now). The **Status**
+  section at the top is the only part that changes, and it now has a row per block, who is
+  building what, how to run it, and the five known gaps.
+- `HOUR0_FINDINGS.md` and `MENTOR_ANSWERS.md` are folded into **section 18, "What the live API
+  actually does"**: access and rate limits, prices, availability, ordering, and the demo's
+  numbers, with Valio's own answers marked. One place to look instead of two files and a
+  changelog.
+- Section 17's mentor questions are marked answered where they have been.
+- Deleted: `WORKSPLIT.md` (the split changed twice and is now in Status), `docs/history/`
+  (`NIGHT_SHIFT.md` and `BRIEF1_HANDOVER.md`, both superseded by entries in this file), and
+  the one-line `Backend/README.md` and `Frontend/README.md`.
+- Code docstrings that cited the deleted files now cite `docs/ARCHITECTURE.md` and its
+  sections. No dangling references remain.
+
+### 16:00 - inventory, the forecast and the running-low suggestion (block 7)
+
+Beat 3 of the demo works. **161 tests passing**, all offline.
+
+**Built on your teammate's seed data, which checks out.** All 17 product ids are real, no unit
+mismatches, 28 days of sales with a believable weekday pattern (Mon 95 portions rising to Sat
+161, closed Sundays) and volume growing 94 to 168 over the month. The ledger reconciles
+exactly: opening count + deliveries - (dishes sold x recipes) = the stock it states. That is
+now a test (`test_the_ledger_reproduces_the_seed_exactly`).
+
+**Their fix to `shared/units.py` is right and I have left it alone.** A product with base unit
+`KG` is sold by weight, so one base unit is one kilogram; the weight in the name or the data
+is a box weight. Without it, ordering 15 kg of salmon fillet whose name ends "10KG" would have
+ordered 150 kg.
+
+**New endpoints on the kitchen service**
+
+| Endpoint | What it does |
+|---|---|
+| `GET /api/inventory` | Stock, what is on order, expected usage, when each runs out |
+| `GET /api/suggestions` | What the kitchen will run out of. Ledger only, no call to Aimo, so the panel can refresh freely |
+| `POST /api/suggestions/{product_id}/basket` | Turn one suggestion into a draft basket |
+| `POST /api/service` | "What did you cook today?" One number per dish; returns the shortfalls and a draft basket for the most urgent |
+
+**What a suggestion looks like.** The arithmetic is in the sentence, because a number without
+it is not a reason:
+
+> Short 10.333 L: the menu needs 18.065 L, plus 4.758 L of cover, 2.59 L in stock, 9.9 L
+> already on order. Runs out 2026-11-19. Used in Creamy mushroom soup, Creamy salmon soup.
+
+**How it works** (`kitchen/inventory.py`)
+
+- The ledger is **append-only movements**: `count`, `delivery`, `sale`, `waste`. Stock is their
+  sum. Ordering creates an **on-order record**, not a movement, so an amount is never in both
+  `stock` and `on_order`; the delivery movement is written on receipt and closes the record.
+- Usage is forecast from **what the kitchen cooked**, not what it ordered: a dish's expected
+  portions are its average over the last four of that weekday. The seed closes Sundays, and a
+  weekday average keeps that zero where it belongs instead of smearing it across the week.
+- `shortfall = expected usage + cover - stock - on order`. Subtracting on-order is what stops
+  the agent proposing the same order every morning, and there is a test for exactly that.
+- The parts are rounded before the shortfall is taken from them, so the figures in the reason
+  add up to the figure acted on.
+
+**A reorder is not a search** (`agent.add_reorder`). The kitchen knows which cream it wants,
+and picking a cheaper one because it ranked higher would change the dish. The named product
+wins if it can be ordered at all; only if it cannot does the agent fall back to the closest
+and flag the line `differs_from_request`. Similar products are still fetched so the chef has
+alternatives to swap to.
+
+**Also**
+
+- `SearchRequest.product_ids` looks products up by id, which is how a reorder gets a product's
+  name and pack size. Additive.
+- `ServiceRequest.service_date`, not `date`: a field called `date` shadows the `date` type
+  inside the class and pydantic then cannot resolve the annotation.
+- Logged services survive a restart, stored as "what was cooked" and replayed into the ledger
+  rather than saved as raw movements. `storage.load()` now returns a fourth value.
+
+**Still open:** the trace is returned per call but not stored, so the Activity tab has nothing
+to query; the second-client script for beat 5; multi-item chat requests.
+
 ### 15:30 - a refusal repairs the basket instead of ending the conversation
 
 **139 tests passing.** Try it:

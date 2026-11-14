@@ -3,8 +3,7 @@
 CONTRACT - agreed hour 0. Only this module talks to junction26.valioaimo.fi, and
 only the gateway imports it. The agent never sees a raw warehouse count.
 
-Hour 0 findings and Valio's own answers baked in (docs/HOUR0_FINDINGS.md,
-docs/MENTOR_ANSWERS.md):
+What the live API actually does, baked in (docs/ARCHITECTURE.md section 18):
   * Cloudflare rejects script-looking user agents with 403 "error code: 1010",
     so BROWSER_UA is not optional.
   * availableAmount >= 999999 does NOT mean unlimited stock. Valio: "we do not

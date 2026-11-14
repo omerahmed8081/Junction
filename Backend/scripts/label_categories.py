@@ -1,4 +1,4 @@
-"""Give the 349 unnamed category codes a label (NIGHT_SHIFT brief 1, step 2).
+"""Give the 349 unnamed category codes a label (docs/ARCHITECTURE.md section 4).
 
 Reads sample product names per category from gateway.products, asks Gemini for a
 short label per code, and stores the result in gateway.category_labels and in

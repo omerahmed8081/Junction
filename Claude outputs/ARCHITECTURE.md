@@ -1,68 +1,60 @@
-# Trusted Trade Agents: final architecture and 24-hour build plan (revision 7.2, final)
+# Trusted Trade Agents: architecture
 
-Valio Aimo challenge, Junction 2026. Stack: Python + FastAPI, Postgres (Aiven), React (mobile-first).
+Valio Aimo challenge, Junction 2026. Stack: Python + FastAPI, Postgres (Aiven), React.
 
-**Pitch in one line:** Aimo exposes an open, guarded interface that any agent can use. Our kitchen agent uses it to turn what a kitchen needs into a correct, verified basket, and nothing is ordered without a human's OK.
+**Pitch in one line:** Aimo exposes an open, guarded interface that any agent can use. Our
+kitchen agent uses it to turn what a kitchen needs into a correct, verified basket, and
+nothing is ordered without a human's OK.
 
-This is the final version. It addresses both team reviews; section 18 maps every review point to where it is fixed. Section 19 lists what changed in revision 4, section 20 what changed in revision 5 (order-step gaps), section 21 what changed in revision 6, section 22 what changed in revision 7 (size rule and demo numbers), and section 23 the small patches in 7.1 and 7.2.
+**The plan below is frozen** and was agreed before building started. The **Status** section is
+the only part that changes. Every change to the code is one line in
+[`CHANGES.md`](CHANGES.md); the shapes the services pass each other are in
+[`CONTRACTS.md`](CONTRACTS.md).
 
 ---
 
 ## Status
 
-**The plan below is frozen.** This section is the only part that changes: it says what is
-built. Every change to the code is logged in `docs/CHANGES.md`.
-
-Last updated **Saturday 14 November, 15:30 (hour 12.5)**.
+Last updated **Saturday 14 November, 16:15 (hour 13)**. **161 tests passing**, all offline:
+`cd Backend && python tests/test_units.py` and the rest.
 
 | Block | Section | State |
 |---|---|---|
-| 1. Spine: request to a priced, editable basket | 8, 12 | **Done.** Chat, search, price, units, ranking, basket, edits. Verified against the live API. |
-| 2a. Quote and order | 4, 6 | **Done.** Confirm, approve, order, both sides. A refusal repairs the basket and suggests cover rather than ending in an error. `scripts/sample_basket.py --order` runs it offline. |
-| 2b. Mandate, signed approval, single-use quotes | 6, 7 | **Done.** All ten gateway checks, the kitchen issues and signs. |
-| 3. Exceptions | 10 | **Mostly done.** Past cutoff, not deliverable, sales block, unknown size, price errors, stock changed between quote and order, expired quote, and **partial delivery split across products**. The scenario switch itself is not built, and Valio confirmed the mock data will not shift, so real product ids cover every case but `stock_changed`. |
-| 4. Trace view | 12 | Backend done: every step carries `crossed_gateway`. No screen yet. |
-| 5. Signed quotes | 6 | **Done.** Signed at confirm, Ed25519 JWS, single use, re-checked at order, tamper refused as a security event. |
-| 6. Second client | 13 | Not started. |
-| 7. Inventory and the running-low suggestion | 11 | Seed data in progress. |
+| 1. Spine: request to a priced, editable basket | 8, 12 | **Done** |
+| 2a. Quote and order | 4, 6 | **Done.** Confirm, approve, order. A refusal repairs the basket and suggests cover rather than ending in an error. |
+| 2b. Mandate, signed approval, single-use quotes | 6, 7 | **Done.** All ten gateway checks; the kitchen issues and signs. |
+| 3. Exceptions | 10 | **Done** except the scenario switch. Past cutoff, not deliverable, sales block, unknown size, price errors, stock changed between quote and order, expired quote, partial delivery split across products. |
+| 4. Trace view | 12 | **Partly.** Every step carries `crossed_gateway`, but steps are returned per call and not stored, so the Activity tab has no history to query. |
+| 5. Signed quotes | 6 | **Done.** Signed at confirm, Ed25519 JWS, single use, re-checked at order, tampering refused as a security event. |
+| 6. Second client | 13 | **Not started.** Beat 5. |
+| 7. Inventory and the running-low suggestion | 11 | **Done.** Append-only ledger, weekday forecast, shortfall trigger, reorder baskets. |
 | Frontend | 12 | In progress. `Frontend/fixtures/sample_basket.json` is a real basket to build against. |
-| Deployment | 13 | **Not started, and the largest unknown:** the mock API has never been called from a cloud host. |
+| Deployment | 13 | **Not started, and the largest unknown:** the mock API has never been called from a cloud host, and Aiven's free tier powers off when idle. |
 
-**Decided since the freeze**, from Valio's own answers in `docs/MENTOR_ANSWERS.md`:
+**Who is building what:** Omer on the backend's kitchen side, one teammate on the frontend,
+one on the gateway side, one on seed data, demo numbers and slides.
 
-- There is no order API and none is expected: producing orders for human approval is the
-  whole requirement, so our order step is the real thing rather than a stand-in.
-- `availableAmount` at or above 999999 means availability is **unknown**, not unlimited.
-- An empty schedule means not available; `allowedLotSize` 0.01 means 1.
-- A 429 blocks us for 30 seconds, so the client waits it out.
+**Run it**
 
-**Known gaps worth keeping in view**
+```
+cd Backend
+python scripts/sample_basket.py --order              # a sentence to an order, offline
+python scripts/sample_basket.py --order --stock-moves 400   # the basket repairing itself
+uvicorn gateway.main:app --reload --port 8001        # needs .env
+uvicorn kitchen.main:app --reload --port 8002
+```
 
-1. The chat takes one item per message and cannot be used to edit a basket; the basket's own
+**Known gaps**
+
+1. The trace is not stored, so the Activity tab and "what Aimo sees" have no history.
+2. Nothing is deployed. Still the largest unknown.
+3. The chat takes one item per message and cannot be used to edit a basket; the basket's own
    buttons handle editing through `PATCH`.
-2. Nothing is deployed, and Aiven's free tier powers off when idle. Still the largest unknown.
-3. The running-low suggestion is waiting on the seed recipes and sales history.
-4. The scenario switch is not built. Real product ids cover every exception except
-   `stock_changed`, which is the one case the live data cannot show.
-
----
-
-## Start here (hours 0 to 7)
-
-Read sections 3, 4 and 8 before coding. Everything else can wait until the spine works.
-
-| Track | Builds until the hour 7 checkpoint |
-|---|---|
-| A: gateway | Product load, search with claim `id` + category + size filters, mock API client, `check_delivery`, OpenAPI spec |
-| B: agent | State machine, request parsing with schema validation, ranking, calls the shared conversion function |
-| C: frontend | Basket component with every unit and price field; a chat box that fills it |
-| D: data | Size rule (read the unit, respect base vs case level, then name parsing), category labels, `need_to_sales_units()` tests, scenario fixtures, seed data, empty deploy of both services |
-
-**Done at hour 7:** the demo request produces an editable basket whose quantities and totals match a hand calculation from the real mock's prices (for the 10 L Novobox that is 50 KI = 1,000 L), with correct net, VAT and gross.
-
-**First task in hour 0, demo-script owner:** call `/api/ping` with the team's API key to confirm access (nobody has called the mock yet), then run the milk request against the real mock and write down what comes back (which product wins, real price, real total). Two lactose-free 10 L products match "in 10 L packs": Valio `463038` (50 KI) and Arla `464179` (100 ST). Script beat 1 around whichever wins, or name the brand in the request. The demo script and the limits are set from that, not from the illustrative numbers in this document (section 14).
-
----
+4. Sixteen of the seventeen seed products have never been priced against the live API, so
+   their cut-offs are unknown. If cream's has passed, beat 3 drafts an empty basket.
+   `python scripts/find_products.py --text cream --price 2026-11-17` settles it.
+5. The scenario switch is not built. Real product ids cover every exception except
+   `stock_changed`; `sample_basket.py --stock-moves` covers that in rehearsal but not on stage.
 
 ## 0. Decisions locked
 
@@ -142,7 +134,7 @@ flowchart LR
 
 ---
 
-## 3. Units (hour 0–1, before anything else)
+## 3. Units
 
 Facts verified against the product file:
 
@@ -498,7 +490,7 @@ Only if ahead of schedule: an Inventory tab (stock, on order, movements). Cut: R
 
 ---
 
-## 13. Build plan (24 hours, with sleep and submission)
+## 13. Build plan (as agreed at hour 0; the Status section says where it got to)
 
 Hour 0 ≈ 03:00 Saturday, so the clock is already running. **This document is frozen at revision 7.2:** further changes go in as code or as one-line notes in the README, not as new revisions. **Feature freeze at hour 15.** Confirm the real submission deadline and demo length first, and shift every hour below to fit.
 
@@ -610,151 +602,104 @@ Slides only: trust ladder, hospital/school profile with allergen hard blocks, ML
 
 ---
 
-## 17. Open questions for the mentors (ask tonight)
+## 17. Open questions for the mentors
 
 - Is the order step ours to build? (The mock spec has no order endpoint.)
+  **Answered:** yes, and an order never leaves our gateway. See section 18.
 - Are there product IDs that reliably return a sales block or partial availability? Is a labelled scenario switch acceptable?
-- Is full/partial/none the right level of availability disclosure for external agents?
+  **Answered:** the weekend data does not shift, so real ids cover every case but `stock_changed`.
+- Is full/partial/none the right level of availability disclosure for external agents? (still open)
 - JWS/JWKS for trust, or would they rather see Verifiable Credentials?
-- MCP, OpenAPI or both for the agent interface?
+- MCP, OpenAPI or both for the agent interface? (still open)
 - Does `/api/price` return deposit values, and how are variable-weight products priced?
+  **Answered:** no deposit values appear in the price response.
 - How long is the demo slot, and when exactly is the submission deadline?
+  **Answered:** we present before Sunday 17:00, so beat 1 is a clean order.
 
 ---
 
-## 18. How each review point was addressed
-
-Sections 18 to 23 are history. Nobody needs them to build.
-
-### Review 1 (scope, data, demo)
-
-| Point | Fix | Section |
-|---|---|---|
-| Block 1 too big; no sleep, deployment, video or partner notes | Hour 0–1 contracts, parallel tracks, hour 7 checkpoint, sleep shifts, freeze at hour 15, 9 hours for deploy/video/notes/pitch, cut order | 13 |
-| Too many features on top of the spine | One trigger; cut offers, better option, drift, voice, vector search, overview, recipes tab | 0, 12 |
-| `allowedLotSize` 0.01 for 96% of products | Case sizes from `units[]`; lot size only as minimum step | 3 |
-| Basket example didn't add up | Real product, consistent numbers, unit in every price field, check line | 3, 6 |
-| Volume missing for half the catalogue | "Size unknown" fallback | 3 |
-| Category codes have no names | One model pass to label them | 4 |
-| Lactose-free is a structured field | Filter on `nutritionalClaim` | 4 |
-| Exceptions depend on the live mock | Scenario switch + real IDs where they exist | 4, 10 |
-| "By Monday" may be past cutoff | Date checked first; demo date chosen before cutoff | 8, 13 |
-| Order formula ignores on-order stock | `on_order` subtracted, window defined | 11 |
-| Net or gross limits unclear | Net goods value excl. VAT and deposits, everywhere | 3, 7, 9 |
-| Diagram contradicts "only link" | Trigger goes through the agent | 2 |
-| "Aimo only sees orders" only true on a slide | Two services, two schemas, HTTP only; Aimo's key from its JWKS, the kitchen's key registered at setup | 0, 2, 5 |
-| `get_offers` has no data | Removed | 0 |
-| "Not a chatbot" on the flyer | Demo leads with basket and approval | 0, 14 |
-| Marble claim | Generic wording unless verified | 15 |
-| Openness asserted, not shown | Second client live | 13, 14 |
-| Vector search unnecessary | Removed | 4 |
-| Trace from hour zero | Decorator before any tool | 5, 13 |
-
-### Review 2 (signed quotes, privacy, demo)
-
-| Point | Fix | Section |
-|---|---|---|
-| Editing breaks the signature | Sign at confirm; edits before are free; any edit after invalidates the quote | 6 |
-| Snapshot isn't a reservation | Price fixed, delivery a snapshot, re-checked at order; `stock_changed` path | 6, 10 |
-| Unit bug now signed | Signed payload uses the same tested conversion and unit fields | 3, 6 |
-| Theatre if both sides share a process | Two services; each holds only its own private key; Aimo's public key over HTTP, the kitchen's registered at setup | 2, 6, 7 |
-| Exceptions lost an hour | Exceptions get 3 hours and come before signed quotes | 13 |
-| Mandate is the weaker half | Full mandate spec, same library, built in block 2 before quotes | 7, 13 |
-| Wrong field names (certificates) | `claims` and `labels`, as in the data | 6, 16 |
-| Failed signature treated as a retry | Security event, order stopped, human restarts | 6, 10 |
-| Six demo scenes | Five beats, timed; offer and hospital profile to slides | 14 |
-| Signed quote leaks stock counts | `can_fulfil` + capped `fulfil_amount`; never `availableAmount` | 4, 6 |
-| Quote can outlive the cutoff | `exp = min(validTo, closing_time, now + 2 h)` | 6 |
-| Trace readable by Aimo | Split view: kitchen full, Aimo gateway-only | 5, 12 |
-| Model sees kitchen data | Request text and product data only; Verda or Gemini decided in hour 0 | 5 |
-| ML roadmap trains on Aimo's orders | Opt-in usage sharing with a benefit for the kitchen | 11 |
-| Customer prices visible to any agent | Prices tied to agent identity; every caller needs a key (no anonymous mode) | 4 |
-| Hand-building MCP and OpenAPI | MCP generated from FastAPI; checked in hour 1 | 4, 13 |
-| Sales-log UI | "Simulate today's service" button | 5, 12 |
-| Six dashboard tabs | Approvals, Agent rules, Activity; Inventory only if ahead | 12 |
-| Not checked: Verda model quality, `fastapi-mcp` compatibility | Both checked in hour 0–1, with fallbacks | 5, 13 |
-
 ---
 
-## 19. Changes in revision 4 (after the third review)
+## 18. What the live API actually does
 
-| Problem found | Change | Section |
-|---|---|---|
-| The demo product has no structured volume, so the "size unknown" rule would exclude it | Three-step size rule: structured, then parsed from the name (flagged), then unknown | 3, 16 |
-| How lactose-free is stored in the data | Re-checked in revision 5: both `id: FREE_FROM_LACTOSE` and the pair `synkkaId: LACTOSE` + `unit: FREE_FROM` exist; we filter on `id` | 4, 6, 8 |
-| Deposit materials are not in the product file | Deposit value only if the price API returns it | 3 |
-| Variable-weight products not handled | Never auto-ordered | 3 |
-| Category alone still lets coffee milk through | Category + claim + pack size | 4 |
-| Gateway fetched the kitchen's key from a URL inside the token | Kitchen key registered with the gateway at setup | 2, 7 |
-| Approval record presented as a gateway check it cannot verify | Revision 4: required and logged only. Replaced in revision 5 by a signed approval the gateway does verify (section 20) | 7 |
-| Revocation list and anonymous pricing added work with no demo value | Both removed; revocation is roadmap | 4, 7 |
-| Scenario switch controllable by a request header | Server-side setting only; three scenarios first | 4 |
-| Policy only ran after the quote | Preview on every draft, binding on the quote | 5, 8 |
-| "Quote" clashes with the brief's "rather than a negotiated quote" | "Signed price confirmation" in UI and pitch | 6, 15 |
-| First deployment came after the freeze | Empty services deployed in hour 1, redeployed after every block | 13 |
-| One person on inventory for 13 hours while the spine was the risk | Track D owns data until hour 7, then inventory | 13 |
-| Hour 0–1 held about three hours of work | Contracts together, then one owner per task | 13 |
-| Sleep not reflected in block hours | Stated; cut order expected to be used | 13 |
-| Stock can be probed through repeated delivery checks | Named as a known limit in the README | 4 |
+Found by calling it, and confirmed by the Valio team where marked. This replaces the
+hour 0 notes and the mentor answers, which were separate files.
 
----
+### Access
 
-## 20. Changes in revision 5 (order-step gaps, review 3)
+- `GET /api/ping` with `X-API-Key`. **Cloudflare rejects a script-like user agent** with 403
+  and "error code: 1010", so `gateway/aimo_client.py` sends a browser one. Without it the
+  failure looks like a bad key. In PowerShell use `curl.exe`, not `curl`.
+- **Every timestamp uses an offset with no colon** (`"+0200"`), which `datetime.fromisoformat`
+  only accepts from **Python 3.11**. Everything goes through `shared/timeparse.py`; never call
+  `fromisoformat` on a value from the API. Python 3.11+ for everyone and the deploy host.
+- **Rate limits (Valio):** a 429 blocks us for 30 seconds. "A few hundred calls per minute is
+  ok, over 10 seconds not ok." The client waits a 429 out, retries twice, honours
+  `Retry-After`, spaces calls 0.25 s apart and caches each question.
 
-| Problem found | Change | Section |
-|---|---|---|
-| The approval was an unsigned claim from the agent: it could be made up, or reused for another quote | Approve signs an approval JWS naming the quote's `jti`; the gateway verifies it against the kitchen's registered key | 7, 8, 10 |
-| One quote could be ordered twice with a new idempotency key | Quotes are single-use; a second order is refused with `quote_already_used` | 4, 6, 10 |
-| Rehearsals use up the €5,000 weekly limit, so beat 1 would be rejected on stage | Labelled Demo reset; on the pre-run checklist | 4, 13, 14 |
-| Ordered stock counted in both `stock` and `on_order`, so "running low" fires late or never | Ordering creates an on-order record; the ledger `delivery` is written on receipt and closes the record | 5, 8, 11 |
-| Tampering meant editing JSON live on stage | "Tamper with quote (demo)" button | 4, 14 |
-| Block 2 is the tightest block and gained two items | Block 2 runs to hour 10 with its own checkpoint; Agent rules tab is a plain form; second client moves to track D | 13 |
-| Review 3 could not re-check the data | Re-checked against the product file: `463038` is 1 KI = 2 ST with no structured volume (10 L from the name); 10,242 structured sizes; 632 variable-weight; 506 products with deposits; 91 products in `10400` | 3, 16 |
-| Revision 4 said `FREE_FROM_LACTOSE` isn't in the data | It is, as the claim `id`, next to the `synkkaId` + `unit` pair. We filter on `id` | 4, 6, 8, 16 |
-| "Issue / revoke mandate" still in the rules tab after revocation was cut | "Issue mandate" only | 12 |
+### Prices
 
----
+- `comparisonPrice` is **already per litre or kilogram**, and follows the customer price, not
+  the list price (`464306`: catalogue 1.01, comparison 1.01, list 1.44). Rank on it.
+- It is **rounded to cents, so never total with it**. The 10 L Novobox is EUR 1.57/L but the
+  line total is 50 x EUR 31.31 = EUR 1,565.50, not 1,000 x 1.57.
+- `catalogPrice / comparisonPrice` gives **the size of one sales unit**, which is a useful
+  cross-check on the size rule and a last-resort fallback. More than 2% apart raises
+  `size_disagrees_with_price` on the line.
+- **`netPriceFound: false` is not an error.** It means no customer-specific price, so the
+  catalogue price applies, for 24 of the 35 lactose-free milks. Exclude a product only when
+  `error` is true or there is no `catalogPrice`.
+- Only rank products whose `comparisonUnit` matches the need: 34 of the 35 report per `L`,
+  one per `KG`.
+- **No deposit values** appear anywhere in the price response.
+- VAT is 13.5% on food. **VAT is computed once per line from the line's net value**, never by
+  multiplying the API's rounded per-unit `valueWithTax`: that is EUR 3.65 out on 1,000 units.
 
-## 21. Changes in revision 6 (after the fifth review)
+### Availability
 
-| Problem found | Change | Section |
-|---|---|---|
-| The document was still being revised after hour 0 | Frozen (at revision 6 then; the freeze now stands at 7.2); later changes go in code or the README | 13 |
-| 600 lines to read before building | "Start here" card with one row per track | Start here |
-| Demo reset and tamper lived on the gateway but changed kitchen data and issued the kitchen's mandate | Each service has its own demo endpoints; one page calls both | 4 |
-| Reset cleared the on-order records that beat 3 depends on | Reset restores the seeded on-order records | 4 |
-| No working end-to-end order until all signing was done | Block 2 split: unsigned order by hour 8.5, signatures by hour 10 | 13 |
-| Signed approval had no fallback in the cut order | Falls back to a logged approval record | 13 |
-| "Enforced by Aimo" overstated what the gateway can verify | "Checked on both sides"; Aimo verifies the kitchen's signature, not the person | 15 |
-| Beat 2 repeated the approval already shown in beat 1 | Beat 2 stops at the new signed quote | 14 |
-| Revision 4 said `FREE_FROM_LACTOSE` was not in the data | That was wrong; revision 5's correction stands. The claim `id` exists on 4,178 products | 4, 16 |
+- **`availableAmount` at or above 999999 means availability is UNKNOWN**, not unlimited.
+  Valio: "we do not know the availability and our current logic allows ordering any quantity.
+  These values typically appear on terminal products that are not stocked by us." So any
+  quantity may be ordered but nothing is confirmed: the answer carries
+  `availability_known: false` and the line is flagged. Ten of the fourteen orderable milks are
+  like this, so it is deliberately **not** an approval reason.
+- **An empty `scheduleLines` list means not available** (Valio).
+- `logisticModel` cannot replace the threshold: `Terminal` was unknown in all 20 cases, but
+  `Stock` was unknown 10 times and a real count 4 times. It does say something else, though:
+  **the 20 `Terminal` products are exactly the 20 past their cut-off**, because they are
+  supplier-delivered.
+- **`closingTime` is the cut-off for the related `availableDate`** (Valio), so when offering an
+  alternative date the cut-off must be read from the schedule line chosen, not the product.
+- **A passed cut-off does not change `can_fulfil`.** The Novobox answers `full` with
+  `past_closing_time: true`, so anything reading the gateway must treat that flag as
+  "cannot be ordered". The agent does, and it filters on the cut-off **before** ranking.
+- **The mock data will not shift over the weekend** (Valio), so the recorded responses stay
+  valid and real product ids cover every exception but `stock_changed`.
 
----
+### Ordering
 
-## 22. Changes in revision 7 (review 4: size rule and demo numbers)
+- **There is no order API and none is expected.** Valio: "it is enough that your solution can
+  produce orders for human approval, they don't need to be sent anywhere." So our order step
+  is the real thing for this challenge, not a stand-in, and nothing has to be undone after a
+  demo run beyond our own reset.
+- `allowedLotSize` **0.01 means 1** (Valio). A value below 1 means whole sales units.
 
-Review 4's counts were re-checked against the product file before these changes were made.
+### The demo's numbers
 
-| Problem found | Change | Section |
-|---|---|---|
-| A structured size isn't always a size or litres: `H87` is pieces (211 products), `MTR` metres (7), and 154 products store a mass in the volume field | The unit decides: `LTR`/`MLT`/`CLT` → litres; `GRM`/`KGM` → kilograms in either field; anything else falls through to name parsing. Litres and kilograms are never converted into each other | 3 |
-| About 2,000 products have their size only on the `CASE` entry, so quantities would be out by the case size | Packaging level respected: case size divided by the `KI` entry's `sizeInBaseUnits`; `size_source: structured_case` | 3 |
-| Conversion tests didn't cover these cases | Test table with `464201`, `463038`, `460003`, `460490`, a mass-in-volume product and a no-size product | 3 |
-| Beat 1's "50 KI, €1,370" assumed the 10 L Novobox wins the ranking; 1 L packs may be cheaper per litre, and `463038` has no reliability score | Hour 0: run the request on the real mock and script the demo from the result; the request names the pack size ("in 10 L packs"); missing reliability is "unknown" and loses tie-breaks | Start here, 8, 13, 14 |
-| The €500 threshold might not trigger with the real total | Hour 0 check: real total above the chef limit and below the mandate's per-order limit; limits adjusted if not | 13 |
-| "10,242 structured sizes" overcounted | Recounted: 8,038 per base unit + 1,986 per case = 10,024 usable (review 4 counted 2,027 case-only before filtering unusable units) | 3, 16 |
-| Still unverified | The mock API wasn't reachable during the reviews: real prices, deposits and the ranking winner are checked in hour 0 | 13, 17 |
+Only **14 of the 35 lactose-free milks are orderable**: 20 are past their cut-off, including
+**both 10 L Novoboxes**, and one has no delivery schedule.
 
----
+| | |
+|---|---|
+| Winner | `464306` Valio Hyvä suomalainen Arki Eila semi skimmed 1 l, lactose-free |
+| Price | EUR 1.01 per L, the cheapest of the 35 |
+| Quantity | 1,000 ST (1 L per ST) |
+| **Net / VAT / gross** | **EUR 1,010.00** / 136.35 / 1,146.35 |
+| Delivery | 2026-11-16, cut-off Sunday 17:00 |
 
-## 23. Revisions 7.1 and 7.2 (small patches; no further revisions)
+The alternative on the line is `464401` at EUR 1.10/L (EUR 1,100.00), which shares the Sunday
+cut-off. The Novobox appears as a second alternative **deliberately flagged
+`past_closing_time`**, which shows the agent catching something a human reading the webshop
+would miss. Every orderable milk is 1 L per unit, so the case arithmetic appears in beat 3
+instead, where cream is ordered by the case.
 
-Counts were re-checked against the product file each time.
-
-| Problem found | Change | Section |
-|---|---|---|
-| 7.1: name parsing assumed the size in a name is the size of one base unit; 1,168 multipack-style names and 238 names with two or more sizes break that | Parse a name only when it holds exactly one size and no multiplier; otherwise "size unknown" | 3, 16 |
-| 7.1: nobody has called the mock API yet | `/api/ping` is the first action in hour 0 | Start here |
-| 7.2 (review 5): "in 10 L packs" matches two products, Valio `463038` (50 KI) and Arla `464179` (100 ST) | Script beat 1 around whichever wins in hour 0, or name the brand; brand is an optional parsed field | Start here, 8, 13, 14, 16 |
-| 7.2 (review 5): section 13 and section 21 named different freeze revisions | Both now point at 7.2 | 13, 21 |
-| 7.2 (review 5): a `CASE`-level size is ambiguous when a product has both `KI` and `CS` units | Those products fall through to name parsing. Checked: 12 of the 1,986 case-only products are affected. `463335`, the review's example, has a base-level size, so it is a test that the base level wins; a separate test covers the ambiguous case | 3, 16 |

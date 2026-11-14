@@ -68,7 +68,7 @@ def test_rules_parse_pack_size_brand_and_other_units():
 
 
 def test_hour_7_basket():
-    # NIGHT_SHIFT: "1,000 L lactose-free milk by Tuesday" -> 1,000 ST of 464306,
+    # The demo request: "1,000 L lactose-free milk by Tuesday" -> 1,000 ST of 464306,
     # net 1,010.00, VAT 136.35, gross 1,146.35, delivery 2026-11-16.
     state, reply, _ = basket_for("1,000 L lactose-free milk by Tuesday")
     basket = state.basket

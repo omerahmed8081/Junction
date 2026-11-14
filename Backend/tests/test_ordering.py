@@ -362,7 +362,7 @@ def test_baskets_orders_and_the_mandate_survive_a_restart():
         path = Path(folder) / "kitchen.json"
         storage.save({state.basket.basket_id: state}, {record.order_id: record},
                      kitchen.mandate, path=path)
-        baskets, orders, mandate = storage.load(path)
+        baskets, orders, mandate, services = storage.load(path)
 
     restored = baskets[state.basket.basket_id]
     assert restored.basket.status == "ordered"
@@ -383,10 +383,10 @@ def test_a_missing_or_corrupt_state_file_starts_empty_rather_than_crashing():
 
     with tempfile.TemporaryDirectory() as folder:
         missing = Path(folder) / "nothing.json"
-        assert storage.load(missing) == ({}, {}, None)
+        assert storage.load(missing) == ({}, {}, None, [])
         broken = Path(folder) / "broken.json"
         broken.write_text("{not json at all", encoding="utf-8")
-        assert storage.load(broken) == ({}, {}, None)
+        assert storage.load(broken) == ({}, {}, None, [])
 
 
 def test_one_unreadable_basket_does_not_cost_us_the_others():
@@ -400,7 +400,7 @@ def test_one_unreadable_basket_does_not_cost_us_the_others():
         payload = json.loads(path.read_text(encoding="utf-8"))
         payload["baskets"]["b_broken"] = {"basket": {"nonsense": True}}
         path.write_text(json.dumps(payload), encoding="utf-8")
-        baskets, _, _ = storage.load(path)
+        baskets, _, _, _ = storage.load(path)
     assert list(baskets) == [state.basket.basket_id]
 
 
@@ -412,7 +412,7 @@ def test_a_swap_still_works_when_the_candidates_were_not_persisted():
     with tempfile.TemporaryDirectory() as folder:
         path = Path(folder) / "kitchen.json"
         storage.save({state.basket.basket_id: state}, {}, None, path=path)
-        baskets, _, _ = storage.load(path)
+        baskets, _, _, _ = storage.load(path)
     restored = baskets[state.basket.basket_id]
     assert restored.candidates == {}            # not persisted, by design
     reply, _ = agent.apply_edits(
