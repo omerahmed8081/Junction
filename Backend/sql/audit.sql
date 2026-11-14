@@ -88,6 +88,57 @@ CREATE INDEX IF NOT EXISTS kitchen_audit_basket ON kitchen.audit_log (basket_id,
 CREATE INDEX IF NOT EXISTS kitchen_audit_at ON kitchen.audit_log (id DESC);
 CREATE INDEX IF NOT EXISTS kitchen_audit_order ON kitchen.audit_log (order_id) WHERE order_id <> '';
 
+-- ------------------------------------------------- orders Aimo has accepted --
+-- The gateway's own record of what it accepted, which the mandate's daily and
+-- weekly limits are counted from. It lived in memory, so a restart forgot the
+-- week's spending and let a used quote be ordered again: a guardrail that
+-- quietly reset itself.
+--
+-- `document` is the whole OrderRecord as it was returned, so nothing is lost
+-- in translation; the columns beside it are the ones that get queried.
+CREATE TABLE IF NOT EXISTS gateway.orders (
+    order_id    text        PRIMARY KEY,
+    customer_id text        NOT NULL,
+    agent_id    text        NOT NULL DEFAULT '',
+    status      text        NOT NULL DEFAULT 'placed',
+    placed_at   timestamptz NOT NULL,
+    net_total   numeric(12, 2) NOT NULL DEFAULT 0,
+    document    jsonb       NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS gateway_orders_customer ON gateway.orders (customer_id, placed_at DESC);
+
+-- Which quote became which order, and which idempotency key answered which.
+-- The primary key is what stops one quote being ordered twice; before this it
+-- was a dict that a restart emptied.
+CREATE TABLE IF NOT EXISTS gateway.used_quotes (
+    quote_jti       text PRIMARY KEY,
+    order_id        text NOT NULL,
+    idempotency_key text NOT NULL DEFAULT '',
+    customer_id     text NOT NULL DEFAULT '',
+    at              timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS used_quotes_idempotency
+    ON gateway.used_quotes (customer_id, idempotency_key)
+    WHERE idempotency_key <> '';
+
+-- ------------------------------------------------------ the kitchen's state --
+-- Baskets, orders, the mandate in force and the services logged since the
+-- seed. This was a JSON file beside the code, which meant orders existed in
+-- three places - that file, the gateway's memory, and the audit log - and they
+-- disagreed after any reset.
+--
+-- One row holding the document the kitchen already knew how to write, rather
+-- than a table per thing: the shapes are Pydantic models that change through
+-- the night, and a schema chasing them would be a second source of bugs. What
+-- this buys is one place to look and one place to clear, which was the problem.
+CREATE TABLE IF NOT EXISTS kitchen.state (
+    id         text        PRIMARY KEY,          -- the kitchen's own id; "default" for now
+    document   jsonb       NOT NULL,
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+
 -- --------------------------------------------------------- revoked mandates --
 -- Mandates the customer has called back. A mandate is a signed statement that
 -- stands on its own and verifies until its own expiry, so stopping an agent

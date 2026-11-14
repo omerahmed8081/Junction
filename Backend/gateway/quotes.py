@@ -52,13 +52,37 @@ def new_order_id() -> str:
 class QuoteRegistry:
     """Which quotes have been ordered, and which orders answered which key.
 
-    In memory for now, which is enough for the demo and matches the kitchen's
-    baskets; the shape is deliberately a dict lookup so it can become a table
-    with a unique index on the quote id.
+    Kept in `gateway.used_quotes` and mirrored in memory. This is what stops a
+    quote being ordered twice, so a restart emptying it was not a lost
+    convenience: a quote that had already been paid for became orderable again.
+
+    Without a pool it is memory alone, which is how every test runs.
     """
 
     used: dict[str, str] = field(default_factory=dict)          # quote jti -> order id
     by_idempotency: dict[str, str] = field(default_factory=dict)  # key -> order id
+    pool: Any = None
+
+    def set_pool(self, pool: Any) -> None:
+        self.pool = pool
+        self.reload()
+
+    def reload(self) -> int:
+        if self.pool is None:
+            return 0
+        try:
+            with self.pool.connection(timeout=5.0) as conn:
+                rows = conn.execute(
+                    "SELECT quote_jti, order_id, idempotency_key FROM gateway.used_quotes"
+                ).fetchall()
+        except Exception as exc:        # noqa: BLE001
+            print(f"[gateway] could not read used quotes back: {type(exc).__name__}: {exc}")
+            return 0
+        for quote_jti, order_id, key in rows:
+            self.used[quote_jti] = order_id
+            if key:
+                self.by_idempotency[key] = order_id
+        return len(rows)
 
     def order_for_quote(self, quote_id: str) -> str | None:
         return self.used.get(quote_id)
@@ -66,15 +90,35 @@ class QuoteRegistry:
     def order_for_key(self, idempotency_key: str) -> str | None:
         return self.by_idempotency.get(idempotency_key)
 
-    def mark_used(self, quote_id: str, idempotency_key: str, order_id: str) -> None:
+    def mark_used(self, quote_id: str, idempotency_key: str, order_id: str,
+                  customer_id: str = "") -> None:
         self.used[quote_id] = order_id
         self.by_idempotency[idempotency_key] = order_id
+        if self.pool is None:
+            return
+        try:
+            with self.pool.connection(timeout=5.0) as conn:
+                conn.execute(
+                    "INSERT INTO gateway.used_quotes"
+                    " (quote_jti, order_id, idempotency_key, customer_id)"
+                    " VALUES (%s, %s, %s, %s) ON CONFLICT (quote_jti) DO NOTHING",
+                    (quote_id, order_id, idempotency_key or "", customer_id or ""))
+        except Exception as exc:        # noqa: BLE001
+            print(f"[gateway] quote {quote_id} not marked used in the database: "
+                  f"{type(exc).__name__}: {exc}")
 
     def forget_customer(self, order_ids: Iterable[str]) -> None:
         """For the labelled demo reset only."""
         gone = set(order_ids)
         self.used = {q: o for q, o in self.used.items() if o not in gone}
         self.by_idempotency = {k: o for k, o in self.by_idempotency.items() if o not in gone}
+        if self.pool is not None and gone:
+            try:
+                with self.pool.connection(timeout=5.0) as conn:
+                    conn.execute("DELETE FROM gateway.used_quotes WHERE order_id = ANY(%s)",
+                                 (list(gone),))
+            except Exception as exc:    # noqa: BLE001
+                print(f"[gateway] demo reset did not clear used quotes: {exc}")
 
 
 # ------------------------------------------------------------ building one

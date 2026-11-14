@@ -110,11 +110,12 @@ ssh root@YOUR_SERVER_IP
 bash /opt/tta/deploy/update.sh
 ```
 
-That pulls, installs any new Python packages, rebuilds the frontend, reinstalls the service files and the Caddyfile, restarts both services and prints their health. About a minute. Baskets, orders and the mandate survive (`Backend/.state/`), and so do the signing keys (`Backend/.keys/`).
+That pulls, installs any new Python packages, rebuilds the frontend, reinstalls the service files and the Caddyfile, restarts both services and prints their health. About a minute. Baskets, orders, the mandate and the audit logs all survive, because they are all in Postgres now; so do the signing keys (`Backend/.keys/`, the one thing still on disk, because it is this kitchen's identity rather than its data).
 
 | What changed | What to do |
 |---|---|
 | Code (backend or frontend) | `bash /opt/tta/deploy/update.sh` |
+| A new table in `sql/audit.sql` | `python scripts/apply_sql.py` from your laptop, then `update.sh`. `--check` first lists what exists |
 | A value in `.env` | edit `/opt/tta/Backend/.env`, then `systemctl restart tta-kitchen tta-gateway` |
 | `deploy/Caddyfile` or a `.service` file | `bash /opt/tta/deploy/update.sh` (it reinstalls both) |
 | The catalogue or labels | run the loader from your laptop against Aiven, as before; nothing on the server |

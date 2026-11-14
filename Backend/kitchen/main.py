@@ -76,12 +76,15 @@ async def lifespan(_: FastAPI):
             pool = ConnectionPool(url, min_size=1, max_size=2, open=True)
             audit.log.set_pool(pool)
             rules.store.set_pool(pool)
+            # Baskets, orders, the mandate and the logged services too, so
+            # everything this kitchen knows is in one place and clears in one.
+            storage.set_pool(pool)
         except Exception as exc:        # noqa: BLE001
             print(f"[kitchen] no audit database, keeping rows in memory: {exc}")
     else:
         print("[kitchen] DATABASE_URL is not set: audit rows stay in memory")
-    # Baskets, orders and the mandate survive a restart: losing a basket on
-    # stage is the one failure worth a file on disk (see kitchen/storage.py).
+    # Baskets, orders and the mandate survive a restart: in `kitchen.state` when
+    # there is a database, in a file beside the code when there is not.
     stored_baskets, stored_orders, stored_mandate, stored_services = storage.load()
     for entry in stored_services:
         inventory.record_service(date.fromisoformat(entry["date"]), entry["portions"])
@@ -93,7 +96,9 @@ async def lifespan(_: FastAPI):
     if stored_mandate:
         kitchen.mandate = stored_mandate
     if stored_baskets or stored_orders:
-        print(f"[kitchen] restored {len(stored_baskets)} basket(s) and {len(stored_orders)} order(s)")
+        where = "the database" if storage.using_database() else "the state file"
+        print(f"[kitchen] restored {len(stored_baskets)} basket(s) and "
+              f"{len(stored_orders)} order(s) from {where}")
     yield
     _save()
     gateway.close()

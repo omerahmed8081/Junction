@@ -25,7 +25,8 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 import psycopg                                                  # noqa: E402
 
 TABLES = [("gateway", "audit_log"), ("gateway", "revoked_mandates"),
-          ("kitchen", "audit_log"), ("kitchen", "rules")]
+          ("gateway", "orders"), ("gateway", "used_quotes"),
+          ("kitchen", "audit_log"), ("kitchen", "rules"), ("kitchen", "state")]
 
 
 def show_all(conn) -> None:

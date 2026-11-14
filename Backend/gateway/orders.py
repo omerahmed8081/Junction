@@ -25,6 +25,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import os
+import json
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable, Iterable
 
@@ -58,14 +59,63 @@ class OrderRefused(Exception):
 class OrderStore:
     """Orders Aimo has accepted.
 
-    In memory for the hackathon. `weekly_net` is the only query that is not a
-    lookup by id, and it is the one the mandate's weekly limit needs.
+    Kept in `gateway.orders` and mirrored in memory. The mirror is what the
+    daily and weekly sums walk, so those stay exactly as they were; the table
+    is what makes them survive a restart. Before this they did not, so the
+    week's spending reset itself and the mandate's limits quietly started over.
+
+    Without a pool it is memory alone, which is how every test runs.
     """
 
     orders: dict[str, OrderRecord] = field(default_factory=dict)
+    pool: Any = None
+
+    def set_pool(self, pool: Any) -> None:
+        """Attach the database and read back what is already there."""
+        self.pool = pool
+        self.reload()
+
+    def reload(self) -> int:
+        if self.pool is None:
+            return 0
+        try:
+            with self.pool.connection(timeout=5.0) as conn:
+                rows = conn.execute("SELECT document FROM gateway.orders").fetchall()
+        except Exception as exc:        # noqa: BLE001
+            print(f"[gateway] could not read orders back: {type(exc).__name__}: {exc}")
+            return 0
+        for (document,) in rows:
+            try:
+                record = OrderRecord(**(document if isinstance(document, dict)
+                                        else json.loads(document)))
+            except Exception as exc:    # noqa: BLE001
+                print(f"[gateway] skipping an unreadable order row: {exc}")
+                continue
+            self.orders[record.order_id] = record
+        return len(rows)
 
     def add(self, record: OrderRecord) -> None:
+        # Memory first, so an order is never lost because the write failed.
         self.orders[record.order_id] = record
+        if self.pool is None:
+            return
+        try:
+            with self.pool.connection(timeout=5.0) as conn:
+                conn.execute(
+                    "INSERT INTO gateway.orders"
+                    " (order_id, customer_id, agent_id, status, placed_at, net_total, document)"
+                    " VALUES (%(order_id)s, %(customer_id)s, %(agent_id)s, %(status)s,"
+                    "         %(placed_at)s, %(net_total)s, %(document)s)"
+                    " ON CONFLICT (order_id) DO UPDATE SET status = EXCLUDED.status,"
+                    "         document = EXCLUDED.document",
+                    {"order_id": record.order_id, "customer_id": record.customer,
+                     "agent_id": record.agent_id, "status": record.status,
+                     "placed_at": record.placed_at, "net_total": record.net_total,
+                     "document": json.dumps(record.model_dump(mode="json"), default=str)})
+        except Exception as exc:        # noqa: BLE001
+            # The order stands; it is the record of it that did not land.
+            print(f"[gateway] order {record.order_id} not written to the database: "
+                  f"{type(exc).__name__}: {exc}")
 
     def get(self, order_id: str) -> OrderRecord | None:
         return self.orders.get(order_id)
@@ -113,6 +163,12 @@ class OrderStore:
         gone = [o.order_id for o in self.for_customer(customer)]
         for order_id in gone:
             self.orders.pop(order_id, None)
+        if self.pool is not None and gone:
+            try:
+                with self.pool.connection(timeout=5.0) as conn:
+                    conn.execute("DELETE FROM gateway.orders WHERE customer_id = %s", (customer,))
+            except Exception as exc:    # noqa: BLE001
+                print(f"[gateway] demo reset did not clear the orders table: {exc}")
         return gone
 
 
@@ -348,7 +404,7 @@ def place_order(
         "approver_role": approval.approver_role if approval else None,
     })
     store.add(record)
-    registry.mark_used(quote.jti, request.idempotency_key, order_id)
+    registry.mark_used(quote.jti, request.idempotency_key, order_id, customer)
     return record
 
 

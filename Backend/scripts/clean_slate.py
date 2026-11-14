@@ -35,7 +35,15 @@ load_dotenv(ROOT / ".env")
 import httpx                                                    # noqa: E402
 
 # Tables that hold demo traffic. The catalogue is deliberately absent.
-TABLES = ["gateway.audit_log", "kitchen.audit_log"]
+# Everything the demo writes. One list, because the point of moving state into
+# the database was that there is now one place to clear.
+TABLES = [
+    "gateway.audit_log",
+    "gateway.orders",        # the week's spending is counted from these
+    "gateway.used_quotes",   # which quote became which order
+    "kitchen.audit_log",
+    "kitchen.state",         # baskets, orders, the mandate, logged services
+]
 # Deliberately not cleared: gateway.revoked_mandates. A mandate called back
 # stays called back - clearing it would quietly let a stopped agent order
 # again, which is the one thing a revocation is for. Pass --revocations to
@@ -82,6 +90,9 @@ def database(apply: bool, rules: bool, revocations: bool = False) -> int:
 
 
 def files(apply: bool) -> int:
+    """The old state file. State lives in `kitchen.state` now; this is only
+    here so a machine that ran the file version does not quietly keep it and
+    load it again the next time the database is unreachable."""
     if not STATE_FILE.exists():
         print(f"  {STATE_FILE.name:<22} already gone")
         return 0
@@ -130,12 +141,17 @@ def main() -> int:
     args = ap.parse_args()
 
     print("A clean slate for the demo." if args.yes else "Dry run. Add --yes to clear.\n")
+    # Running services first, then the tables. A running kitchen holds its
+    # baskets in memory and writes them back on its next save, so truncating
+    # first and asking it to reset second leaves a window where it re-saves
+    # what we just cleared. Asking first empties the memory; the truncation
+    # then sweeps up anything a service that was down had left behind.
+    print("Services:")
+    bad = running_services(args.yes)
     print("Database:")
-    bad = database(args.yes, args.rules, args.revocations)
+    bad += database(args.yes, args.rules, args.revocations)
     print("Files:")
     bad += files(args.yes)
-    print("Services:")
-    bad += running_services(args.yes)
 
     print()
     if not args.yes:

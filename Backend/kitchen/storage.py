@@ -29,6 +29,27 @@ from kitchen.need import ParsedNeed
 STATE_FILE = Path(os.environ.get("KITCHEN_STATE_FILE")
                   or Path(__file__).resolve().parent.parent / ".state" / "kitchen.json")
 
+# Which kitchen's row this is. A second kitchen (the hospital) is a second
+# service with its own id, so the two never read each other's state.
+STATE_ID = os.environ.get("KITCHEN_STATE_ID") or os.environ.get("AGENT_ID", "default")
+
+# Set once the database is open. With it, the state is one row in
+# `kitchen.state`; without it, the file beside the code, which is what tests and
+# a developer with no DATABASE_URL use.
+#
+# It used to be the file always, which meant orders lived in three places - here,
+# the gateway's memory and the audit log - and they disagreed after any reset.
+_pool: Any = None
+
+
+def set_pool(pool: Any) -> None:
+    global _pool
+    _pool = pool
+
+
+def using_database() -> bool:
+    return _pool is not None
+
 
 def _dump(value: Any) -> Any:
     if isinstance(value, datetime):
@@ -58,6 +79,23 @@ def save(baskets: dict[str, BasketState], orders: dict[str, OrderRecord],
         # produced, so replaying them rebuilds the ledger from the seed.
         "services": list(services or []),
     }
+    document = json.dumps(payload, default=_dump)
+    if _pool is not None:
+        try:
+            with _pool.connection(timeout=5.0) as conn:
+                conn.execute(
+                    "INSERT INTO kitchen.state (id, document, updated_at)"
+                    " VALUES (%s, %s, now())"
+                    " ON CONFLICT (id) DO UPDATE SET document = EXCLUDED.document,"
+                    "                                updated_at = now()",
+                    (STATE_ID, document))
+            return
+        except Exception as exc:        # noqa: BLE001
+            # Fall through to the file rather than lose a basket mid-demo. The
+            # next save goes to the database again if it comes back.
+            print(f"[kitchen] state not written to the database, writing the file instead: "
+                  f"{type(exc).__name__}: {exc}")
+
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".tmp")
     temporary.write_text(json.dumps(payload, indent=1, default=_dump), encoding="utf-8")
@@ -65,15 +103,35 @@ def save(baskets: dict[str, BasketState], orders: dict[str, OrderRecord],
 
 
 def load(path: Path | None = None) -> tuple[dict[str, BasketState], dict[str, OrderRecord], Mandate | None, list[dict]]:
-    """Read it back. A missing or unreadable file starts empty rather than crashing."""
+    """Read it back. Nothing stored, or stored unreadably, starts empty.
+
+    The database first, then the file: a kitchen that has just been pointed at
+    Postgres still finds the state it had on disk, and saves it back to the
+    row from then on.
+    """
     path = path or STATE_FILE
-    if not path.exists():
-        return {}, {}, None, []
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except Exception as exc:        # noqa: BLE001
-        print(f"[kitchen] ignoring unreadable state file {path}: {exc}")
-        return {}, {}, None, []
+    payload = None
+    if _pool is not None:
+        try:
+            with _pool.connection(timeout=5.0) as conn:
+                row = conn.execute("SELECT document FROM kitchen.state WHERE id = %s",
+                                   (STATE_ID,)).fetchone()
+            if row and row[0]:
+                payload = row[0] if isinstance(row[0], dict) else json.loads(row[0])
+        except Exception as exc:        # noqa: BLE001
+            print(f"[kitchen] could not read the state row: {type(exc).__name__}: {exc}")
+
+    if payload is None:
+        if not path.exists():
+            return {}, {}, None, []
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if _pool is not None:
+                print(f"[kitchen] found state in {path.name}; it moves to the database "
+                      "on the next save")
+        except Exception as exc:        # noqa: BLE001
+            print(f"[kitchen] ignoring unreadable state file {path}: {exc}")
+            return {}, {}, None, []
 
     baskets: dict[str, BasketState] = {}
     for basket_id, stored in (payload.get("baskets") or {}).items():
@@ -106,7 +164,13 @@ def load(path: Path | None = None) -> tuple[dict[str, BasketState], dict[str, Or
 
 
 def clear(path: Path | None = None) -> None:
-    """For the labelled demo reset."""
+    """For the labelled demo reset. Clears both, so neither can come back."""
     path = path or STATE_FILE
+    if _pool is not None:
+        try:
+            with _pool.connection(timeout=5.0) as conn:
+                conn.execute("DELETE FROM kitchen.state WHERE id = %s", (STATE_ID,))
+        except Exception as exc:        # noqa: BLE001
+            print(f"[kitchen] could not clear the state row: {exc}")
     if path.exists():
         path.unlink()

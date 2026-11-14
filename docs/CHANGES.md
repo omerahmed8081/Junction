@@ -7,6 +7,39 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Sunday 15 November
 
+### 03:40 - all of the state is in Postgres now
+
+Some things lived in the database and some in a JSON file, and the two
+disagreed. The frontend could show audit logs for orders the page said did not
+exist, because the logs were rows and the orders were a file the gateway never
+read. Resetting for a demo meant clearing two places and hoping.
+
+Three new tables, applied with `python scripts/apply_sql.py`:
+
+| Table | What was wrong without it |
+|---|---|
+| `gateway.orders` | the week's and day's spending were counted from memory, so a restart set them back to zero and the mandate's limits quietly started over |
+| `gateway.used_quotes` | this is what stops one quote being ordered twice; a restart emptied it, and an already-ordered quote became orderable again |
+| `kitchen.state` | baskets, orders, the mandate and the logged services, as one jsonb document |
+
+`kitchen.state` is deliberately one document row rather than a table per
+thing. The shapes are Pydantic models that are still changing, and a schema
+chasing them tonight would be a second source of bugs.
+
+**Nothing changed for callers.** `storage.save/load/clear` keep their exact
+signatures, and `OrderStore`/`QuoteRegistry` keep their methods and their
+in-memory dicts as the working copy, so `daily_net` and `weekly_net` are the
+same code as before. The tables are what make them survive a restart.
+
+- **No `DATABASE_URL`, no database:** both fall back to memory and the file, which is how every test runs and how a laptop with no `.env` still works.
+- **A write that fails does not lose the thing.** Memory is updated first; a failed row write prints and carries on, because an order Aimo has accepted must not vanish because Aiven blinked.
+- **State already in `.state/kitchen.json`** is still found on startup and moves into the row on the next save, so a kitchen pointed at Postgres for the first time does not look empty.
+- `scripts/clean_slate.py` now clears everything from one list, and asks the running services to reset *before* truncating, so a service holding baskets in memory cannot write them back over the clean slate.
+
+Checked against a real Postgres 16, not just mocks: the DDL applies twice over,
+the upserts and the partial unique index on `(customer_id, idempotency_key)`
+behave, and jsonb comes back as a dict. 311 tests pass.
+
 ### 02:55 - stopping the agent
 
 There was no way to call a mandate back. Issuing a new one replaced the

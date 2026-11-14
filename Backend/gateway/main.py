@@ -71,6 +71,11 @@ async def lifespan(_: FastAPI):
     pool = ConnectionPool(url, min_size=1, max_size=4, open=True)
     audit.log.set_pool(pool)        # the audit log writes to the same database
     revocations.revoked.set_pool(pool)
+    # Orders and used quotes come back from the table, so a restart no longer
+    # forgets the week's spending or lets a used quote be ordered again.
+    back = store.set_pool(pool) or 0, registry.set_pool(pool) or 0
+    print(f"[gateway] read back {len(store.orders)} order(s) and "
+          f"{len(registry.used)} used quote(s)")
     yield
     pool.close()
     if _aimo:
