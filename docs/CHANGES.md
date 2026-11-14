@@ -7,6 +7,22 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Saturday 14 November
 
+### 22:20 - a clean slate before deploying
+
+`scripts/clean_slate.py` clears everything the demo has written: both audit
+logs (TRUNCATE ... RESTART IDENTITY, so a fresh demo starts at row 1), the
+kitchen's state file, and - if the services happen to be up - the gateway's
+in-memory orders, used quote ids and weekly spend, which nothing outside that
+process can reach.
+
+**Dry run by default.** It lists what would go and changes nothing until `--yes`.
+
+What it will not touch, on purpose: the catalogue (`gateway.products`, 17,546
+rows and an 84 MB reload), the signing keys in `Backend/.keys/` (a new key
+invalidates every mandate already issued and has to be re-registered), and the
+seeded restaurant. Standing rules are kept too - they are a setting rather than
+demo traffic - unless you pass `--rules`.
+
 ### 22:00 - approval is the kitchen's choice, and the rules screen is simpler
 
 - **`MANDATE_APPROVAL_REQUIRED`, off by default.** A fresh mandate no longer
