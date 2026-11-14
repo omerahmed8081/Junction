@@ -7,6 +7,21 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Saturday 14 November
 
+### 17:20 - deploying to one Verda server, and updating it with one command
+
+Builds on the team's `deploy/Caddyfile` (unchanged). New in `deploy/`:
+
+| File | What it does |
+|---|---|
+| `setup.sh` | First install on a fresh Ubuntu 24.04 server: Node 22, Caddy, a `tta` user, the venv, the frontend build, two systemd services, Caddy |
+| `update.sh` | Every later update: `git pull`, pip install, `npm ci && npm run build`, reinstall service files and Caddyfile, restart, print health |
+| `install-caddyfile.sh` | Installs `deploy/Caddyfile` as `/etc/caddy/Caddyfile` with the frontend path made absolute (the Caddy service does not start in `Backend/`), plus an optional hostname for HTTPS and an optional site password |
+| `tta-gateway.service`, `tta-kitchen.service` | systemd units; a crash restarts after 2 s |
+
+Step-by-step guide: `docs/DEPLOY.md`. The first step checks that Aimo answers from the
+server's address before anything else is installed, since the mock API has never been
+called from a cloud host. Not yet run on a real Verda instance.
+
 ### 17:05 - first time either service was actually started
 
 The 161 tests all run offline with stubs, so no endpoint had ever been called. Booting
