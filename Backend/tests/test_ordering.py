@@ -441,22 +441,39 @@ def test_a_swap_still_works_when_the_candidates_were_not_persisted():
 
 # ---- what the agent may place on its own -------------------------------
 
+def with_a_rule_covering_everything():
+    """A standing rule the owner set, which is the only thing that makes a
+    basket auto_ok. confirm() decides the policy again on Aimo's signed total,
+    so a hand-set level would not survive it."""
+    from kitchen import rules
+    before = rules.store
+    rules.store = rules.RuleStore(pool=None)
+    rules.store.add(rules.Rule(name="everything", match="any", max_net_per_order=None))
+    return before
+
+
 def test_the_agent_may_place_what_a_rule_cleared():
-    state, gateway, kitchen = drafted()
-    state.basket.policy = PolicyDecision(level="auto_ok", reasons=["Your rule: milk"], binding=False)
-    ordering.confirm(state.basket, gateway, kitchen, now=NOW)
-    result = ordering.approve(state, "agent", gateway, kitchen, now=NOW)
-    assert result.outcome == "ordered" and result.order is not None
-    assert result.order.approver_role == "agent"
+    before = with_a_rule_covering_everything()
+    try:
+        state, gateway, kitchen = drafted()
+        ordering.confirm(state.basket, gateway, kitchen, now=NOW)
+        assert state.basket.policy.level == "auto_ok"
+        result = ordering.approve(state, "agent", gateway, kitchen, now=NOW)
+        assert result.outcome == "ordered" and result.order is not None
+        assert result.order.approver_role == "agent"
+    finally:
+        from kitchen import rules
+        rules.store = before
 
 
 def test_the_agent_may_not_place_anything_else():
     """The guard that matters: without a rule clearing it, the agent is refused
     even though it can sign a perfectly valid approval."""
+    # No rule at all, so nothing is auto_ok and the agent has no business here.
     for level in ("chef", "manager"):
         state, gateway, kitchen = drafted()
-        state.basket.policy = PolicyDecision(level=level, reasons=[], binding=False)
         ordering.confirm(state.basket, gateway, kitchen, now=NOW)
+        state.basket.policy = PolicyDecision(level=level, reasons=[], binding=True)
         try:
             ordering.approve(state, "agent", gateway, kitchen, now=NOW)
         except OrderingError as exc:
@@ -467,11 +484,15 @@ def test_the_agent_may_not_place_anything_else():
 
 def test_a_person_can_still_approve_what_a_rule_cleared():
     """A rule says nobody *has* to look, not that nobody may."""
-    state, gateway, kitchen = drafted()
-    state.basket.policy = PolicyDecision(level="auto_ok", reasons=["Your rule: milk"], binding=False)
-    ordering.confirm(state.basket, gateway, kitchen, now=NOW)
-    result = ordering.approve(state, "chef", gateway, kitchen, now=NOW)
-    assert result.outcome == "ordered" and result.order.approver_role == "chef"
+    before = with_a_rule_covering_everything()
+    try:
+        state, gateway, kitchen = drafted()
+        ordering.confirm(state.basket, gateway, kitchen, now=NOW)
+        result = ordering.approve(state, "chef", gateway, kitchen, now=NOW)
+        assert result.outcome == "ordered" and result.order.approver_role == "chef"
+    finally:
+        from kitchen import rules
+        rules.store = before
 
 
 if __name__ == "__main__":

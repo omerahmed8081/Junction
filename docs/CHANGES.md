@@ -7,6 +7,34 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Sunday 15 November
 
+### 00:55 - merging the roles branch
+
+Roles and the agent's own permission met in `chat()`. Both belong, and the
+order matters: whose basket it is has to be settled before the agent decides
+whether it may place it.
+
+Kept from the branch, which is better: `confirm()` deciding the policy again on
+Aimo's **signed** total rather than the draft's, the `X-Kitchen-Role` header,
+owner-only guards on the mandate and the standing rules, and `created_by` on a
+basket. Kept from here: the daily budget, the agent role, the chef-readable
+log, ordering by product number.
+
+Two things the merge got wrong on its own, both worth knowing about:
+
+- **`MandateRequest.max_net_per_day` disappeared** with no conflict reported.
+  Git took the branch's version of a region that happened to contain a field
+  only this side had, and the daily budget silently stopped arriving from the
+  rules screen - a 500 on the first mandate anyone tried to sign. A clean
+  automatic merge is not the same as a correct one.
+- **Three of this side's tests forced `policy.level` by hand**, which the
+  branch's `confirm()` now recomputes. They set a real standing rule instead,
+  which is what the code actually requires and a better test for it.
+
+`test_roles.py` also gained the `__main__` runner the other files have, so one
+loop still runs everything; its two fixture tests stay with pytest.
+
+267 passing under pytest, 262 under the script runner.
+
 ### 00:40 - the kitchen names itself
 
 `KITCHEN_NAME` and `GET /api/kitchen`. The title bar asks the backend who it is
@@ -59,6 +87,57 @@ card is gone, which is what made it look doubled.
 257 passing.
 
 ## Saturday 14 November
+
+### 22:40 - a product chosen by number is what was asked for
+
+"20 L 463380" picks Arla Cafe milk outright, but the word "cafe" in its name still
+marked the line `differs_from_request` ("Not exactly what you asked for"), which
+sent the basket to a manager. A product named by its number is now never flagged
+as different (`kitchen/agent.py`, `add_need`). Test in `tests/test_roles.py`.
+
+### 22:30 - three roles: chef, manager, owner
+
+The screen now acts as one of three people, picked in the header ("Acting as").
+There is no sign-in yet: the browser remembers the choice and sends it on every
+request as the header `X-Kitchen-Role`. A real deployment would read it from a login.
+
+Who may place what (net EUR, Aimo's signed total):
+
+| | places it alone up to | above that |
+|---|---|---|
+| Chef | `CHEF_LIMIT_EUR` (500) | a manager or the owner approves |
+| Manager | `MANAGER_LIMIT_EUR` (1500, new) | the owner approves |
+| Owner | the mandate's per-order limit | Aimo refuses; only the owner can raise the mandate |
+
+**Backend**
+- `PolicyDecision.level` can now be `"owner"` (over the manager limit). Partial
+  delivery and the other warnings still need at least a manager.
+- The policy is decided again at **confirm**, on Aimo's signed total, not the draft's.
+- `Basket.created_by`: `"chef" | "manager" | "owner"`, from the header of the request
+  that started the basket (chat or running-low draft). Adding to someone else's draft
+  does not change it.
+- `GET /api/baskets?status=quoted` (new): every basket waiting for approval, so the
+  Approvals list works across devices instead of per browser.
+- `POST /api/mandate`, `POST /api/rules` and `DELETE /api/rules/{id}` answer **403**
+  unless the header says `owner`. Standing rules let orders through without
+  approval, so they are a spending decision like the mandate.
+- Standing rules still win: a basket a rule clears is `auto_ok`, anyone can place
+  it, and `approver_role: "agent"` is still accepted for it and only for it.
+- `GET /api/mandate` gains `role_limits: {"chef": 500, "manager": 1500}`.
+- Approve was already checked by rank (`ROLE_RANK`); unchanged, but now the frontend
+  sends the real role instead of always `owner`.
+- Chat replies say who has to approve. New tests: `tests/test_roles.py` (8). 251 pass.
+
+**Frontend**
+- `lib/session.ts`: `useRole`, `setRole`, `canApprove`. `api/client.ts` sends
+  `X-Kitchen-Role` on every request and signs approvals as the current role.
+- Order page: above your limit, "Approve and order" is replaced by "Waiting for a
+  manager's / the owner's approval" with a link to Approvals.
+- Approvals: "You can approve" and "Waiting for someone else", each card says who
+  started it and whose approval it needs. The nav badge counts only what you can approve.
+- Agent rules: "Who can place what" card; the mandate form and the standing-rules
+  form are read-only unless Owner. A basket a rule clears shows "No approval needed".
+- `api/schema.d.ts` regenerated (it was also behind on `AgentStep.facts` / `for_chef`).
 
 ### 23:40 - the Activity tab reads the backend, not the browser
 

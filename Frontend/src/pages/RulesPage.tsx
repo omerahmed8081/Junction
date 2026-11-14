@@ -8,12 +8,14 @@ import { useAnnounce } from "../components/Announcer";
 import { Banner, Button, Card, ErrorNote, PageTitle, Skeleton } from "../components/ui";
 import { StandingRules } from "../features/rules/StandingRules";
 import { dayTime, money } from "../lib/format";
+import { useRole } from "../lib/session";
 
 const DAY_CHOICES = [1, 7, 30];
 const toNumber = (text: string) => Number(text.replace(/\s/g, "").replace(",", "."));
 
 export function RulesPage() {
   const { t } = useTranslation();
+  const isOwner = useRole() === "owner";
   const client = useQueryClient();
   const announce = useAnnounce();
   const query = useQuery({ queryKey: ["mandate"], queryFn: api.mandate });
@@ -99,6 +101,20 @@ export function RulesPage() {
               </details>
             </>)}
           </Card>
+          {mandate && (
+            <Card className="p-5 sm:p-6">
+              <h2 className="text-xl font-extrabold tracking-tight">{t("rules.roleLimits")}</h2>
+              <dl className="mt-3 divide-y divide-border text-sm">
+                {([
+                  [t("rules.chefLimit"), `${money(mandate.role_limits?.chef ?? 500)} ${t("basket.net").toLowerCase()}`],
+                  [t("rules.managerLimit"), `${money(mandate.role_limits?.manager ?? 1500)} ${t("basket.net").toLowerCase()}`],
+                  [t("rules.ownerLimit"), t("rules.ownerLimitValue", { amount: money(mandate.limits.max_net_per_order) })],
+                ] as const).map(([label, value]) => (
+                  <div key={label} className="flex justify-between gap-4 py-2"><dt className="text-ink-soft">{label}</dt><dd className="tabular text-right font-semibold">{value}</dd></div>
+                ))}
+              </dl>
+            </Card>
+          )}
           {/* Inside the mandate, never outside: a rule only relaxes an approval
               the kitchen would ask for itself. Aimo never sees these. */}
           <StandingRules />
@@ -107,7 +123,9 @@ export function RulesPage() {
         <Card className="p-5 sm:p-6">
           <h2 className="text-xl font-extrabold tracking-tight">{t("rules.issue")}</h2>
           <p className="text-sm text-ink-soft">{t("rules.issueHint")}</p>
+          {!isOwner && <div className="mt-3"><Banner tone="info">{t("rules.ownerOnly")}</Banner></div>}
           <form onSubmit={submit} noValidate className="mt-4 space-y-4">
+            <fieldset disabled={!isOwner} className="space-y-4 disabled:opacity-60">
             <div>
               <label htmlFor="per-order" className="text-sm font-semibold">{t("rules.perOrderLabel")}</label>
               <input id="per-order" ref={orderRef} inputMode="decimal" value={perOrder} onChange={(e) => setPerOrder(e.target.value)}
@@ -153,6 +171,7 @@ export function RulesPage() {
             {issue.isError && <ErrorNote error={issue.error} />}
             {issue.isSuccess && <Banner tone="ok" alert>{t("rules.issued", { date: dayTime(issue.data.expires_at) })}</Banner>}
             <div className="flex justify-end"><Button type="submit" variant="accent" size="lg" loading={issue.isPending}>{issue.isPending ? t("rules.signing") : t("rules.sign")}</Button></div>
+            </fieldset>
           </form>
         </Card>
       </div>

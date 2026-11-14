@@ -52,9 +52,36 @@ export interface paths {
         put?: never;
         /**
          * Chat
-         * @description One sentence in, a basket out. With basket_id set, the need is added to that basket.
+         * @description One message in, a basket out.
+         *
+         *     A message may ask for several things at once - nobody shops one item at a
+         *     time - so every need in it is added to the same basket, in the order asked.
+         *     With `basket_id` set they are added to that basket instead of a new one.
          */
         post: operations["chat_api_chat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/baskets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Baskets
+         * @description Every basket, or those in one status, newest price first.
+         *
+         *     The Approvals page uses `?status=quoted`, so a basket the chef confirmed on
+         *     the kitchen tablet shows up on the manager's phone.
+         */
+        get: operations["list_baskets_api_baskets_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -72,7 +99,12 @@ export interface paths {
         get: operations["get_basket_api_basket__basket_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete Basket
+         * @description Throw away a draft. A basket Aimo has signed, or that is ordered, is kept:
+         *     it is part of the record, and its signed price may already be with a manager.
+         */
+        delete: operations["delete_basket_api_basket__basket_id__delete"];
         options?: never;
         head?: never;
         /**
@@ -188,7 +220,7 @@ export interface paths {
         put?: never;
         /**
          * Issue Mandate
-         * @description Sign a new mandate. The owner does this from the Agent rules tab.
+         * @description Sign a new mandate. Only the owner may change what the agent can spend.
          */
         post: operations["issue_mandate_api_mandate_post"];
         delete?: never;
@@ -216,6 +248,104 @@ export interface paths {
          */
         post: operations["demo_reset_api_demo_reset_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Audit
+         * @description Why this kitchen's agent did what it did, newest first.
+         *
+         *     `crossed_only=true` is the "what Aimo sees" toggle: the few rows that left
+         *     the building. Everything else - the sentence typed, what the model read,
+         *     how a quantity was worked out - stays here and Aimo never sees it.
+         */
+        get: operations["read_audit_api_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/{order_id}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Order Audit
+         * @description Everything both sides recorded about one order, oldest first.
+         *
+         *     One call for the Activity tab: click an order, see the whole story. The
+         *     kitchen's own rows come from its log; Aimo's come from the gateway, which
+         *     answers only for the customer behind our key. Each row says which side it
+         *     is from, so "what Aimo sees" stays visible as the smaller half.
+         */
+        get: operations["order_audit_api_orders__order_id__audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Rules
+         * @description The kitchen's standing rules, in the order they were set.
+         */
+        get: operations["list_rules_api_rules_get"];
+        put?: never;
+        /**
+         * Add Rule
+         * @description Set a standing rule: what may go through without anyone looking.
+         *
+         *     A rule only ever relaxes an approval the kitchen would ask for itself, and
+         *     the signed mandate still sits above it, so the worst a wrong rule can do is
+         *     skip a click.
+         */
+        post: operations["add_rule_api_rules_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rules/{rule_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove Rule
+         * @description Switch a rule off. Rules are never deleted: one that was in force when an
+         *     order went through has to stay readable afterwards.
+         */
+        delete: operations["remove_rule_api_rules__rule_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -324,6 +454,16 @@ export interface components {
              */
             detail: string;
             /**
+             * Facts
+             * @default
+             */
+            facts: string;
+            /**
+             * For Chef
+             * @default true
+             */
+            for_chef: boolean;
+            /**
              * Crossed Gateway
              * @default false
              */
@@ -378,7 +518,7 @@ export interface components {
              * @default manager
              * @enum {string}
              */
-            approver_role: "chef" | "manager" | "owner";
+            approver_role: "agent" | "chef" | "manager" | "owner";
         };
         /** Basket */
         Basket: {
@@ -397,6 +537,12 @@ export interface components {
              * @enum {string}
              */
             status: "draft" | "quoted" | "pending_approval" | "approved" | "ordered" | "rejected" | "blocked";
+            /**
+             * Created By
+             * @default chef
+             * @enum {string}
+             */
+            created_by: "chef" | "manager" | "owner";
             /** Lines */
             lines?: components["schemas"]["BasketLine"][];
             /**
@@ -563,6 +709,8 @@ export interface components {
             basket?: components["schemas"]["Basket"] | null;
             /** Steps */
             steps?: components["schemas"]["AgentStep"][];
+            /** Parser */
+            parser?: string | null;
         };
         /**
          * DeliveryAnswer
@@ -690,6 +838,11 @@ export interface components {
             mandate_id: string;
             /** Agent Id */
             agent_id: string;
+            /**
+             * Agent Name
+             * @default
+             */
+            agent_name: string;
             /** Customer */
             customer: string;
             /**
@@ -704,6 +857,10 @@ export interface components {
             approval_required: boolean;
             /** Mandate Jws */
             mandate_jws: string;
+            /** Role Limits */
+            role_limits?: {
+                [key: string]: number;
+            };
         };
         /** OrderRecord */
         OrderRecord: {
@@ -796,7 +953,7 @@ export interface components {
              * Level
              * @enum {string}
              */
-            level: "auto_ok" | "chef" | "manager" | "blocked";
+            level: "auto_ok" | "chef" | "manager" | "owner" | "blocked";
             /** Reasons */
             reasons?: string[];
             /**
@@ -856,6 +1013,29 @@ export interface components {
             labels?: string[];
             /** Category */
             category?: string | null;
+        };
+        /**
+         * RuleRequest
+         * @description A standing rule the kitchen sets for itself (kitchen/rules.py).
+         */
+        RuleRequest: {
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Match
+             * @default any
+             */
+            match: string;
+            /**
+             * Value
+             * @default
+             */
+            value: string;
+            /** Max Net Per Order */
+            max_net_per_order?: number | null;
         };
         /**
          * ServiceRequest
@@ -1032,7 +1212,9 @@ export interface operations {
     chat_api_chat_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-kitchen-role"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1049,6 +1231,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChatResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_baskets_api_baskets_get: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Basket"][];
                 };
             };
             /** @description Validation Error */
@@ -1080,6 +1293,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Basket"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_basket_api_basket__basket_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                basket_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -1268,7 +1514,9 @@ export interface operations {
     issue_mandate_api_mandate_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-kitchen-role"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1320,6 +1568,180 @@ export interface operations {
             };
         };
     };
+    read_audit_api_audit_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                basket_id?: string;
+                order_id?: string;
+                crossed_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    order_audit_api_orders__order_id__audit_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_rules_api_rules_get: {
+        parameters: {
+            query?: {
+                include_inactive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_rule_api_rules_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-kitchen-role"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RuleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_rule_api_rules__rule_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-kitchen-role"?: string | null;
+            };
+            path: {
+                rule_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_inventory_api_inventory_get: {
         parameters: {
             query?: never;
@@ -1363,7 +1785,9 @@ export interface operations {
     draft_suggestion_api_suggestions__product_id__basket_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-kitchen-role"?: string | null;
+            };
             path: {
                 product_id: string;
             };

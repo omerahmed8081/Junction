@@ -17,7 +17,9 @@ Money = float
 CanFulfil = Literal["full", "partial", "none"]
 SizeSource = Literal["structured", "structured_case", "name", "derived", "not_needed", "unknown"]
 BasketStatus = Literal["draft", "quoted", "pending_approval", "approved", "ordered", "rejected", "blocked"]
-ApprovalLevel = Literal["auto_ok", "chef", "manager", "blocked"]
+ApprovalLevel = Literal["auto_ok", "chef", "manager", "owner", "blocked"]
+# The three people who use the kitchen screen, most junior first.
+Role = Literal["chef", "manager", "owner"]
 
 
 # ---------------------------------------------------------------- gateway: search
@@ -217,6 +219,7 @@ class Basket(BaseModel):
     source: str = "chat"                        # chat | suggestion:low_stock | ...
     requested_date: date | None = None
     status: BasketStatus = "draft"
+    created_by: Role = "chef"                   # who started it; decides who must approve
     lines: list[BasketLine] = Field(default_factory=list)
 
     net_total: Money = 0.0
@@ -383,7 +386,7 @@ class ApprovalPayload(BaseModel):
     aud: str                                   # the gateway
     jti: str
     quote_jti: str                             # the quote being approved, and only that one
-    approver_role: str                         # "chef" | "manager"
+    approver_role: str                         # "chef" | "manager" | "owner"
     approved_at: int
     iat: int
     exp: int
@@ -503,6 +506,7 @@ class MandateRequest(BaseModel):
     """What the owner sets in the Agent rules tab. Omitted fields keep the default."""
 
     max_net_per_order: Money | None = None
+    max_net_per_day: Money | None = None
     max_net_per_week: Money | None = None
     allowed_categories: list[str] | None = None
     approval_required: bool = True
@@ -533,6 +537,9 @@ class MandateView(BaseModel):
     allowed_categories: list[str] = Field(default_factory=list)
     approval_required: bool
     mandate_jws: str
+    # How much each role may approve on its own, net EUR. The owner's limit is
+    # the mandate itself, so it is not listed here.
+    role_limits: dict[str, Money] = Field(default_factory=dict)
 
 
 class LineEdit(BaseModel):

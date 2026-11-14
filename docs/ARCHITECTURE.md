@@ -15,7 +15,7 @@ the only part that changes. Every change to the code is one line in
 
 ## Status
 
-Last updated **Sunday 15 November, 00:05 (hour 21)**. **258 tests passing**, and both services boot, all offline:
+Last updated **Sunday 15 November, 00:05 (hour 21)**. **267 tests passing**, and both services boot, all offline:
 `cd Backend && python tests/test_units.py` and the rest.
 
 | Block | Section | State |

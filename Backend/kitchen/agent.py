@@ -41,6 +41,9 @@ from shared.units import NEED_TO_KILOS, NEED_TO_LITRES, Conversion, convert_summ
 
 SHORTLIST = 40
 CHEF_LIMIT_EUR = float(os.environ.get("CHEF_LIMIT_EUR", "500"))
+# Above this a manager cannot approve alone and the owner must. Above the
+# mandate nobody can: Aimo refuses, and only the owner can raise the mandate.
+MANAGER_LIMIT_EUR = float(os.environ.get("MANAGER_LIMIT_EUR", "1500"))
 
 # Words that make a product a different thing from the plain one. A chef asking
 # for "milk" does not mean sour milk or coffee milk, though Aimo files them in
@@ -494,8 +497,13 @@ def preview_policy(basket: Basket) -> PolicyDecision | None:
     if not basket.lines:
         return None
     reasons = []
-    if basket.net_total > CHEF_LIMIT_EUR:
+    level = "chef"
+    if basket.net_total > MANAGER_LIMIT_EUR:
+        reasons.append(f"Over the EUR {MANAGER_LIMIT_EUR:g} manager limit")
+        level = "owner"
+    elif basket.net_total > CHEF_LIMIT_EUR:
         reasons.append(f"Over the EUR {CHEF_LIMIT_EUR:g} chef limit")
+        level = "manager"
     if any(l.delivery and l.delivery.can_fulfil == "partial" for l in basket.lines):
         reasons.append("Partial delivery accepted")
     if any("differs_from_request" in l.flags for l in basket.lines):
@@ -506,6 +514,9 @@ def preview_policy(basket: Basket) -> PolicyDecision | None:
     # logic allows ordering any quantity against a sentinel, and 10 of the 14
     # orderable milks carry one, so requiring a manager would send almost every
     # basket to approval. It stays on the line as the flag availability_unknown.
+    # Anything else unusual needs at least a manager's eyes, whatever the amount.
+    if reasons and level == "chef":
+        level = "manager"
     # A standing rule the kitchen set for itself can clear an approval it would
     # otherwise ask for. It can only ever relax, never block, and never clears a
     # reason about the order being wrong (kitchen/rules.py).
@@ -513,7 +524,15 @@ def preview_policy(basket: Basket) -> PolicyDecision | None:
     if allowed is not None:
         return PolicyDecision(level="auto_ok", binding=False,
                               reasons=[f"Your rule: {allowed.said()}"])
-    return PolicyDecision(level="manager" if reasons else "chef", reasons=reasons, binding=False)
+    return PolicyDecision(level=level, reasons=reasons, binding=False)
+
+
+def approval_sentence(level: str) -> str:
+    """Who has to say yes, for the chat reply."""
+    return {"manager": "It needs a manager's approval.",
+            "owner": "It is over the manager limit, so it needs the owner's approval.",
+            "auto_ok": "One of your standing rules covers it, so nobody needs to approve it.",
+            }.get(level, "It is within the chef limit, so it can be placed straight away.")
 
 
 def _refresh(basket: Basket) -> None:
@@ -621,6 +640,9 @@ def add_need(state: BasketState | None, need: ParsedNeed, gateway: GatewayClient
     if need.product_id:
         exact = [c for c in ranked if c.summary.product_id == need.product_id]
         if exact:
+            # Chosen by number, so it is exactly what was asked for, even when its
+            # name carries a word like "cafe" that a plain request would not.
+            exact[0].off_request = False
             ranked = exact + [c for c in ranked if c.summary.product_id != need.product_id]
             _step(steps, "named_product", f"{need.product_id} asked for by number")
         else:
@@ -640,8 +662,7 @@ def add_need(state: BasketState | None, need: ParsedNeed, gateway: GatewayClient
     _refresh(state.basket)
     _step(steps, "policy_preview", f"{state.basket.policy.level}: {state.basket.policy.reasons or 'within the chef limit'}")
 
-    approval = ("A manager will need to approve it." if state.basket.policy.level == "manager"
-                else "You can approve it yourself.")
+    approval = approval_sentence(state.basket.policy.level)
     net = sum(l.line_net for l in lines)
     if len(lines) == 1:
         line = lines[0]
@@ -717,8 +738,7 @@ def add_reorder(state: BasketState | None, product_id: str, quantity: float, uni
 
     first = lines[0]
     lead = f"{reason} " if reason else ""
-    approval = ("A manager will need to approve it." if state.basket.policy.level == "manager"
-                else "You can approve it yourself.")
+    approval = approval_sentence(state.basket.policy.level)
     return state, (f"{lead}Drafted {first.quantity_sales_units:g} {first.sales_unit} of "
                    f"{first.name}: EUR {first.line_net:,.2f} net, delivery "
                    f"{first.delivery.delivery_date}. {approval}"), steps

@@ -111,7 +111,12 @@
     "chefTitle": "Within the normal limit",
     "preview": "Preview. Final once the price is signed.",
     "binding": "Decided on the signed price.",
-    "none": "No warnings on this basket."
+    "none": "No warnings on this basket.",
+    "needsTitle": "Needs {{who}} approval",
+    "waiting": "Waiting for {{who}} approval",
+    "waitingHint": "The signed price is saved. It is in Approvals for a {{role}} or above. The chat's next message starts a new order.",
+    "yours": "You can place this order yourself.",
+    "ruleTitle": "No approval needed"
   },
   "quote": {
     "signed": "Aimo signed this price",
@@ -163,14 +168,18 @@
     "openBasket": "Open the drafted basket"
   },
   "approvals": {
-    "title": "Waiting for your approval",
+    "title": "Approvals",
     "empty": "Nothing is waiting.",
     "emptyHint": "Baskets appear here once Aimo has signed their price.",
     "open": "Open",
     "lines_one": "{{count}} line",
     "lines_other": "{{count}} lines",
     "expires": "Signed price ends {{time}}",
-    "thisBrowser": "Shows baskets started in this browser."
+    "forYou": "You can approve",
+    "forYouEmpty": "Nothing is waiting for you.",
+    "forOthers": "Waiting for someone else",
+    "needs": "Needs {{who}} approval",
+    "startedBy": "Started by: {{who}}"
   },
   "inventory": {
     "title": "Inventory",
@@ -216,7 +225,7 @@
     "errPositive": "Enter an amount above 0.",
     "errWeek": "Lower than the per-order limit: one full order could never be placed.",
     "checks": "What triggers an extra check",
-    "check1": "Net value over EUR 500",
+    "check1": "Over the chef limit ({{chef}} net) a manager must approve; over the manager limit ({{manager}}) the owner must",
     "check2": "Only part of a line can be delivered",
     "check3": "The product differs from what was asked for",
     "check4": "Pack size and price data disagree",
@@ -224,7 +233,13 @@
     "perDayLabel": "Most per day (EUR, net)",
     "noDaily": "No daily budget",
     "dayHelp": "Leave empty for no daily budget. Must not be more than the week.",
-    "errDayOverWeek": "A day cannot be more than the week."
+    "errDayOverWeek": "A day cannot be more than the week.",
+    "ownerOnly": "Only the owner can change the agent's spending limits. Switch to Owner in the header to edit.",
+    "roleLimits": "Who can place what",
+    "chefLimit": "Chef places orders up to",
+    "managerLimit": "Manager places and approves up to",
+    "ownerLimit": "Owner places and approves up to",
+    "ownerLimitValue": "the mandate ({{amount}})"
   },
   "activity": {
     "title": "Activity",
@@ -361,7 +376,8 @@
       "product": "464306",
       "claim": "FREE_FROM_LACTOSE",
       "category": "e.g. 1234"
-    }
+    },
+    "ownerOnly": "Only the owner can set or switch off standing rules."
   },
   "audit": {
     "title": "What happened, step by step",
@@ -370,5 +386,15 @@
     "aimo": "Aimo",
     "counts": "{{kitchen}} from the kitchen, {{aimo}} from Aimo.",
     "degraded": "The database was unreachable, so these rows are from memory and are lost on restart."
+  },
+  "role": {
+    "label": "Acting as",
+    "chef": "Chef",
+    "manager": "Manager",
+    "owner": "Owner",
+    "hint": "No sign-in yet: choose who is using the screen.",
+    "gen_chef": "a chef's",
+    "gen_manager": "a manager's",
+    "gen_owner": "the owner's"
   }
 }

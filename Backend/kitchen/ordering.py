@@ -237,7 +237,9 @@ def confirm(basket: Basket, gateway: GatewayClient, kitchen: KitchenSigner,
     basket.quote_verified = True
     basket.status = "quoted"
 
-    # The policy preview now becomes the decision that is actually enforced.
+    # The policy is decided again on Aimo's signed total, not the draft's, and
+    # from now on it is the decision that is actually enforced.
+    basket.policy = agent.preview_policy(basket)
     if basket.policy is not None:
         basket.policy.binding = True
     _step(steps, "policy_binding",
@@ -250,8 +252,10 @@ def confirm(basket: Basket, gateway: GatewayClient, kitchen: KitchenSigner,
     if dropped or quote.refused:
         reasons = ", ".join(f"{r.get('product_id')} ({r.get('reason')})" for r in quote.refused)
         reply += f"Aimo would not quote {reasons or 'one line'}, so it was left out. "
-    reply += (f"{(basket.policy.level if basket.policy else 'chef').title()} approval is "
-              f"needed to place it.")
+    level = basket.policy.level if basket.policy else "chef"
+    reply += {"chef": "Anyone in the team can place it now.",
+              "manager": "A manager or the owner has to approve it.",
+              "owner": "The owner has to approve it."}.get(level, f"{level.title()} approval is needed.")
     return reply, steps
 
 

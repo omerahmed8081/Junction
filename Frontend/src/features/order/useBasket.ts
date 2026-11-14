@@ -37,6 +37,7 @@ export function useBasketActions(basketId: string | null, onBasket?: (basket: Ba
     void client.invalidateQueries({ queryKey: ["suggestions"] });
     void client.invalidateQueries({ queryKey: ["inventory"] });
     void client.invalidateQueries({ queryKey: ["orders"] });
+    void client.invalidateQueries({ queryKey: ["baskets"] });
   };
 
   const chat = useMutation({
@@ -52,7 +53,7 @@ export function useBasketActions(basketId: string | null, onBasket?: (basket: Ba
     mutationFn: () => api.confirm(basketId!),
     // The signed basket goes on to approval; the conversation for it is over,
     // so the chat starts clean and the next message begins a new order.
-    onSuccess: (r) => { accept(r.basket, r.steps); clearChat(); },
+    onSuccess: (r) => { accept(r.basket, r.steps); clearChat(); void client.invalidateQueries({ queryKey: ["baskets"] }); },
   });
   const remove = useMutation({
     mutationFn: () => api.deleteBasket(basketId!),
