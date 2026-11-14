@@ -533,3 +533,6 @@ class ChatResponse(BaseModel):
     reply: str                                  # one or two sentences for the chat pane
     basket: Basket | None = None
     steps: list[AgentStep] = Field(default_factory=list)
+    # "gemini" or "rules". The fallback is silent by design - the basket is still
+    # correct - so this is the only way to see from outside which one answered.
+    parser: str | None = None

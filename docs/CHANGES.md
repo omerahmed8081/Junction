@@ -7,6 +7,54 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Saturday 14 November
 
+### 17:05 - first time either service was actually started
+
+The 161 tests all run offline with stubs, so no endpoint had ever been called. Booting
+both services found six real problems, five of them things that would have broken on the
+hosted build rather than locally.
+
+- **`Backend/.env` was malformed.** Two prose lines with no `#`, `GEMINI_API_KEY` defined
+  twice (an empty one first), and CRLF endings putting a trailing `\r` in every value.
+  `python-dotenv` tolerates that; Docker's `--env-file` does not, and the API key would
+  have arrived at Aimo with a carriage return on the end. Rewritten; `.env.backup-before-fix`
+  is beside it.
+- **The gateway trusted no kitchen by default.** With `KITCHEN_JWKS` unset the gateway
+  registered zero kitchen public keys, so search, price and quote all worked and **every
+  order was refused** as `mandate_invalid` - a failure that only appears at the last step
+  of the demo. There is now a same-host default, and a loud startup warning when no key
+  gets registered.
+- **An empty kitchen verifier was cached forever.** If the kitchen was not up when the
+  first order arrived, every later order was refused until the gateway was restarted. It
+  now re-fetches until it actually holds a key.
+- **`/health` hung on the database.** Aiven's free tier powers off when idle and takes
+  about 30 s to wake; a health check that blocks that long gets the container killed and
+  restarted in a loop. It now answers in at most 2 s and reports `degraded` with the
+  reason, still as a 200 so a host waits instead of restarting.
+- **The gateway had no CORS.** The kitchen had it; the gateway did not, so the demo reset
+  button and any browser-based second client would have been blocked.
+- **Two tests depended on the real clock.** `test_ordering` pinned `NOW` to 14:00 UTC but
+  built an expiry and a mandate `iat` from `datetime.now()`. They passed all morning and
+  began failing at 16:00 local, which is exactly the kind of thing that fails on stage.
+  Both now derive from `NOW`.
+
+Also found and fixed: the rules parser turned *"we're low on cream"* into the product
+`"re low on cream"`, because the filler list matched `we` inside the contraction and the
+apostrophe was stripped afterwards. Contractions are now removed first and the filler
+list covers how people actually ask ("running out of", "low on", "another"). And a Gemini
+failure was swallowed silently - a wrong `GEMINI_MODEL` would have fallen back to the
+rules on every message with nothing said. It now logs, and the reply already carries
+`parser`.
+
+New: `scripts/smoke_test.py` walks the whole path over HTTP against a hosted pair and
+names what is broken, with timings. `deploy/Caddyfile` and `deploy/nginx.conf` put one
+origin in front of the frontend and both services - needed because the frontend uses only
+relative paths and Vite's proxy does not exist in a built site. README has a hosting
+section with the environment variables that matter.
+
+Not verifiable from this sandbox (HTTPS only, no Postgres port and no Gemini host): the
+gateway's catalogue queries, and one live Gemini call. Both need running on a machine that
+can reach Aiven and Google.
+
 ### 16:15 - eleven documents down to four
 
 Notes had piled up faster than anyone could read them, so they are now:

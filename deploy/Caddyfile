@@ -1,0 +1,34 @@
+# One origin in front of everything, because the frontend only ever uses relative
+# paths (/api/..., /gateway/...). Vite's dev proxy does that in development and
+# does NOT exist in a built site, so without a proxy like this the hosted frontend
+# calls itself and every request 404s.
+#
+#   caddy run --config deploy/Caddyfile
+#
+# Replace :80 with the real hostname and Caddy gets a TLS certificate by itself.
+
+:80 {
+	encode gzip
+
+	# The kitchen service: everything the frontend calls.
+	handle /api/* {
+		reverse_proxy localhost:8002
+	}
+
+	# The gateway: the demo reset button, and the public key any agent verifies with.
+	handle /gateway/* {
+		reverse_proxy localhost:8001
+	}
+
+	# The kitchen's own public key.
+	handle /.well-known/jwks.json {
+		reverse_proxy localhost:8002
+	}
+
+	# The built frontend. `npm run build` writes it to Frontend/dist.
+	handle {
+		root * ../Frontend/dist
+		try_files {path} /index.html
+		file_server
+	}
+}

@@ -59,6 +59,45 @@ uvicorn gateway.main:app --reload --port 8001     # docs at /docs
 uvicorn kitchen.main:app --reload --port 8002     # what the frontend calls
 ```
 
+## Hosting it
+
+**The frontend only uses relative paths** (`/api/...`, `/gateway/...`). Vite's dev server
+proxies those to the two services; **a built site does not**, so a hosted frontend with no
+proxy in front of it calls itself and every request 404s. Put one origin in front of all
+three, with `deploy/Caddyfile` or `deploy/nginx.conf`:
+
+```
+/api/*                  -> kitchen, :8002
+/gateway/*              -> gateway, :8001
+/.well-known/jwks.json  -> kitchen, :8002
+everything else         -> Frontend/dist
+```
+
+Then `npm run build` in `Frontend/`, start both services, and run the proxy.
+
+**Environment, per service.** Both read `Backend/.env`. Write it with LF line endings and no
+prose outside `#` comments — Docker's `--env-file` keeps a trailing `\r` in every value, which
+silently corrupts the API key.
+
+| Variable | Service | Why it matters |
+|---|---|---|
+| `JUNCTION_API_KEY` | gateway | Aimo's mock API. Without it nothing can be priced |
+| `AIMO_BASE_URL`, `AIMO_CUSTOMER_ID` | gateway | |
+| `DATABASE_URL` | gateway | The product catalogue. Search and quotes fail without it; `/health` reports `degraded` |
+| **`KITCHEN_JWKS`** | gateway | The kitchen's JWKS URL. **Unset and every order is refused** while search, price and quote still work. Defaults to the kitchen on the same host |
+| `GEMINI_API_KEY`, `GEMINI_MODEL` | kitchen | A wrong model name falls back to the rules parser. The chat reply's `parser` field and the kitchen log both say which one ran |
+| `GATEWAY_URL` | kitchen | Where the gateway is, server to server |
+| `KEY_DIR` | both | Signing keys. Defaults to `Backend/.keys/`. **Must be on a persistent disk** — a new key on restart invalidates every mandate already issued |
+
+**Check it before trusting it:**
+
+```
+python scripts/smoke_test.py --kitchen https://your-host --gateway https://your-host/gateway
+```
+
+It walks the whole demo path over HTTP and names whatever is broken. Exit code 0 means
+sentence to placed order works. Add `--reset` to clear the demo state first.
+
 ## Tools
 
 | Script | For |

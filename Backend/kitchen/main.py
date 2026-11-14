@@ -122,7 +122,7 @@ def chat(req: ChatRequest) -> ChatResponse:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     baskets[state.basket.basket_id] = state
     _save()
-    return ChatResponse(reply=reply, basket=state.basket, steps=steps)
+    return ChatResponse(reply=reply, basket=state.basket, steps=steps, parser=need.parser)
 
 
 @app.get("/api/basket/{basket_id}", response_model=Basket)

@@ -267,7 +267,9 @@ def test_the_same_basket_cannot_be_ordered_twice():
 def test_an_expired_quote_sends_the_basket_back_to_draft():
     state, gateway, kitchen = drafted()
     ordering.confirm(state.basket, gateway, kitchen, now=NOW)
-    state.basket.quote_expires = datetime.now(timezone.utc) - timedelta(minutes=1)
+    # Relative to NOW, never the real clock: with a fixed NOW, a real-clock
+    # "one minute ago" drifts into NOW's future and the test silently inverts.
+    state.basket.quote_expires = NOW - timedelta(minutes=1)
     try:
         ordering.approve(state, "manager", gateway, kitchen, now=NOW)
     except OrderingError as exc:
@@ -320,7 +322,9 @@ def test_stock_that_moves_between_confirm_and_approve_is_refused():
 
 def test_over_the_mandate_limit_is_refused_by_aimo_not_by_us():
     state, gateway, kitchen = drafted()
-    kitchen.issue_mandate(per_order=500.0)
+    # now=NOW matters: the mandate's iat comes from this clock, and an iat in
+    # NOW's future is rejected as a bad token before the limit is ever checked.
+    kitchen.issue_mandate(per_order=500.0, now=NOW)
     ordering.confirm(state.basket, gateway, kitchen, now=NOW)
     result = ordering.approve(state, "manager", gateway, kitchen, now=NOW)
     assert result.outcome == "refused" and result.order is None
@@ -331,10 +335,10 @@ def test_over_the_mandate_limit_is_refused_by_aimo_not_by_us():
 def test_a_mandate_is_issued_on_first_use_and_reused_after():
     kitchen = KitchenSigner()
     assert kitchen.mandate is None
-    first = kitchen.mandate_in_force()
-    assert kitchen.mandate_in_force().payload.jti == first.payload.jti
+    first = kitchen.mandate_in_force(now=NOW)
+    assert kitchen.mandate_in_force(now=NOW).payload.jti == first.payload.jti
     assert first.payload.aud == GATEWAY_URL and first.payload.sub == ordering.AGENT_ID
-    assert first.expires_at > datetime.now(timezone.utc)
+    assert first.expires_at > NOW
 
 
 def test_an_empty_basket_cannot_be_confirmed():

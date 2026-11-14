@@ -22,6 +22,12 @@ from shared.signing import KeyPair, Verifier, jwks_document, load_or_create_keyp
 KEY_DIR = Path(os.environ.get("KEY_DIR") or Path(__file__).resolve().parent.parent / ".keys")
 GATEWAY_URL = os.environ.get("GATEWAY_URL", "http://localhost:8001")
 GATEWAY_KID = os.environ.get("GATEWAY_KID", "aimo-2026-11")
+# With no KITCHEN_JWKS the gateway trusts no kitchen at all, and then search,
+# price and quote all work while every order is refused as mandate_invalid --
+# a failure that only shows up at the last step of the demo. The default below
+# is the demo kitchen on the same host. Production registers each kitchen
+# explicitly and sets this to the real list.
+DEFAULT_KITCHEN_JWKS = "http://localhost:8002/.well-known/jwks.json"
 
 
 def gateway_keypair() -> KeyPair:
@@ -43,7 +49,10 @@ def kitchen_verifier(timeout: float = 5.0) -> Verifier:
     local = os.environ.get("KITCHEN_JWKS_FILE")
     if local and Path(local).exists():
         verifier.add_jwks(json.loads(Path(local).read_text(encoding="utf-8")))
-    for url in (u.strip() for u in (os.environ.get("KITCHEN_JWKS") or "").split(",")):
+    configured = os.environ.get("KITCHEN_JWKS")
+    if configured is None and not local:
+        configured = DEFAULT_KITCHEN_JWKS
+    for url in (u.strip() for u in (configured or "").split(",")):
         if not url:
             continue
         try:
@@ -54,4 +63,8 @@ def kitchen_verifier(timeout: float = 5.0) -> Verifier:
             # Startup must not die because one kitchen is not up yet; an order
             # from it is refused with mandate_invalid, which says exactly this.
             print(f"[gateway] could not register kitchen keys from {url}: {exc}")
+    if not verifier.known_kids:
+        print("[gateway] WARNING: no kitchen public keys registered. Search, price and "
+              "quote will work, but every order will be refused as mandate_invalid. "
+              "Set KITCHEN_JWKS to the kitchen's /.well-known/jwks.json URL.")
     return verifier

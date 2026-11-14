@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import re
 from datetime import date, timedelta
 
@@ -96,7 +97,14 @@ def parse_with_rules(message: str, today: date | None = None) -> ParsedNeed:
     if brand:
         text = re.sub(rf"\b{brand}\b", " ", text)
 
-    filler = r"\b(i|we|need|needs|want|order|please|of|some|the|a|an|by|for|get|me|us|to|buy|would|like)\b"
+    # Contractions first: "we're low on cream" left "re" behind as a product word,
+    # because the filler below matched "we" and the apostrophe was stripped after.
+    text = re.sub(r"[\u2019']\s*(re|s|m|ve|ll|d)\b", " ", text)
+    text = re.sub(r"\bn[\u2019']?t\b", " ", text)
+    filler = (r"\b(i|we|you|they|it|need|needs|needed|want|wants|order|please|of|some|the|a|an"
+              r"|by|for|get|gets|got|me|us|to|buy|would|like|am|is|are|was|were|be|been"
+              # how people actually ask: "we're low on cream", "running out of butter"
+              r"|low|lower|run|runs|running|out|short|more|another|again|on|and|but|so|then|just)\b")
     product = " ".join(re.sub(filler, " ", re.sub(r"[^a-zà-ÿ0-9 ]", " ", text)).split())
     if not product:
         raise ValueError("I could not tell which product you need.")
@@ -160,6 +168,10 @@ def parse_need(message: str, today: date | None = None) -> ParsedNeed:
     if os.environ.get("GEMINI_API_KEY") and os.environ.get("KITCHEN_PARSER", "gemini") != "rules":
         try:
             return parse_with_gemini(message, today)
-        except Exception:  # noqa: BLE001 - any model trouble: the rules still give a basket
-            pass
+        except Exception as exc:  # noqa: BLE001 - any model trouble: the rules still give a basket
+            # Silence here once cost us a demo: a wrong GEMINI_MODEL fell back to the
+            # rules on every message and nothing said so. The reply also carries
+            # `parser`, so the trace records which one actually ran.
+            print(f"[kitchen] Gemini unavailable, using the rules parser: "
+                  f"{type(exc).__name__}: {exc}"[:300], file=sys.stderr)
     return parse_with_rules(message, today)

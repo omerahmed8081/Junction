@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from fastapi import FastAPI, HTTPException  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from psycopg_pool import ConnectionPool  # noqa: E402
 
 from gateway import catalog, delivery, keys, orders, quotes  # noqa: E402
@@ -65,6 +66,15 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="Aimo agent gateway", version="0.1.0", lifespan=lifespan)
+# The kitchen reaches the gateway server-to-server, but the demo reset button and any
+# second client run in a browser on another origin. Open in the prototype; in
+# production this is the list of registered agents' origins.
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+# A health check must answer even when the database does not. Aiven's free tier
+# powers off when idle and takes ~30 s to wake, and a check that blocks that long
+# gets the container killed and restarted in a loop.
+HEALTH_DB_TIMEOUT = 2.0
 
 
 def signer() -> Signer:
@@ -77,7 +87,10 @@ def signer() -> Signer:
 def kitchen_keys():
     """The kitchen public keys registered at startup (see gateway/keys.py)."""
     global _kitchen_verifier
-    if _kitchen_verifier is None:
+    # Only cache a verifier that actually holds keys. Caching an empty one meant
+    # that if the kitchen was not up at the first order, every later order was
+    # refused until the gateway was restarted.
+    if _kitchen_verifier is None or not _kitchen_verifier.known_kids:
         _kitchen_verifier = keys.kitchen_verifier()
     return _kitchen_verifier
 
@@ -108,9 +121,18 @@ def jwks() -> dict:
 
 @app.get("/health")
 def health() -> dict:
-    with pool.connection() as conn:
-        count = conn.execute("SELECT count(*) FROM gateway.products").fetchone()[0]
-    return {"status": "ok", "products": count}
+    """Always answers, and says whether the catalogue database is reachable.
+
+    Returns 200 even when degraded, on purpose: a 503 while Aiven is waking up
+    would make a host restart us instead of waiting.
+    """
+    try:
+        with pool.connection(timeout=HEALTH_DB_TIMEOUT) as conn:
+            count = conn.execute("SELECT count(*) FROM gateway.products").fetchone()[0]
+    except Exception as exc:        # noqa: BLE001 - any database trouble is the same answer here
+        return {"status": "degraded", "database": False, "products": None,
+                "detail": f"{type(exc).__name__}: {exc}"[:200]}
+    return {"status": "ok", "database": True, "products": count}
 
 
 @app.get("/gateway/categories", response_model=CategoryListResponse)

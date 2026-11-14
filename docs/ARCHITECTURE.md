@@ -15,7 +15,7 @@ the only part that changes. Every change to the code is one line in
 
 ## Status
 
-Last updated **Saturday 14 November, 16:15 (hour 13)**. **161 tests passing**, all offline:
+Last updated **Saturday 14 November, 17:10 (hour 14)**. **161 tests passing**, and both services boot, all offline:
 `cd Backend && python tests/test_units.py` and the rest.
 
 | Block | Section | State |
@@ -47,7 +47,12 @@ uvicorn kitchen.main:app --reload --port 8002
 **Known gaps**
 
 1. The trace is not stored, so the Activity tab and "what Aimo sees" have no history.
-2. Nothing is deployed. Still the largest unknown.
+2. **Nothing is deployed, and two things have never run live.** Both services now start
+   and the whole kitchen-side HTTP path is verified (`scripts/smoke_test.py`), with one
+   origin in front of all three via `deploy/Caddyfile`. Still unverified anywhere: the
+   gateway's catalogue queries against Aiven, and a single live Gemini call. Both need a
+   machine that can reach Aiven and Google - run `scripts/smoke_test.py` there and it
+   says which of the two is wrong.
 3. The chat takes one item per message and cannot be used to edit a basket; the basket's own
    buttons handle editing through `PATCH`.
 4. Sixteen of the seventeen seed products have never been priced against the live API, so
