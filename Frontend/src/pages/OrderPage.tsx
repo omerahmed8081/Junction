@@ -17,12 +17,17 @@ import { StatusSteps } from "../features/order/StatusSteps";
 import { SuggestionsPanel } from "../features/order/SuggestionsPanel";
 import { useBasketActions, useBasketQuery } from "../features/order/useBasket";
 import { codeLabel, day, dayTime, timeLeft } from "../lib/format";
-import { clearChat, forgetBasket } from "../lib/session";
+import { clearChat, forgetBasket, getCurrentBasket, setCurrentBasket } from "../lib/session";
 
 export function OrderPage() {
   const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
-  const basketId = params.get("basket");
+  // The address wins; without one, reopen the basket this browser was working on.
+  const basketId = params.get("basket") ?? getCurrentBasket();
+  useEffect(() => {
+    if (!params.get("basket") && basketId) setParams({ basket: basketId }, { replace: true });
+  }, [params, basketId, setParams]);
+  useEffect(() => { if (basketId) setCurrentBasket(basketId); }, [basketId]);
   const [chatOpen, setChatOpen] = useState(false);
   const [outcome, setOutcome] = useState<OrderResponse | null>(null);
   const now = useNow();
@@ -36,7 +41,9 @@ export function OrderPage() {
   useEffect(() => { setOutcome(null); }, [basketId]);
 
   const gone = query.error instanceof ApiError && query.error.kind === "missing";
-  useEffect(() => { if (gone && basketId) forgetBasket(basketId); }, [gone, basketId]);
+  useEffect(() => {
+    if (gone && basketId) { forgetBasket(basketId); if (getCurrentBasket() === basketId) setCurrentBasket(null); }
+  }, [gone, basketId]);
 
   const busy = actions.edit.isPending || actions.confirm.isPending || actions.approve.isPending;
   const editable = !!basket && basket.status !== "ordered" && basket.status !== "blocked";
@@ -48,7 +55,7 @@ export function OrderPage() {
   const edit = (e: LineEdit) => { setOutcome(null); actions.edit.mutate({ edits: [e] }); };
   const confirm = () => { setOutcome(null); actions.confirm.mutate(); };
   const approve = () => actions.approve.mutate(undefined, { onSuccess: setOutcome });
-  const startNew = () => { setParams({}); clearChat(); setOutcome(null); actions.chat.reset(); };
+  const startNew = () => { setCurrentBasket(null); setParams({}); clearChat(); setOutcome(null); actions.chat.reset(); };
   const panelProps = basket && { basket, busy, confirming: actions.confirm.isPending, approving: actions.approve.isPending, onConfirm: confirm, onApprove: approve };
   const actionError = actions.edit.error || actions.confirm.error || actions.approve.error || actions.draftSuggestion.error;
 
