@@ -49,6 +49,7 @@ CHEF_LIMIT_EUR = float(os.environ.get("CHEF_LIMIT_EUR", "500"))
 # Mandate defaults. The Agent rules tab edits these; they are the outer limit
 # Aimo enforces, so they sit above the chef and manager limits, not beside them.
 MANDATE_PER_ORDER_EUR = float(os.environ.get("MANDATE_PER_ORDER_EUR", "2000"))
+MANDATE_PER_DAY_EUR = float(os.environ.get("MANDATE_PER_DAY_EUR", "2000"))
 MANDATE_PER_WEEK_EUR = float(os.environ.get("MANDATE_PER_WEEK_EUR", "5000"))
 MANDATE_DAYS = int(os.environ.get("MANDATE_DAYS", "7"))
 # Whether Aimo must be shown a signed human approval with every order. Off by
@@ -100,6 +101,7 @@ class KitchenSigner:
         self,
         *,
         per_order: float | None = None,
+        per_day: float | None = None,
         per_week: float | None = None,
         categories: list[str] | None = None,
         approval_required: bool | None = None,
@@ -123,6 +125,7 @@ class KitchenSigner:
             exp=now_seconds(moment + timedelta(days=days or MANDATE_DAYS)),
             limits=MandateLimits(
                 max_net_per_order=per_order if per_order is not None else MANDATE_PER_ORDER_EUR,
+                max_net_per_day=per_day if per_day is not None else MANDATE_PER_DAY_EUR,
                 max_net_per_week=per_week if per_week is not None else MANDATE_PER_WEEK_EUR,
             ),
             allowed_categories=categories if categories is not None else list(MANDATE_CATEGORIES),

@@ -219,7 +219,12 @@
     "check1": "Veroton arvo yli 500 EUR",
     "check2": "Vain osa rivistä voidaan toimittaa",
     "check3": "Tuote poikkeaa pyydetystä",
-    "check4": "Pakkauskoko ja hintatiedot ovat ristiriidassa"
+    "check4": "Pakkauskoko ja hintatiedot ovat ristiriidassa",
+    "perDay": "Enintään päivässä",
+    "perDayLabel": "Enintään päivässä (EUR, veroton)",
+    "noDaily": "Ei päiväbudjettia",
+    "dayHelp": "Jätä tyhjäksi, jos ei päiväbudjettia. Ei saa olla enempää kuin viikossa.",
+    "errDayOverWeek": "Päivä ei voi olla enemmän kuin viikko."
   },
   "activity": {
     "title": "Tapahtumat",

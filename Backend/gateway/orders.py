@@ -24,8 +24,12 @@ to be sent anywhere". So this is where an order comes to rest.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+import os
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable, Iterable
+
+# The kitchen's own time zone, for the daily budget.
+LOCAL_UTC_OFFSET_HOURS = float(os.environ.get("LOCAL_UTC_OFFSET_HOURS", "2"))
 
 from shared.schemas import (
     ApprovalPayload,
@@ -68,6 +72,22 @@ class OrderStore:
 
     def for_customer(self, customer: str) -> list[OrderRecord]:
         return [o for o in self.orders.values() if o.customer == customer]
+
+    def daily_net(self, customer: str, when: datetime) -> float:
+        """Net already ordered today, in the kitchen's local day.
+
+        Counted locally, not in UTC: a Helsinki kitchen's Monday starts at
+        midnight for them, and a UTC day would roll over at 02:00 their time
+        and move spending into the wrong day.
+        """
+        today = _local(when).date()
+        total = 0.0
+        for order in self.orders.values():
+            if order.customer != customer or order.status != "placed":
+                continue
+            if _local(order.placed_at).date() == today:
+                total += order.net_total
+        return round(total, 2)
 
     def weekly_net(self, customer: str, when: datetime) -> float:
         """Net already ordered this ISO week, Monday to Sunday.
@@ -158,6 +178,17 @@ def _verify_approval(token: str | None, quote: QuotePayload, gateway_url: str,
     return approval
 
 
+def _local(when: datetime) -> datetime:
+    """A moment in the kitchen's own time zone.
+
+    LOCAL_UTC_OFFSET_HOURS keeps this dependency-free and explicit; Finland is
+    +2 in winter and +3 in summer, and the demo runs in November.
+    """
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    return when.astimezone(timezone(timedelta(hours=LOCAL_UTC_OFFSET_HOURS)))
+
+
 def _check_limits(quote: QuotePayload, mandate: MandatePayload, customer: str,
                   store: OrderStore, now: datetime) -> None:
     if quote.net_total > mandate.limits.max_net_per_order:
@@ -165,6 +196,16 @@ def _check_limits(quote: QuotePayload, mandate: MandatePayload, customer: str,
             "over_order_limit",
             f"{quote.currency} {quote.net_total:,.2f} net is over the mandate's "
             f"{quote.currency} {mandate.limits.max_net_per_order:,.2f} per order")
+    # The day is checked before the week: it is the tighter of the two, and it
+    # is the one a chef recognises when an order is turned down.
+    if mandate.limits.max_net_per_day is not None:
+        today = store.daily_net(customer, now)
+        if today + quote.net_total > mandate.limits.max_net_per_day:
+            raise OrderRefused(
+                "over_daily_limit",
+                f"{quote.currency} {today:,.2f} already ordered today plus "
+                f"{quote.net_total:,.2f} is over the mandate's "
+                f"{mandate.limits.max_net_per_day:,.2f} a day")
     already = store.weekly_net(customer, now)
     if already + quote.net_total > mandate.limits.max_net_per_week:
         raise OrderRefused(

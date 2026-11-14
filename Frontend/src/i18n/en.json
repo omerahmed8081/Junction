@@ -219,7 +219,12 @@
     "check1": "Net value over EUR 500",
     "check2": "Only part of a line can be delivered",
     "check3": "The product differs from what was asked for",
-    "check4": "Pack size and price data disagree"
+    "check4": "Pack size and price data disagree",
+    "perDay": "Most per day",
+    "perDayLabel": "Most per day (EUR, net)",
+    "noDaily": "No daily budget",
+    "dayHelp": "Leave empty for no daily budget. Must not be more than the week.",
+    "errDayOverWeek": "A day cannot be more than the week."
   },
   "activity": {
     "title": "Activity",

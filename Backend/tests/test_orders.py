@@ -22,6 +22,7 @@ from gateway.delivery import build_response  # noqa: E402
 from gateway.orders import OrderRefused, OrderStore, place_order  # noqa: E402
 from gateway.quotes import QuoteRegistry, build_quote, new_order_id  # noqa: E402
 from shared.schemas import (  # noqa: E402
+    OrderRecord,
     CheckDeliveryItem,
     MandateLimits,
     MandatePayload,
@@ -79,13 +80,14 @@ def make_quote(quantities=None, *, when: date = WHEN, now: datetime = NOW,
     )
 
 
-def make_mandate(*, per_order=2000.0, per_week=5000.0, categories=None,
+def make_mandate(*, per_order=2000.0, per_day=None, per_week=5000.0, categories=None,
                  approval_required=True, agent=AGENT, customer=CUSTOMER,
                  signer: Signer = KITCHEN_SIGNER, now: datetime = NOW):
     payload = MandatePayload(
         iss=KITCHEN, sub=agent, aud=GATEWAY, customer=customer,
         jti="m_test", iat=now_seconds(now), exp=now_seconds(now) + 7 * 24 * 3600,
-        limits=MandateLimits(max_net_per_order=per_order, max_net_per_week=per_week),
+        limits=MandateLimits(max_net_per_order=per_order, max_net_per_day=per_day,
+                             max_net_per_week=per_week),
         allowed_categories=categories if categories is not None else ["10400"],
         approval_required=approval_required,
     )
@@ -343,6 +345,74 @@ def test_an_unsigned_token_is_never_accepted():
         assert "not accepted" in str(exc), exc
         return
     raise AssertionError("an unsigned token was accepted")
+
+
+# ---- the daily budget --------------------------------------------------
+
+def _an_order(*, customer=CUSTOMER, net=100.0, placed_at=NOW, order_id=None) -> OrderRecord:
+    """A placed order, which is all daily_net and weekly_net look at."""
+    return OrderRecord(
+        order_id=order_id or f"o_{int(net)}_{placed_at.timestamp():.0f}",
+        quote_id="q_test", customer=customer, agent_id=AGENT, status="placed",
+        placed_at=placed_at, requested_date=WHEN, delivery_date=WHEN, lines=[],
+        net_total=net, vat_total=0.0, gross_total=net)
+
+
+def _refusal_for(*, net, already_today=0.0, per_day=None, per_week=5000.0,
+                 already_week=0.0) -> str | None:
+    """Spend some of the budget, then try an order and report the reason."""
+    store = OrderStore()
+    if already_today:
+        store.add(_an_order(net=already_today, placed_at=NOW, order_id="o_today"))
+    if already_week:
+        # Earlier in the same ISO week, but not today.
+        store.add(_an_order(net=already_week, placed_at=NOW - timedelta(days=2),
+                            order_id="o_earlier"))
+    try:
+        order(mandate=make_mandate(per_order=10_000.0, per_day=per_day, per_week=per_week),
+              quote=make_quote({"464306": net}), store=store)
+    except OrderRefused as exc:
+        return exc.rejection.reason
+    return None
+
+
+def test_a_days_spending_is_counted_in_the_kitchens_local_day():
+    """A Helsinki kitchen's day starts at their midnight. Counting in UTC would
+    roll over at 02:00 their time and move spending into the wrong day."""
+    store = OrderStore()
+    # 23:30 local on the 16th is 21:30 UTC on the 16th.
+    store.add(_an_order(customer="123", net=100.0,
+                        placed_at=datetime(2026, 11, 16, 21, 30, tzinfo=timezone.utc)))
+    # 00:30 local on the 17th is 22:30 UTC on the 16th: a different day for the chef.
+    store.add(_an_order(customer="123", net=50.0,
+                        placed_at=datetime(2026, 11, 16, 22, 30, tzinfo=timezone.utc)))
+    on_the_16th = datetime(2026, 11, 16, 20, 0, tzinfo=timezone.utc)
+    on_the_17th = datetime(2026, 11, 17, 10, 0, tzinfo=timezone.utc)
+    assert store.daily_net("123", on_the_16th) == 100.0
+    assert store.daily_net("123", on_the_17th) == 50.0
+
+
+def test_another_customers_spending_is_not_counted():
+    store = OrderStore()
+    store.add(_an_order(customer="456", net=900.0))
+    assert store.daily_net("123", NOW) == 0.0
+
+
+def test_over_the_daily_budget_is_refused_before_the_weekly_one():
+    """The day is the tighter limit and the one a chef recognises."""
+    reason = _refusal_for(net=600.0, already_today=1_500.0, per_day=2_000.0, per_week=5_000.0)
+    assert reason == "over_daily_limit"
+
+
+def test_inside_the_day_but_over_the_week_still_says_week():
+    reason = _refusal_for(net=100.0, already_today=0.0, per_day=2_000.0,
+                          per_week=5_000.0, already_week=4_950.0)
+    assert reason == "over_weekly_limit"
+
+
+def test_a_mandate_with_no_daily_limit_is_still_valid():
+    """Mandates signed before the daily budget existed must keep working."""
+    assert _refusal_for(net=4_000.0, already_today=0.0, per_day=None, per_week=5_000.0) is None
 
 
 if __name__ == "__main__":

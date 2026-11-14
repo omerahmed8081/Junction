@@ -352,6 +352,10 @@ class QuotePayload(BaseModel):
 
 class MandateLimits(BaseModel):
     max_net_per_order: Money
+    # A day's spending, counted in the kitchen's own local day rather than UTC,
+    # so "today" means what a chef means by it. Optional for older mandates:
+    # one signed without it is still valid and simply has no daily ceiling.
+    max_net_per_day: Money | None = None
     max_net_per_week: Money
     currency: str = "EUR"
     basis: str = "net goods value excluding VAT and deposits"

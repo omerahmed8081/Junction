@@ -7,6 +7,26 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Saturday 14 November
 
+### 22:40 - a daily budget
+
+`MandateLimits` gained `max_net_per_day`, default **EUR 2,000** against the
+week's 5,000 (`MANDATE_PER_DAY_EUR`). Aimo refuses an order that would take the
+day over it, before it looks at the week: the day is the tighter limit and the
+one a chef recognises when an order is turned down. The refusal reads "it is
+over your budget for today".
+
+**The day is the kitchen's own day, not UTC.** A Helsinki kitchen's Monday
+starts at their midnight; counting in UTC would roll the day over at 02:00
+local and put an evening order into tomorrow's budget. `LOCAL_UTC_OFFSET_HOURS`
+(default 2) sets it, and a test pins the behaviour either side of local
+midnight.
+
+The limit is optional, so a mandate signed before today keeps working and
+simply has no daily ceiling. The rules screen shows it, and leaving the box
+empty is a real choice rather than a mistake.
+
+5 more tests, 248 passing.
+
 ### 22:20 - a clean slate before deploying
 
 `scripts/clean_slate.py` clears everything the demo has written: both audit

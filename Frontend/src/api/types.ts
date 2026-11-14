@@ -12,10 +12,14 @@ export type ChatResponse = S["ChatResponse"];
 export type LineEdit = S["LineEdit"];
 export type OrderResponse = S["OrderResponse"];
 export type OrderRecord = S["OrderRecord"];
-// agent_name is newer than the checked-in schema.d.ts; regenerating with
-// `npm run api:types` against a running kitchen makes the intersection a no-op.
-export type MandateView = S["MandateView"] & { agent_name?: string };
-export type MandateRequest = S["MandateRequest"];
+// agent_name and the daily budget are newer than the checked-in schema.d.ts;
+// regenerating with `npm run api:types` against a running kitchen makes these
+// intersections a no-op.
+export type MandateView = S["MandateView"] & {
+  agent_name?: string;
+  limits: S["MandateView"]["limits"] & { max_net_per_day?: number | null };
+};
+export type MandateRequest = S["MandateRequest"] & { max_net_per_day?: number | null };
 export type InventoryView = S["InventoryView"];
 export type StockRow = S["StockRow"];
 export type Suggestion = S["Suggestion"];

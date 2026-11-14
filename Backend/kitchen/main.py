@@ -434,7 +434,8 @@ def get_mandate() -> MandateView:
 def issue_mandate(req: MandateRequest) -> MandateView:
     """Sign a new mandate. The owner does this from the Agent rules tab."""
     mandate = kitchen.issue_mandate(
-        per_order=req.max_net_per_order, per_week=req.max_net_per_week,
+        per_order=req.max_net_per_order, per_day=req.max_net_per_day,
+        per_week=req.max_net_per_week,
         categories=req.allowed_categories, approval_required=req.approval_required,
         days=req.days,
     )

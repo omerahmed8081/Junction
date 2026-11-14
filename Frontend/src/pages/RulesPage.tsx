@@ -21,27 +21,36 @@ export function RulesPage() {
   const heading = useRef<HTMLHeadingElement>(null);
 
   const [perOrder, setPerOrder] = useState("");
+  const [perDay, setPerDay] = useState("");
   const [perWeek, setPerWeek] = useState("");
   const [days, setDays] = useState(7);
   const [approval, setApproval] = useState(true);
   const [touched, setTouched] = useState(false);
   const orderRef = useRef<HTMLInputElement>(null), weekRef = useRef<HTMLInputElement>(null);
+  const dayRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { document.title = `${t("nav.rules")} · ${t("app.name")}`; }, [t]);
   // Start the form from the mandate in force, so "issue" means "change", not "retype".
   useEffect(() => {
     if (!mandate) return;
     setPerOrder(String(mandate.limits.max_net_per_order));
+    setPerDay(mandate.limits.max_net_per_day == null ? "" : String(mandate.limits.max_net_per_day));
     setPerWeek(String(mandate.limits.max_net_per_week));
     setApproval(mandate.approval_required);
   }, [mandate]);
 
   const order = toNumber(perOrder), week = toNumber(perWeek);
+  // An empty daily box means no daily ceiling, which is a real choice rather
+  // than a mistake, so it is not an error.
+  const day = perDay.trim() ? toNumber(perDay) : null;
+  const dayError = day !== null && !(day > 0) ? t("rules.errPositive")
+    : day !== null && day > week ? t("rules.errDayOverWeek") : "";
   const orderError = !(order > 0) ? t("rules.errPositive") : "";
   const weekError = !(week > 0) ? t("rules.errPositive") : week < order ? t("rules.errWeek") : "";
 
   const issue = useMutation({
-    mutationFn: () => api.issueMandate({ max_net_per_order: order, max_net_per_week: week, approval_required: approval, days }),
+    mutationFn: () => api.issueMandate({ max_net_per_order: order, max_net_per_day: day,
+      max_net_per_week: week, approval_required: approval, days }),
     onSuccess: (m) => {
       client.setQueryData(["mandate"], m);
       announce(t("rules.issued", { date: dayTime(m.expires_at) }));
@@ -53,6 +62,7 @@ export function RulesPage() {
     setTouched(true);
     if (orderError) { orderRef.current?.focus(); return; }
     if (weekError) { weekRef.current?.focus(); return; }
+    if (dayError) { dayRef.current?.focus(); return; }
     issue.mutate();
   };
 
@@ -70,6 +80,8 @@ export function RulesPage() {
               <dl className="mt-3 divide-y divide-border text-sm">
                 {([
                   [t("rules.perOrder"), `${money(mandate.limits.max_net_per_order)} ${t("basket.net").toLowerCase()}`],
+                  [t("rules.perDay"), mandate.limits.max_net_per_day == null ? t("rules.noDaily")
+                    : `${money(mandate.limits.max_net_per_day)} ${t("basket.net").toLowerCase()}`],
                   [t("rules.perWeek"), `${money(mandate.limits.max_net_per_week)} ${t("basket.net").toLowerCase()}`],
                   [t("rules.groups"), mandate.allowed_categories?.length ? mandate.allowed_categories.join(", ") : t("rules.allGroups")],
                   [t("rules.approval"), mandate.approval_required ? t("rules.yesEvery") : t("rules.no")],
@@ -102,6 +114,14 @@ export function RulesPage() {
                 aria-invalid={(touched && !!orderError) || undefined} aria-describedby="per-order-help"
                 className={`${field} ${touched && orderError ? "border-2 border-danger" : "border-border-strong"}`} />
               <p id="per-order-help" className={`mt-1 text-xs ${touched && orderError ? "font-semibold text-danger" : "text-ink-soft"}`}>{touched && orderError ? orderError : t("rules.netHelp")}</p>
+            </div>
+            <div>
+              <label htmlFor="per-day" className="text-sm font-semibold">{t("rules.perDayLabel")}</label>
+              <input id="per-day" ref={dayRef} inputMode="decimal" value={perDay} onChange={(e) => setPerDay(e.target.value)}
+                placeholder={t("rules.noDaily")}
+                aria-invalid={(touched && !!dayError) || undefined} aria-describedby="per-day-help"
+                className={`${field} ${touched && dayError ? "border-2 border-danger" : "border-border-strong"}`} />
+              <p id="per-day-help" className={`mt-1 text-xs ${touched && dayError ? "font-semibold text-danger" : "text-ink-soft"}`}>{touched && dayError ? dayError : t("rules.dayHelp")}</p>
             </div>
             <div>
               <label htmlFor="per-week" className="text-sm font-semibold">{t("rules.perWeekLabel")}</label>

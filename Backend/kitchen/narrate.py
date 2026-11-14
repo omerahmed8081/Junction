@@ -93,6 +93,7 @@ REASONS = {
     "stock_changed": "the stock had moved since the price was locked in",
     "quote_expired": "the locked-in price had expired",
     "over_order_limit": "it is over your limit for a single order",
+    "over_daily_limit": "it is over your budget for today",
     "over_weekly_limit": "it is over your limit for the week",
 }
 
