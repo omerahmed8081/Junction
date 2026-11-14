@@ -620,6 +620,19 @@ def order_audit(order_id: str) -> dict:
             "degraded": audit.log.degraded, "records": rows}
 
 
+@app.get("/api/kitchen")
+def whose_kitchen() -> dict:
+    """Who this kitchen is, for the title bar.
+
+    Here rather than hard-coded in the frontend, so a second kitchen - the
+    hospital - is a different KITCHEN_NAME on a second service and needs no
+    frontend change at all.
+    """
+    return {"name": os.environ.get("KITCHEN_NAME", "Kitchen ordering"),
+            "agent_name": ordering.AGENT_NAME,
+            "customer": ordering.CUSTOMER_ID}
+
+
 @app.get("/api/rules")
 def list_rules(include_inactive: bool = False) -> dict:
     """The kitchen's standing rules, in the order they were set."""

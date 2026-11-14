@@ -2,7 +2,9 @@
 // tablet and desktop, bottom tabs on a phone), language switch, <main>.
 import { clsx } from "clsx";
 import { Activity, ChefHat, ClipboardCheck, Package, ShoppingBasket, SlidersHorizontal } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { api } from "../api/client";
 import { NavLink, Outlet } from "react-router-dom";
 import { useWaitingBaskets } from "../features/approvals/useWaitingBaskets";
 
@@ -47,6 +49,8 @@ function Badge({ count, label }: { count: number; label: string }) {
 
 export function AppShell() {
   const { t } = useTranslation();
+  // The kitchen names itself, so a second tenant needs no frontend change.
+  const name = useQuery({ queryKey: ["kitchen"], queryFn: api.kitchen, staleTime: Infinity });
   const waiting = useWaitingBaskets().baskets.length;
   return (
     <div className="flex min-h-dvh flex-col">
@@ -57,7 +61,7 @@ export function AppShell() {
         <div className="mx-auto flex max-w-[1500px] items-center gap-6 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2 text-xl font-extrabold tracking-[-0.04em]">
             <ChefHat className="size-7" aria-hidden />
-            <span className="hidden sm:inline">{t("app.name")}</span>
+            <span className="hidden sm:inline">{name.data?.name || t("app.name")}</span>
           </div>
           <nav aria-label={t("nav.main")} className="hidden md:block">
             <ul className="flex gap-1">

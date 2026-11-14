@@ -75,6 +75,8 @@ export const api = {
   draftSuggestion: (productId: string) => request<ChatResponse>("POST", `/api/suggestions/${productId}/basket`),
   logService: (portions: Record<string, number>, serviceDate?: string) =>
     request<ServiceResponse>("POST", "/api/service", { portions, service_date: serviceDate ?? null }),
+  // Who this kitchen is, for the title bar.
+  kitchen: () => request<{ name: string; agent_name: string; customer: string }>("GET", "/api/kitchen"),
   // The kitchen's standing rules: what may go through without anyone looking.
   rules: () => request<RuleList>("GET", "/api/rules"),
   addRule: (body: NewRule) => request<Rule>("POST", "/api/rules", body),

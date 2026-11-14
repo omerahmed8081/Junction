@@ -7,6 +7,18 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Sunday 15 November
 
+### 00:40 - the kitchen names itself
+
+`KITCHEN_NAME` and `GET /api/kitchen`. The title bar asks the backend who it is
+rather than carrying the name in two translation files, so the hospital is a
+second service with its own `KITCHEN_NAME`, `AGENT_NAME` and seed - and no
+frontend change at all.
+
+`Backend/.env` was rewritten while doing it: `AGENT_ID`, `AGENT_NAME` and
+`AIMO_CUSTOMER_ID` each appeared twice, and values with spaces were unquoted so
+the file could not be sourced by a shell. It is now grouped, commented and
+deduplicated, with one key per line.
+
 ### 00:25 - the audit reader was breaking the catalogue
 
 `KeyError: 1` from `catalog.resolve_category`, and nothing in the catalogue had

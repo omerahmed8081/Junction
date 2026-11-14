@@ -93,6 +93,7 @@ silently corrupts the API key.
 | `AUTO_ORDER` | kitchen | Whether the agent places a basket its own standing rules cleared. Default on; needs a rule *and* a mandate that does not require approval |
 | `MANDATE_PER_DAY_EUR` | kitchen | The daily budget a new mandate is signed with. Default 2000; the week's default is 5000 |
 | `LOCAL_UTC_OFFSET_HOURS` | gateway | Which day "today" means for the daily budget. Default 2, Finland in winter |
+| `KITCHEN_NAME` | kitchen | What the title bar says. The frontend asks `GET /api/kitchen`, so a second tenant needs no frontend change |
 | `AGENT_API_KEY` | kitchen | The key this kitchen presents to the gateway. Defaults to `demo-kitchen-key` |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | kitchen | A wrong model name falls back to the rules parser. The chat reply's `parser` field and the kitchen log both say which one ran |
 | `GATEWAY_URL` | kitchen | Where the gateway is, server to server |
