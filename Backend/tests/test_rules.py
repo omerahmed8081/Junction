@@ -11,6 +11,8 @@ from datetime import date
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+import pytest  # noqa: E402
+
 from kitchen import rules  # noqa: E402
 from shared.schemas import Basket, BasketLine, DeliveryAnswer  # noqa: E402
 
@@ -145,15 +147,41 @@ if __name__ == "__main__":
 # ------------------------------- what a rule change may do to other baskets
 
 
-def _app():
-    """The kitchen app with its own empty baskets, no database, no gateway."""
+@pytest.fixture
+def app(tmp_path):
+    """The kitchen app with its own empty baskets and no standing rules.
+
+    Everything it touches is module state shared with every other test file, so
+    all of it is put back afterwards. A first version of these tests cleared
+    `rules.store._rules`, which does not exist - the attribute is `_memory` -
+    so the guard silently did nothing and a leftover rule changed what
+    `preview_policy` returned in three other files when they happened to run
+    after this one.
+
+    The state file is redirected too: these tests call endpoints, endpoints
+    call `_save()`, and the developer's own `.state/kitchen.json` is not the
+    test suite's to overwrite.
+    """
     os.environ["TTA_SKIP_DOTENV"] = "1"
     from fastapi.testclient import TestClient
     import kitchen.main as main
+    from kitchen import storage
 
+    held = (rules.store._memory.copy(), rules.store._next,
+            dict(main.baskets), storage.STATE_FILE)
+    rules.store._memory.clear()
     main.baskets.clear()
-    rules.store._rules.clear() if hasattr(rules.store, "_rules") else None
-    return TestClient(main.app), main
+    storage.STATE_FILE = tmp_path / "kitchen.json"
+    try:
+        yield TestClient(main.app), main
+    finally:
+        saved_rules, saved_next, saved_baskets, saved_file = held
+        rules.store._memory.clear()
+        rules.store._memory.update(saved_rules)
+        rules.store._next = saved_next
+        main.baskets.clear()
+        main.baskets.update(saved_baskets)
+        storage.STATE_FILE = saved_file
 
 
 def _put(main, basket_id: str, status: str, quote: str | None = "a.signed.quote"):
@@ -173,11 +201,11 @@ OWNER = {"X-Kitchen-Role": "owner"}
 A_RULE = {"name": "milk", "match": "name", "value": "milk", "max_net_per_order": 200.0}
 
 
-def test_adding_a_rule_leaves_a_signed_basket_signed():
+def test_adding_a_rule_leaves_a_signed_basket_signed(app):
     """It used to run the full refresh over every basket, which sets the status
     back to "draft" and throws the quote away - so a basket waiting in
     Approvals dropped out of the list, unsigned, mid-demo."""
-    client, main = _app()
+    client, main = app
     with client:
         waiting = _put(main, "b_wait", "pending_approval")
         client.post("/api/rules", json=A_RULE, headers=OWNER).raise_for_status()
@@ -187,10 +215,10 @@ def test_adding_a_rule_leaves_a_signed_basket_signed():
     assert waiting.quote_verified is True
 
 
-def test_adding_a_rule_leaves_an_order_ordered():
+def test_adding_a_rule_leaves_an_order_ordered(app):
     """The worse half: an order Aimo had already accepted came back as an
     editable draft, which could be confirmed and ordered a second time."""
-    client, main = _app()
+    client, main = app
     with client:
         placed = _put(main, "b_done", "ordered")
         client.post("/api/rules", json=A_RULE, headers=OWNER).raise_for_status()
@@ -199,8 +227,8 @@ def test_adding_a_rule_leaves_an_order_ordered():
     assert placed.quote_jws == "a.signed.quote"
 
 
-def test_removing_a_rule_leaves_them_alone_too():
-    client, main = _app()
+def test_removing_a_rule_leaves_them_alone_too(app):
+    client, main = app
     with client:
         made = client.post("/api/rules", json=A_RULE, headers=OWNER)
         made.raise_for_status()
@@ -213,10 +241,10 @@ def test_removing_a_rule_leaves_them_alone_too():
     assert waiting.quote_jws == "a.signed.quote"
 
 
-def test_a_draft_does_follow_the_new_rule():
+def test_a_draft_does_follow_the_new_rule(app):
     """The point of the loop in the first place: a draft on screen should show
     that a rule now covers it, without the chef reloading."""
-    client, main = _app()
+    client, main = app
     with client:
         draft = _put(main, "b_draft", "draft", quote=None)
         before = draft.policy.level if draft.policy else None
@@ -226,10 +254,10 @@ def test_a_draft_does_follow_the_new_rule():
     assert draft.policy.level == "auto_ok", f"the draft was not re-judged (was {before})"
 
 
-def test_a_blocked_basket_is_not_quietly_unblocked():
+def test_a_blocked_basket_is_not_quietly_unblocked(app):
     """Blocked is a decision, not a preview. A rule can only relax an approval,
     and must never reopen something stopped on purpose."""
-    client, main = _app()
+    client, main = app
     with client:
         stopped = _put(main, "b_stop", "blocked")
         client.post("/api/rules", json=A_RULE, headers=OWNER).raise_for_status()
