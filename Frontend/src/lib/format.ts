@@ -75,3 +75,20 @@ export function productName(productId: string, fromApi?: string | null): string 
   if (known) return i18n.language === "fi" ? known.fi : known.en;
   return `#${productId}`;
 }
+
+/**
+ * A typed amount as a number, whichever way the person writes it:
+ * "100000", "100 000" (Finnish), "100,000" or "100.000" (thousands), "12,50" or
+ * "12.50" (decimals). A comma or point followed by exactly three digits, more than
+ * once or after 1-3 leading digits, is a thousands separator; otherwise it is the decimal mark.
+ * Returns NaN for anything else, so the form can say so.
+ */
+export function parseAmount(text: string): number {
+  const s = text.replace(/[\s  €]/g, "");
+  if (!s) return NaN;
+  if (/^\d{1,3}([.,]\d{3})+$/.test(s)) return Number(s.replace(/[.,]/g, ""));
+  if (/^\d{1,3}(,\d{3})+\.\d+$/.test(s)) return Number(s.replace(/,/g, ""));
+  if (/^\d{1,3}(\.\d{3})+,\d+$/.test(s)) return Number(s.replace(/\./g, "").replace(",", "."));
+  if (/^\d+([.,]\d+)?$/.test(s)) return Number(s.replace(",", "."));
+  return NaN;
+}

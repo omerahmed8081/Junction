@@ -527,8 +527,14 @@ def preview_policy(basket: Basket) -> PolicyDecision | None:
     return PolicyDecision(level=level, reasons=reasons, binding=False)
 
 
-def approval_sentence(level: str) -> str:
-    """Who has to say yes, for the chat reply."""
+_RANK = {"chef": 1, "manager": 2, "owner": 3}
+
+
+def approval_sentence(level: str, role: str | None = None) -> str:
+    """Who has to say yes, for the chat reply. With `role`, said to that person:
+    the basket that needs a manager is simply within the owner's limit."""
+    if role in _RANK and level in _RANK and _RANK[role] >= _RANK[level] and level != "chef":
+        return f"It is within your limit as {role}, so you can place it yourself."
     return {"manager": "It needs a manager's approval.",
             "owner": "It is over the manager limit, so it needs the owner's approval.",
             "auto_ok": "One of your standing rules covers it, so nobody needs to approve it.",
@@ -621,7 +627,8 @@ def _can_cover(candidate: Candidate) -> bool:
             and delivery.fulfil_amount >= candidate.conversion.quantity_sales_units - 1e-9)
 
 
-def add_need(state: BasketState | None, need: ParsedNeed, gateway: GatewayClient) -> tuple[BasketState, str, list[AgentStep]]:
+def add_need(state: BasketState | None, need: ParsedNeed, gateway: GatewayClient,
+             role: str | None = None) -> tuple[BasketState, str, list[AgentStep]]:
     """Add one line for this need to the basket (a new basket when state is None)."""
     steps: list[AgentStep] = []
     _step(steps, "parse_need", f"{need.quantity:g} {need.unit} '{need.product_text}' {need.claims or ''} "
@@ -662,7 +669,7 @@ def add_need(state: BasketState | None, need: ParsedNeed, gateway: GatewayClient
     _refresh(state.basket)
     _step(steps, "policy_preview", f"{state.basket.policy.level}: {state.basket.policy.reasons or 'within the chef limit'}")
 
-    approval = approval_sentence(state.basket.policy.level)
+    approval = approval_sentence(state.basket.policy.level, role)
     net = sum(l.line_net for l in lines)
     if len(lines) == 1:
         line = lines[0]

@@ -9,10 +9,10 @@ import { api } from "../../api/client";
 import type { RuleMatch } from "../../api/types";
 import { useAnnounce } from "../../components/Announcer";
 import { Banner, Button, Card, EmptyState, ErrorNote, Skeleton } from "../../components/ui";
+import { parseAmount } from "../../lib/format";
 import { useRole } from "../../lib/session";
 
 const MATCHES: RuleMatch[] = ["any", "name", "product", "claim", "category"];
-const toNumber = (text: string) => Number(text.replace(/\s/g, "").replace(",", "."));
 
 export function StandingRules() {
   const { t } = useTranslation();
@@ -29,7 +29,7 @@ export function StandingRules() {
 
   const needsValue = match !== "any";
   const valueError = needsValue && !value.trim() ? t("standing.errValue") : "";
-  const amount = ceiling.trim() ? toNumber(ceiling) : null;
+  const amount = ceiling.trim() ? parseAmount(ceiling) : null;
   const ceilingError = amount !== null && !(amount > 0) ? t("standing.errAmount") : "";
 
   const refresh = () => {

@@ -182,7 +182,7 @@ def _step(steps: list[AgentStep], step: str, detail: str, crossed: bool = False)
 
 def confirm(basket: Basket, gateway: GatewayClient, kitchen: KitchenSigner,
             steps: list[AgentStep] | None = None,
-            now: datetime | None = None) -> tuple[str, list[AgentStep]]:
+            now: datetime | None = None, role: str | None = None) -> tuple[str, list[AgentStep]]:
     """Ask Aimo to sign these lines, then hold what it signed.
 
     `now` is for tests, so the clock can be pinned; in service it is the real one.
@@ -253,6 +253,8 @@ def confirm(basket: Basket, gateway: GatewayClient, kitchen: KitchenSigner,
         reasons = ", ".join(f"{r.get('product_id')} ({r.get('reason')})" for r in quote.refused)
         reply += f"Aimo would not quote {reasons or 'one line'}, so it was left out. "
     level = basket.policy.level if basket.policy else "chef"
+    if role in ROLE_RANK and level in ROLE_RANK and ROLE_RANK[role] >= ROLE_RANK[level] and level != "chef":
+        return reply + f"It is within your limit as {role}: you can place it now.", steps
     reply += {"chef": "Anyone in the team can place it now.",
               "manager": "A manager or the owner has to approve it.",
               "owner": "The owner has to approve it."}.get(level, f"{level.title()} approval is needed.")

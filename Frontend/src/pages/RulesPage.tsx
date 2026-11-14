@@ -7,11 +7,10 @@ import { api } from "../api/client";
 import { useAnnounce } from "../components/Announcer";
 import { Banner, Button, Card, ErrorNote, PageTitle, Skeleton } from "../components/ui";
 import { StandingRules } from "../features/rules/StandingRules";
-import { dayTime, money } from "../lib/format";
+import { dayTime, money, parseAmount } from "../lib/format";
 import { useRole } from "../lib/session";
 
 const DAY_CHOICES = [1, 7, 30];
-const toNumber = (text: string) => Number(text.replace(/\s/g, "").replace(",", "."));
 
 export function RulesPage() {
   const { t } = useTranslation();
@@ -41,10 +40,10 @@ export function RulesPage() {
     setApproval(mandate.approval_required);
   }, [mandate]);
 
-  const order = toNumber(perOrder), week = toNumber(perWeek);
+  const order = parseAmount(perOrder), week = parseAmount(perWeek);
   // An empty daily box means no daily ceiling, which is a real choice rather
   // than a mistake, so it is not an error.
-  const day = perDay.trim() ? toNumber(perDay) : null;
+  const day = perDay.trim() ? parseAmount(perDay) : null;
   const dayError = day !== null && !(day > 0) ? t("rules.errPositive")
     : day !== null && day > week ? t("rules.errDayOverWeek") : "";
   const orderError = !(order > 0) ? t("rules.errPositive") : "";

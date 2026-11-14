@@ -7,6 +7,28 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Sunday 15 November
 
+### 01:30 - the approval note speaks to whoever is looking
+
+A EUR 1,010 basket said "Needs a manager's approval" to the owner too, who can
+place it himself. What a basket *needs* is unchanged (`policy.level`); what each
+person is *told* now depends on their role:
+
+- Basket screen: within your limit, the panel says "Within your limit as Owner"
+  in green, still listing the reasons for the record; above it, the orange
+  "Needs a manager's / the owner's approval" as before.
+- Chat and confirm replies: `agent.approval_sentence(level, role)`,
+  `agent.add_need(..., role=)` and `ordering.confirm(..., role=)` take the role
+  from `X-Kitchen-Role`. Both arguments are optional, so other callers are unchanged.
+- Test in `tests/test_roles.py`. 269 passing.
+
+### 01:20 - "100,000" is a hundred thousand
+
+The amount fields on Agent rules read "100,000" as 100.000, so a weekly limit
+of a hundred thousand came out as EUR 100 and was refused as "lower than the
+per-order limit". `parseAmount()` in `lib/format.ts` now reads every way people
+type an amount - 100000, 100 000, 100,000, 100.000, 12,50, 1.234,56 - and both
+the mandate form and the standing-rules ceiling use it.
+
 ### 01:10 - the chat stays with the order until it is placed
 
 Before: "Confirm price with Aimo" cleared the chat and closed the basket to it, so

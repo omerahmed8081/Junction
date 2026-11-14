@@ -116,7 +116,9 @@
     "waiting": "Odottaa {{who}} hyväksyntää",
     "waitingHint": "Allekirjoitettu hinta on tallessa. Se näkyy Hyväksynnöissä roolille {{role}} ja ylemmille. Chatin seuraava viesti aloittaa uuden tilauksen.",
     "yours": "Voit tehdä tämän tilauksen itse.",
-    "ruleTitle": "Hyväksyntää ei tarvita"
+    "ruleTitle": "Hyväksyntää ei tarvita",
+    "yoursTitle": "Rajasi sisällä ({{role}})",
+    "yoursHint": "Kirjattu tiedoksi. Voit tehdä tämän tilauksen itse."
   },
   "quote": {
     "signed": "Aimo allekirjoitti tämän hinnan",

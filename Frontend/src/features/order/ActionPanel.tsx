@@ -41,6 +41,10 @@ export function ActionPanel(props: Props) {
   const reasons = policy?.reasons ?? [];
   const level = policy?.level ?? "chef";
   const who = t(`role.gen_${level}`, { defaultValue: level });
+  // Whether the person at the screen may place it themselves: the same basket
+  // "needs a manager" for the chef and is simply within the owner's limit.
+  const role = useRole();
+  const mine = canApprove(role, level);
 
   return (
     <section aria-labelledby="totals-title" className="space-y-3">
@@ -54,6 +58,11 @@ export function ActionPanel(props: Props) {
       {policy && basket.status !== "ordered" && (
         level === "auto_ok" ? (
           <Banner tone="ok" title={t("policy.ruleTitle")}><span lang="en">{reasons.join(" ")}</span></Banner>
+        ) : reasons.length > 0 && mine ? (
+          <Banner tone="ok" title={t("policy.yoursTitle", { role: t(`role.${role}`) })}>
+            <ul className="list-disc pl-4" lang="en">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>
+            <p className="mt-1 text-xs text-ink-soft">{t("policy.yoursHint")}</p>
+          </Banner>
         ) : reasons.length > 0 ? (
           <Banner tone="warn" title={level === "manager" || level === "owner" ? t("policy.needsTitle", { who }) : t("policy.title")}>
             <ul className="list-disc pl-4" lang="en">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>

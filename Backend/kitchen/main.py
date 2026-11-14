@@ -218,7 +218,7 @@ def chat(req: ChatRequest, x_kitchen_role: str | None = Header(default=None)) ->
             replies.extend(notes)
     for need in needs:
         try:
-            state, reply, steps = agent.add_need(state, need, gateway)
+            state, reply, steps = agent.add_need(state, need, gateway, role=role)
         except GatewayError as exc:
             # One product the gateway could not answer for must not lose the
             # others: say which failed and keep what was found.
@@ -453,7 +453,7 @@ def edit_basket(basket_id: str, req: BasketEditRequest) -> ChatResponse:
 
 
 @app.post("/api/basket/{basket_id}/confirm", response_model=ChatResponse)
-def confirm_basket(basket_id: str) -> ChatResponse:
+def confirm_basket(basket_id: str, x_kitchen_role: str | None = Header(default=None)) -> ChatResponse:
     """Ask Aimo to sign a price confirmation for this basket.
 
     The basket moves from draft to quoted, and its figures become the ones Aimo
@@ -461,7 +461,7 @@ def confirm_basket(basket_id: str) -> ChatResponse:
     """
     state = _state(basket_id)
     try:
-        reply, steps = ordering.confirm(state.basket, gateway, kitchen)
+        reply, steps = ordering.confirm(state.basket, gateway, kitchen, role=_role(x_kitchen_role))
     except OrderingError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except GatewayRefused as exc:

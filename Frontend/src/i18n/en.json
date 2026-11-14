@@ -116,7 +116,9 @@
     "waiting": "Waiting for {{who}} approval",
     "waitingHint": "The signed price is saved. It is in Approvals for a {{role}} or above. The chat's next message starts a new order.",
     "yours": "You can place this order yourself.",
-    "ruleTitle": "No approval needed"
+    "ruleTitle": "No approval needed",
+    "yoursTitle": "Within your limit as {{role}}",
+    "yoursHint": "Noted for the record. You can place this order yourself."
   },
   "quote": {
     "signed": "Aimo signed this price",

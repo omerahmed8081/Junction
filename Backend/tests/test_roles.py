@@ -172,6 +172,19 @@ def test_the_chat_can_add_to_a_signed_basket_until_it_is_ordered(monkeypatch):
     assert r["basket"]["basket_id"] != first["basket_id"]
 
 
+
+def test_the_reply_speaks_to_whoever_is_asking():
+    """EUR 1,010 needs a manager when the chef asks, and is simply within the
+    owner's limit when the owner does."""
+    assert agent.approval_sentence("manager", "chef") == "It needs a manager's approval."
+    assert "within your limit as owner" in agent.approval_sentence("manager", "owner")
+    assert "within your limit as manager" in agent.approval_sentence("manager", "manager")
+    assert "owner's approval" in agent.approval_sentence("owner", "manager")
+    state, gateway, kitchen = drafted()
+    reply, _ = ordering.confirm(state.basket, gateway, kitchen, now=NOW, role="owner")
+    assert "within your limit as owner" in reply
+
+
 if __name__ == "__main__":
     # The same runner as every other file here, so one loop runs them all.
     # monkeypatch is a pytest fixture, so those tests are left to pytest.
