@@ -263,3 +263,55 @@ def test_a_blocked_basket_is_not_quietly_unblocked(app):
         client.post("/api/rules", json=A_RULE, headers=OWNER).raise_for_status()
 
     assert stopped.status == "blocked"
+
+
+# ------------------------------------------ what may still be edited (A3)
+
+
+def _edit(client, basket_id: str, quantity: float = 20):
+    return client.patch(f"/api/basket/{basket_id}",
+                        json={"edits": [{"product_id": "464306", "quantity": quantity}]})
+
+
+def test_an_order_already_placed_cannot_be_edited(app):
+    """It had no status check at all, so an order sitting with Aimo could be
+    changed through the API."""
+    client, main = app
+    with client:
+        placed = _put(main, "b_done", "ordered")
+        response = _edit(client, "b_done")
+
+    assert response.status_code == 409, response.status_code
+    assert "ordered" in response.json()["detail"]
+    assert placed.status == "ordered", "the edit went through anyway"
+
+
+def test_a_blocked_basket_cannot_be_edited_back_into_life(app):
+    """Blocked means a signature would not verify, or a security event. An edit
+    runs _refresh, which would have set it back to 'draft'."""
+    client, main = app
+    with client:
+        stopped = _put(main, "b_stop", "blocked")
+        response = _edit(client, "b_stop")
+
+    assert response.status_code == 409
+    assert stopped.status == "blocked"
+
+
+def test_a_rejected_basket_cannot_be_edited(app):
+    client, main = app
+    with client:
+        _put(main, "b_no", "rejected")
+        assert _edit(client, "b_no").status_code == 409
+
+
+def test_a_signed_basket_can_still_be_edited(app):
+    """Deliberately still allowed: the chef saw Aimo's price and changed their
+    mind. That is what confirming before approving is for, and the edit voids
+    the quote rather than being refused."""
+    client, main = app
+    with client:
+        quoted = _put(main, "b_quote", "quoted")
+        response = _edit(client, "b_quote")
+
+    assert response.status_code != 409, "editing after seeing the price was refused"

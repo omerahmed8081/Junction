@@ -454,6 +454,13 @@ def get_basket(basket_id: str) -> Basket:
     return _state(basket_id).basket
 
 
+# An order is placed, a rejection is final, and a block was deliberate: a
+# signature that would not verify, or a security event. Editing any of the
+# three would run the basket through _refresh, which sets the status back to
+# "draft" - so an edit would quietly undo a block.
+CLOSED_TO_EDITS = frozenset({"ordered", "rejected", "blocked"})
+
+
 @app.delete("/api/basket/{basket_id}")
 def delete_basket(basket_id: str) -> dict:
     """Throw away a draft. A basket Aimo has signed, or that is ordered, is kept:
@@ -471,8 +478,20 @@ def delete_basket(basket_id: str) -> dict:
 
 @app.patch("/api/basket/{basket_id}", response_model=ChatResponse)
 def edit_basket(basket_id: str, req: BasketEditRequest) -> ChatResponse:
-    """Change a quantity, swap to an alternative, or remove a line."""
+    """Change a quantity, swap to an alternative, or remove a line.
+
+    Editing a basket Aimo has already signed is allowed and voids the quote:
+    the chef saw the price and changed their mind, which is the whole point of
+    confirming before approving. Editing one that is finished or stopped is
+    not, and had no check at all - so an order already placed with Aimo could
+    be edited through the API, and a basket blocked for a failed signature or
+    a security event could be edited quietly back into a draft.
+    """
     state = _state(basket_id)
+    if state.basket.status in CLOSED_TO_EDITS:
+        raise HTTPException(
+            status_code=409,
+            detail=f"this basket is {state.basket.status} and can no longer be edited")
     if req.requested_date and not req.edits:
         # A new date alone: check every line again for that day, not just relabel.
         return _redate(state, req.requested_date)
