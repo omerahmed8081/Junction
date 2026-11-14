@@ -7,6 +7,13 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Saturday 14 November
 
+### 22:40 - a product chosen by number is what was asked for
+
+"20 L 463380" picks Arla Cafe milk outright, but the word "cafe" in its name still
+marked the line `differs_from_request` ("Not exactly what you asked for"), which
+sent the basket to a manager. A product named by its number is now never flagged
+as different (`kitchen/agent.py`, `add_need`). Test in `tests/test_roles.py`.
+
 ### 22:30 - three roles: chef, manager, owner
 
 The screen now acts as one of three people, picked in the header ("Acting as").

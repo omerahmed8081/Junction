@@ -123,3 +123,26 @@ def test_only_the_owner_can_set_or_switch_off_standing_rules(monkeypatch):
         headers = {"X-Kitchen-Role": role} if role else {}
         assert client.post("/api/rules", json=rule, headers=headers).status_code == 403, role
         assert client.delete("/api/rules/1", headers=headers).status_code == 403, role
+
+
+def test_a_product_chosen_by_number_is_not_flagged_as_different():
+    """"20 L 463380" names Arla Cafe milk outright: no "not what you asked for",
+    and so no manager approval just for that."""
+    from kitchen.need import parse_with_rules
+    from shared.schemas import SearchResponse
+    from tests.test_agent import SATURDAY
+    from tests.test_orders import SUMMARIES
+
+    class ById(StubGateway):                        # the recorded gateway only searches by text
+        def search_products(self, req):
+            if req.product_ids:
+                found = [SUMMARIES[p] for p in req.product_ids if p in SUMMARIES]
+                return SearchResponse(products=found, total_matched=len(found))
+            return super().search_products(req)
+
+    need = parse_with_rules("20 L 463380 by Tuesday", today=SATURDAY)
+    state, _, _ = agent.add_need(None, need, ById())
+    line = state.basket.lines[0]
+    assert line.product_id == "463380"
+    assert "differs_from_request" not in line.flags
+    assert state.basket.policy.level == "chef"

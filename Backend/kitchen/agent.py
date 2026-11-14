@@ -635,6 +635,9 @@ def add_need(state: BasketState | None, need: ParsedNeed, gateway: GatewayClient
     if need.product_id:
         exact = [c for c in ranked if c.summary.product_id == need.product_id]
         if exact:
+            # Chosen by number, so it is exactly what was asked for, even when its
+            # name carries a word like "cafe" that a plain request would not.
+            exact[0].off_request = False
             ranked = exact + [c for c in ranked if c.summary.product_id != need.product_id]
             _step(steps, "named_product", f"{need.product_id} asked for by number")
         else:
