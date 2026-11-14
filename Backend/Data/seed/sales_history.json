@@ -1,0 +1,702 @@
+[
+  {
+    "date": "2026-10-18",
+    "dish_id": "d1",
+    "portions": 0
+  },
+  {
+    "date": "2026-10-18",
+    "dish_id": "d2",
+    "portions": 0
+  },
+  {
+    "date": "2026-10-18",
+    "dish_id": "d3",
+    "portions": 0
+  },
+  {
+    "date": "2026-10-18",
+    "dish_id": "d4",
+    "portions": 0
+  },
+  {
+    "date": "2026-10-18",
+    "dish_id": "d5",
+    "portions": 0
+  },
+  {
+    "date": "2026-10-19",
+    "dish_id": "d1",
+    "portions": 23
+  },
+  {
+    "date": "2026-10-19",
+    "dish_id": "d2",
+    "portions": 24
+  },
+  {
+    "date": "2026-10-19",
+    "dish_id": "d3",
+    "portions": 20
+  },
+  {
+    "date": "2026-10-19",
+    "dish_id": "d4",
+    "portions": 11
+  },
+  {
+    "date": "2026-10-19",
+    "dish_id": "d5",
+    "portions": 16
+  },
+  {
+    "date": "2026-10-20",
+    "dish_id": "d1",
+    "portions": 26
+  },
+  {
+    "date": "2026-10-20",
+    "dish_id": "d2",
+    "portions": 30
+  },
+  {
+    "date": "2026-10-20",
+    "dish_id": "d3",
+    "portions": 22
+  },
+  {
+    "date": "2026-10-20",
+    "dish_id": "d4",
+    "portions": 13
+  },
+  {
+    "date": "2026-10-20",
+    "dish_id": "d5",
+    "portions": 20
+  },
+  {
+    "date": "2026-10-21",
+    "dish_id": "d1",
+    "portions": 29
+  },
+  {
+    "date": "2026-10-21",
+    "dish_id": "d2",
+    "portions": 34
+  },
+  {
+    "date": "2026-10-21",
+    "dish_id": "d3",
+    "portions": 28
+  },
+  {
+    "date": "2026-10-21",
+    "dish_id": "d4",
+    "portions": 14
+  },
+  {
+    "date": "2026-10-21",
+    "dish_id": "d5",
+    "portions": 23
+  },
+  {
+    "date": "2026-10-22",
+    "dish_id": "d1",
+    "portions": 31
+  },
+  {
+    "date": "2026-10-22",
+    "dish_id": "d2",
+    "portions": 36
+  },
+  {
+    "date": "2026-10-22",
+    "dish_id": "d3",
+    "portions": 25
+  },
+  {
+    "date": "2026-10-22",
+    "dish_id": "d4",
+    "portions": 16
+  },
+  {
+    "date": "2026-10-22",
+    "dish_id": "d5",
+    "portions": 22
+  },
+  {
+    "date": "2026-10-23",
+    "dish_id": "d1",
+    "portions": 32
+  },
+  {
+    "date": "2026-10-23",
+    "dish_id": "d2",
+    "portions": 39
+  },
+  {
+    "date": "2026-10-23",
+    "dish_id": "d3",
+    "portions": 33
+  },
+  {
+    "date": "2026-10-23",
+    "dish_id": "d4",
+    "portions": 18
+  },
+  {
+    "date": "2026-10-23",
+    "dish_id": "d5",
+    "portions": 26
+  },
+  {
+    "date": "2026-10-24",
+    "dish_id": "d1",
+    "portions": 38
+  },
+  {
+    "date": "2026-10-24",
+    "dish_id": "d2",
+    "portions": 38
+  },
+  {
+    "date": "2026-10-24",
+    "dish_id": "d3",
+    "portions": 36
+  },
+  {
+    "date": "2026-10-24",
+    "dish_id": "d4",
+    "portions": 18
+  },
+  {
+    "date": "2026-10-24",
+    "dish_id": "d5",
+    "portions": 29
+  },
+  {
+    "date": "2026-10-25",
+    "dish_id": "d1",
+    "portions": 0
+  },
+  {
+    "date": "2026-10-25",
+    "dish_id": "d2",
+    "portions": 0
+  },
+  {
+    "date": "2026-10-25",
+    "dish_id": "d3",
+    "portions": 0
+  },
+  {
+    "date": "2026-10-25",
+    "dish_id": "d4",
+    "portions": 0
+  },
+  {
+    "date": "2026-10-25",
+    "dish_id": "d5",
+    "portions": 0
+  },
+  {
+    "date": "2026-10-26",
+    "dish_id": "d1",
+    "portions": 21
+  },
+  {
+    "date": "2026-10-26",
+    "dish_id": "d2",
+    "portions": 24
+  },
+  {
+    "date": "2026-10-26",
+    "dish_id": "d3",
+    "portions": 19
+  },
+  {
+    "date": "2026-10-26",
+    "dish_id": "d4",
+    "portions": 12
+  },
+  {
+    "date": "2026-10-26",
+    "dish_id": "d5",
+    "portions": 18
+  },
+  {
+    "date": "2026-10-27",
+    "dish_id": "d1",
+    "portions": 26
+  },
+  {
+    "date": "2026-10-27",
+    "dish_id": "d2",
+    "portions": 30
+  },
+  {
+    "date": "2026-10-27",
+    "dish_id": "d3",
+    "portions": 23
+  },
+  {
+    "date": "2026-10-27",
+    "dish_id": "d4",
+    "portions": 14
+  },
+  {
+    "date": "2026-10-27",
+    "dish_id": "d5",
+    "portions": 19
+  },
+  {
+    "date": "2026-10-28",
+    "dish_id": "d1",
+    "portions": 30
+  },
+  {
+    "date": "2026-10-28",
+    "dish_id": "d2",
+    "portions": 31
+  },
+  {
+    "date": "2026-10-28",
+    "dish_id": "d3",
+    "portions": 28
+  },
+  {
+    "date": "2026-10-28",
+    "dish_id": "d4",
+    "portions": 15
+  },
+  {
+    "date": "2026-10-28",
+    "dish_id": "d5",
+    "portions": 22
+  },
+  {
+    "date": "2026-10-29",
+    "dish_id": "d1",
+    "portions": 29
+  },
+  {
+    "date": "2026-10-29",
+    "dish_id": "d2",
+    "portions": 31
+  },
+  {
+    "date": "2026-10-29",
+    "dish_id": "d3",
+    "portions": 25
+  },
+  {
+    "date": "2026-10-29",
+    "dish_id": "d4",
+    "portions": 16
+  },
+  {
+    "date": "2026-10-29",
+    "dish_id": "d5",
+    "portions": 24
+  },
+  {
+    "date": "2026-10-30",
+    "dish_id": "d1",
+    "portions": 31
+  },
+  {
+    "date": "2026-10-30",
+    "dish_id": "d2",
+    "portions": 38
+  },
+  {
+    "date": "2026-10-30",
+    "dish_id": "d3",
+    "portions": 31
+  },
+  {
+    "date": "2026-10-30",
+    "dish_id": "d4",
+    "portions": 19
+  },
+  {
+    "date": "2026-10-30",
+    "dish_id": "d5",
+    "portions": 28
+  },
+  {
+    "date": "2026-10-31",
+    "dish_id": "d1",
+    "portions": 34
+  },
+  {
+    "date": "2026-10-31",
+    "dish_id": "d2",
+    "portions": 42
+  },
+  {
+    "date": "2026-10-31",
+    "dish_id": "d3",
+    "portions": 32
+  },
+  {
+    "date": "2026-10-31",
+    "dish_id": "d4",
+    "portions": 20
+  },
+  {
+    "date": "2026-10-31",
+    "dish_id": "d5",
+    "portions": 31
+  },
+  {
+    "date": "2026-11-01",
+    "dish_id": "d1",
+    "portions": 0
+  },
+  {
+    "date": "2026-11-01",
+    "dish_id": "d2",
+    "portions": 0
+  },
+  {
+    "date": "2026-11-01",
+    "dish_id": "d3",
+    "portions": 0
+  },
+  {
+    "date": "2026-11-01",
+    "dish_id": "d4",
+    "portions": 0
+  },
+  {
+    "date": "2026-11-01",
+    "dish_id": "d5",
+    "portions": 0
+  },
+  {
+    "date": "2026-11-02",
+    "dish_id": "d1",
+    "portions": 23
+  },
+  {
+    "date": "2026-11-02",
+    "dish_id": "d2",
+    "portions": 26
+  },
+  {
+    "date": "2026-11-02",
+    "dish_id": "d3",
+    "portions": 19
+  },
+  {
+    "date": "2026-11-02",
+    "dish_id": "d4",
+    "portions": 12
+  },
+  {
+    "date": "2026-11-02",
+    "dish_id": "d5",
+    "portions": 17
+  },
+  {
+    "date": "2026-11-03",
+    "dish_id": "d1",
+    "portions": 24
+  },
+  {
+    "date": "2026-11-03",
+    "dish_id": "d2",
+    "portions": 27
+  },
+  {
+    "date": "2026-11-03",
+    "dish_id": "d3",
+    "portions": 25
+  },
+  {
+    "date": "2026-11-03",
+    "dish_id": "d4",
+    "portions": 14
+  },
+  {
+    "date": "2026-11-03",
+    "dish_id": "d5",
+    "portions": 21
+  },
+  {
+    "date": "2026-11-04",
+    "dish_id": "d1",
+    "portions": 29
+  },
+  {
+    "date": "2026-11-04",
+    "dish_id": "d2",
+    "portions": 33
+  },
+  {
+    "date": "2026-11-04",
+    "dish_id": "d3",
+    "portions": 28
+  },
+  {
+    "date": "2026-11-04",
+    "dish_id": "d4",
+    "portions": 17
+  },
+  {
+    "date": "2026-11-04",
+    "dish_id": "d5",
+    "portions": 21
+  },
+  {
+    "date": "2026-11-05",
+    "dish_id": "d1",
+    "portions": 29
+  },
+  {
+    "date": "2026-11-05",
+    "dish_id": "d2",
+    "portions": 33
+  },
+  {
+    "date": "2026-11-05",
+    "dish_id": "d3",
+    "portions": 25
+  },
+  {
+    "date": "2026-11-05",
+    "dish_id": "d4",
+    "portions": 16
+  },
+  {
+    "date": "2026-11-05",
+    "dish_id": "d5",
+    "portions": 23
+  },
+  {
+    "date": "2026-11-06",
+    "dish_id": "d1",
+    "portions": 34
+  },
+  {
+    "date": "2026-11-06",
+    "dish_id": "d2",
+    "portions": 41
+  },
+  {
+    "date": "2026-11-06",
+    "dish_id": "d3",
+    "portions": 32
+  },
+  {
+    "date": "2026-11-06",
+    "dish_id": "d4",
+    "portions": 20
+  },
+  {
+    "date": "2026-11-06",
+    "dish_id": "d5",
+    "portions": 26
+  },
+  {
+    "date": "2026-11-07",
+    "dish_id": "d1",
+    "portions": 37
+  },
+  {
+    "date": "2026-11-07",
+    "dish_id": "d2",
+    "portions": 44
+  },
+  {
+    "date": "2026-11-07",
+    "dish_id": "d3",
+    "portions": 31
+  },
+  {
+    "date": "2026-11-07",
+    "dish_id": "d4",
+    "portions": 19
+  },
+  {
+    "date": "2026-11-07",
+    "dish_id": "d5",
+    "portions": 28
+  },
+  {
+    "date": "2026-11-08",
+    "dish_id": "d1",
+    "portions": 0
+  },
+  {
+    "date": "2026-11-08",
+    "dish_id": "d2",
+    "portions": 0
+  },
+  {
+    "date": "2026-11-08",
+    "dish_id": "d3",
+    "portions": 0
+  },
+  {
+    "date": "2026-11-08",
+    "dish_id": "d4",
+    "portions": 0
+  },
+  {
+    "date": "2026-11-08",
+    "dish_id": "d5",
+    "portions": 0
+  },
+  {
+    "date": "2026-11-09",
+    "dish_id": "d1",
+    "portions": 22
+  },
+  {
+    "date": "2026-11-09",
+    "dish_id": "d2",
+    "portions": 25
+  },
+  {
+    "date": "2026-11-09",
+    "dish_id": "d3",
+    "portions": 19
+  },
+  {
+    "date": "2026-11-09",
+    "dish_id": "d4",
+    "portions": 13
+  },
+  {
+    "date": "2026-11-09",
+    "dish_id": "d5",
+    "portions": 16
+  },
+  {
+    "date": "2026-11-10",
+    "dish_id": "d1",
+    "portions": 26
+  },
+  {
+    "date": "2026-11-10",
+    "dish_id": "d2",
+    "portions": 27
+  },
+  {
+    "date": "2026-11-10",
+    "dish_id": "d3",
+    "portions": 22
+  },
+  {
+    "date": "2026-11-10",
+    "dish_id": "d4",
+    "portions": 16
+  },
+  {
+    "date": "2026-11-10",
+    "dish_id": "d5",
+    "portions": 20
+  },
+  {
+    "date": "2026-11-11",
+    "dish_id": "d1",
+    "portions": 26
+  },
+  {
+    "date": "2026-11-11",
+    "dish_id": "d2",
+    "portions": 34
+  },
+  {
+    "date": "2026-11-11",
+    "dish_id": "d3",
+    "portions": 26
+  },
+  {
+    "date": "2026-11-11",
+    "dish_id": "d4",
+    "portions": 18
+  },
+  {
+    "date": "2026-11-11",
+    "dish_id": "d5",
+    "portions": 23
+  },
+  {
+    "date": "2026-11-12",
+    "dish_id": "d1",
+    "portions": 30
+  },
+  {
+    "date": "2026-11-12",
+    "dish_id": "d2",
+    "portions": 33
+  },
+  {
+    "date": "2026-11-12",
+    "dish_id": "d3",
+    "portions": 26
+  },
+  {
+    "date": "2026-11-12",
+    "dish_id": "d4",
+    "portions": 19
+  },
+  {
+    "date": "2026-11-12",
+    "dish_id": "d5",
+    "portions": 23
+  },
+  {
+    "date": "2026-11-13",
+    "dish_id": "d1",
+    "portions": 33
+  },
+  {
+    "date": "2026-11-13",
+    "dish_id": "d2",
+    "portions": 36
+  },
+  {
+    "date": "2026-11-13",
+    "dish_id": "d3",
+    "portions": 32
+  },
+  {
+    "date": "2026-11-13",
+    "dish_id": "d4",
+    "portions": 22
+  },
+  {
+    "date": "2026-11-13",
+    "dish_id": "d5",
+    "portions": 26
+  },
+  {
+    "date": "2026-11-14",
+    "dish_id": "d1",
+    "portions": 38
+  },
+  {
+    "date": "2026-11-14",
+    "dish_id": "d2",
+    "portions": 43
+  },
+  {
+    "date": "2026-11-14",
+    "dish_id": "d3",
+    "portions": 34
+  },
+  {
+    "date": "2026-11-14",
+    "dish_id": "d4",
+    "portions": 23
+  },
+  {
+    "date": "2026-11-14",
+    "dish_id": "d5",
+    "portions": 30
+  }
+]

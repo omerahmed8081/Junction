@@ -149,6 +149,27 @@ def test_flags_when_size_rule_and_price_disagree():
     assert "size_disagrees_with_price" not in ok.flags
 
 
+def test_sold_by_the_kilogram_name_weight_is_ignored():
+    # 462150 salmon fillet, base unit KG. The Finnish name ends "10KG" (the box),
+    # but one KG is one kilogram. allowedLotSize 10, so 15 kg -> 20 KG.
+    c = convert(PRODUCTS["462150"], 15, "KG")
+    assert c.ok and c.size_per_base_unit == 1 and c.size_per_sales_unit == 1
+    assert c.quantity_sales_units == 20 and c.delivered_amount == 20
+
+
+def test_sold_by_the_kilogram_structured_weight_is_ignored():
+    # 463067 beef striploin, base unit KG, structured 2.8 kg (one piece). Still 1 kg per KG.
+    c = convert(PRODUCTS["463067"], 5, "KG")
+    assert c.ok and c.quantity_sales_units == 5 and c.delivered_amount == 5
+
+
+def test_kilogram_base_unit_in_a_case():
+    # 460007 mushrooms, base unit KG, sold per KI of 2 KG, no size anywhere else.
+    c = convert(PRODUCTS["460007"], 10, "KG")
+    assert c.ok and c.size_per_sales_unit == 2
+    assert c.quantity_sales_units == 5 and c.delivered_amount == 10
+
+
 if __name__ == "__main__":
     passed = 0
     for name, fn in sorted(globals().items()):

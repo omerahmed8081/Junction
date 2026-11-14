@@ -1526,5 +1526,564 @@
     }
    ]
   }
+ },
+ {
+  "id": "462150",
+  "salesUnitGtin": "2300658000000",
+  "salesUnit": "KG",
+  "baseUnit": "KG",
+  "category": "18706",
+  "allowedLotSize": 10.0,
+  "deleted": false,
+  "temperatureCondition": 1,
+  "vendorName": "VALIO OY / VALIO AIMO",
+  "countryOfOrigin": "no",
+  "synkkaData": {
+   "names": [
+    {
+     "value": "SALMON FILLET C-CUT",
+     "language": "en"
+    },
+    {
+     "value": "LOHIFILEE C-LEIKATTU 10KG",
+     "language": "fi"
+    },
+    {
+     "value": "LAXFILET C-CUT",
+     "language": "sv"
+    }
+   ],
+   "materialAdditionalDescriptions": [],
+   "marketingTexts": [],
+   "keyIngredients": [],
+   "classifications": [
+    {
+     "type": "DECIMAL",
+     "name": "nutritionFact",
+     "values": [
+      {
+       "id": "PRO-",
+       "value": 20.0,
+       "unit": "GRM"
+      },
+      {
+       "id": "ENER-KJO",
+       "value": 765.0,
+       "unit": "KJO"
+      },
+      {
+       "id": "ENER-E14",
+       "value": 180.0,
+       "unit": "E14"
+      },
+      {
+       "id": "FAT",
+       "value": 11.0,
+       "unit": "GRM"
+      }
+     ]
+    },
+    {
+     "type": "ENUM",
+     "name": "packagingMarkedLabel",
+     "values": [
+      {
+       "id": "coolTemperature"
+      }
+     ]
+    },
+    {
+     "type": "ENUM",
+     "name": "allergen",
+     "values": []
+    },
+    {
+     "type": "ENUM",
+     "name": "nonAllergen",
+     "values": []
+    },
+    {
+     "type": "ENUM",
+     "name": "nutritionalClaim",
+     "values": []
+    },
+    {
+     "type": "ENUM",
+     "name": "packaging",
+     "values": []
+    }
+   ],
+   "nutritionalContent": [
+    {
+     "id": "ENER-E14",
+     "value": 180.0,
+     "unit": "E14",
+     "basisQuantity": 100.0,
+     "basisQuantityUnit": "GRM"
+    },
+    {
+     "id": "ENER-KJO",
+     "value": 765.0,
+     "unit": "KJO",
+     "basisQuantity": 100.0,
+     "basisQuantityUnit": "GRM"
+    },
+    {
+     "id": "FAT",
+     "value": 11.0,
+     "unit": "GRM",
+     "basisQuantity": 100.0,
+     "basisQuantityUnit": "GRM"
+    },
+    {
+     "id": "PRO-",
+     "value": 20.0,
+     "unit": "GRM",
+     "basisQuantity": 100.0,
+     "basisQuantityUnit": "GRM"
+    }
+   ],
+   "medias": []
+  },
+  "units": [
+   {
+    "unitId": "KG",
+    "gtin": "2300658000000",
+    "sizeInBaseUnits": 1.0
+   }
+  ],
+  "deposits": []
+ },
+ {
+  "id": "463067",
+  "salesUnitGtin": "2373718000000",
+  "salesUnit": "KG",
+  "baseUnit": "KG",
+  "category": "18720",
+  "allowedLotSize": 0.01,
+  "deleted": false,
+  "temperatureCondition": 1,
+  "vendorName": "NORVIDA OY",
+  "countryOfOrigin": "br",
+  "synkkaData": {
+   "gtin": "2373718000005",
+   "lastUpdated": "2025-08-12T09:11:40+0300",
+   "mediasLastUpdated": "2025-08-12T09:11:40+0300",
+   "countriesOfOrigin": [
+    "076"
+   ],
+   "names": [
+    {
+     "value": "Naturkött 2,8kg Beef Striploin",
+     "language": "en"
+    },
+    {
+     "value": "Naturkött 2,8kg Härän ulkofilee kalvoton",
+     "language": "fi"
+    },
+    {
+     "value": "Naturkött 2,8kg Biff Parerad",
+     "language": "sv"
+    }
+   ],
+   "materialAdditionalDescriptions": [],
+   "marketingTexts": [],
+   "keyIngredients": [
+    {
+     "value": "beef (100%)",
+     "language": "en"
+    },
+    {
+     "value": "naudan liha (100%)",
+     "language": "fi"
+    },
+    {
+     "value": "nötkött (100%)",
+     "language": "sv"
+    }
+   ],
+   "storageInstructions": [],
+   "preparationInstructions": [],
+   "disposalInformations": [],
+   "usageInstructions": [],
+   "classifications": [
+    {
+     "type": "DECIMAL",
+     "name": "composition",
+     "values": []
+    },
+    {
+     "type": "DECIMAL",
+     "name": "gda",
+     "values": [
+      {
+       "id": "CHOAVL",
+       "value": 0.0,
+       "unit": "GRM"
+      },
+      {
+       "id": "ENER-E14",
+       "value": 122.6,
+       "unit": "E14"
+      },
+      {
+       "id": "ENER-KJO",
+       "value": 513.0,
+       "unit": "KJO"
+      },
+      {
+       "id": "FASAT",
+       "value": 1.6,
+       "unit": "GRM"
+      },
+      {
+       "id": "FAT",
+       "value": 3.9,
+       "unit": "GRM"
+      },
+      {
+       "id": "PRO-",
+       "value": 21.8,
+       "unit": "GRM"
+      },
+      {
+       "id": "SALTEQ",
+       "value": 0.2,
+       "unit": "GRM"
+      },
+      {
+       "id": "SUGAR-",
+       "value": 0.0,
+       "unit": "GRM"
+      }
+     ]
+    },
+    {
+     "type": "DECIMAL",
+     "name": "mineral",
+     "values": []
+    },
+    {
+     "type": "DECIMAL",
+     "name": "nutritionFact",
+     "values": [
+      {
+       "id": "CHOAVL",
+       "value": 0.0,
+       "unit": "GRM"
+      },
+      {
+       "id": "ENER-E14",
+       "value": 122.6,
+       "unit": "E14"
+      },
+      {
+       "id": "ENER-KJO",
+       "value": 513.0,
+       "unit": "KJO"
+      },
+      {
+       "id": "FASAT",
+       "value": 1.6,
+       "unit": "GRM"
+      },
+      {
+       "id": "FAT",
+       "value": 3.9,
+       "unit": "GRM"
+      },
+      {
+       "id": "PRO-",
+       "value": 21.8,
+       "unit": "GRM"
+      },
+      {
+       "id": "SALTEQ",
+       "value": 0.2,
+       "unit": "GRM"
+      },
+      {
+       "id": "SUGAR-",
+       "value": 0.0,
+       "unit": "GRM"
+      }
+     ]
+    },
+    {
+     "type": "DECIMAL",
+     "name": "vitamin",
+     "values": []
+    },
+    {
+     "type": "ENUM",
+     "name": "packagingMarkedLabel",
+     "values": [
+      {
+       "id": "coolTemperature"
+      }
+     ]
+    },
+    {
+     "type": "ENUM",
+     "name": "allergen",
+     "values": []
+    },
+    {
+     "type": "ENUM",
+     "name": "nonAllergen",
+     "values": []
+    },
+    {
+     "type": "ENUM",
+     "name": "nutritionalClaim",
+     "values": []
+    },
+    {
+     "type": "ENUM",
+     "name": "packaging",
+     "values": []
+    }
+   ],
+   "nutritionalContent": [
+    {
+     "id": "CHOAVL",
+     "value": 0.0,
+     "unit": "GRM",
+     "unitPrecision": "APPROXIMATELY",
+     "basisQuantity": 100.0,
+     "basisQuantityUnit": "GRM"
+    },
+    {
+     "id": "ENER-E14",
+     "value": 122.6,
+     "unit": "E14",
+     "unitPrecision": "APPROXIMATELY",
+     "basisQuantity": 100.0,
+     "basisQuantityUnit": "GRM"
+    },
+    {
+     "id": "ENER-KJO",
+     "value": 513.0,
+     "unit": "KJO",
+     "unitPrecision": "APPROXIMATELY",
+     "basisQuantity": 100.0,
+     "basisQuantityUnit": "GRM"
+    },
+    {
+     "id": "FASAT",
+     "value": 1.6,
+     "unit": "GRM",
+     "unitPrecision": "APPROXIMATELY",
+     "basisQuantity": 100.0,
+     "basisQuantityUnit": "GRM"
+    },
+    {
+     "id": "FAT",
+     "value": 3.9,
+     "unit": "GRM",
+     "unitPrecision": "APPROXIMATELY",
+     "basisQuantity": 100.0,
+     "basisQuantityUnit": "GRM"
+    },
+    {
+     "id": "PRO-",
+     "value": 21.8,
+     "unit": "GRM",
+     "unitPrecision": "APPROXIMATELY",
+     "basisQuantity": 100.0,
+     "basisQuantityUnit": "GRM"
+    },
+    {
+     "id": "SALTEQ",
+     "value": 0.2,
+     "unit": "GRM",
+     "unitPrecision": "APPROXIMATELY",
+     "basisQuantity": 100.0,
+     "basisQuantityUnit": "GRM"
+    },
+    {
+     "id": "SUGAR-",
+     "value": 0.0,
+     "unit": "GRM",
+     "unitPrecision": "APPROXIMATELY",
+     "basisQuantity": 100.0,
+     "basisQuantityUnit": "GRM"
+    }
+   ],
+   "ingredients": [
+    {
+     "sequence": 1,
+     "percentage": 100.0,
+     "names": [
+      {
+       "value": "beef",
+       "language": "en"
+      },
+      {
+       "value": "nauta",
+       "language": "fi"
+      },
+      {
+       "value": "nöt",
+       "language": "sv"
+      }
+     ],
+     "origins": [
+      {
+       "type": "REARING",
+       "country": "076"
+      }
+     ]
+    }
+   ],
+   "medias": [
+    {
+     "id": 41522,
+     "primary": true
+    }
+   ],
+   "fishingReports": [],
+   "safetyData": [],
+   "brand": "Naturkött",
+   "variableUnit": false,
+   "vatCode": "MEDIUM",
+   "producers": [
+    {
+     "id": "6407379999999",
+     "name": "Norvida Oy"
+    }
+   ],
+   "unitConversions": [
+    {
+     "synkkaPackagingType": "BASE_UNIT_OR_EACH",
+     "width": {
+      "unit": "MMT",
+      "value": 100.0
+     },
+     "length": {
+      "unit": "MMT",
+      "value": 650.0
+     },
+     "height": {
+      "unit": "MMT",
+      "value": 100.0
+     },
+     "volume": {
+      "unit": "GRM",
+      "value": 2800.0
+     },
+     "netWeight": {
+      "unit": "GRM",
+      "value": 2800.0
+     },
+     "grossWeight": {
+      "unit": "GRM",
+      "value": 2803.0
+     }
+    }
+   ],
+   "minTemperature": 0.0,
+   "maxTemperature": 3.0
+  },
+  "units": [
+   {
+    "unitId": "KG",
+    "gtin": "2373718000000",
+    "sizeInBaseUnits": 1.0
+   },
+   {
+    "unitId": "PAL",
+    "sizeInBaseUnits": 36.0
+   },
+   {
+    "unitId": "KI",
+    "gtin": "97392055082312",
+    "sizeInBaseUnits": 1.0
+   }
+  ],
+  "deposits": []
+ },
+ {
+  "id": "460007",
+  "salesUnitGtin": "6416250007890",
+  "salesUnit": "KI",
+  "baseUnit": "KG",
+  "category": "17471",
+  "allowedLotSize": 0.01,
+  "deleted": false,
+  "temperatureCondition": 3,
+  "vendorName": "MYKORA OY",
+  "countryOfOrigin": "fi",
+  "synkkaData": {
+   "mediasLastUpdated": "2025-06-12T20:00:32+0300",
+   "names": [
+    {
+     "value": "CHAMP BROWN MUSHROOMS 2KG/BOX SUOMI",
+     "language": "en"
+    },
+    {
+     "value": "CHAMP RUSKEA HERKKUSIENI 2KG/LTK SUOMI",
+     "language": "fi"
+    },
+    {
+     "value": "CHAMP BRUNA SHAMPIONJONER 2KG/LÅDA SUOMI",
+     "language": "sv"
+    }
+   ],
+   "materialAdditionalDescriptions": [],
+   "marketingTexts": [],
+   "keyIngredients": [],
+   "classifications": [
+    {
+     "type": "ENUM",
+     "name": "packagingMarkedLabel",
+     "values": [
+      {
+       "id": "coolTemperature"
+      }
+     ]
+    },
+    {
+     "type": "ENUM",
+     "name": "allergen",
+     "values": []
+    },
+    {
+     "type": "ENUM",
+     "name": "nonAllergen",
+     "values": []
+    },
+    {
+     "type": "ENUM",
+     "name": "nutritionalClaim",
+     "values": []
+    },
+    {
+     "type": "ENUM",
+     "name": "packaging",
+     "values": []
+    }
+   ],
+   "nutritionalContent": [],
+   "medias": [
+    {
+     "id": 3728744,
+     "primary": true
+    }
+   ]
+  },
+  "units": [
+   {
+    "unitId": "KG",
+    "gtin": "2300108600000",
+    "sizeInBaseUnits": 1.0
+   },
+   {
+    "unitId": "KI",
+    "gtin": "6416250007890",
+    "sizeInBaseUnits": 2.0
+   }
+  ],
+  "deposits": []
  }
 ]
