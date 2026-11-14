@@ -23,6 +23,8 @@ from datetime import datetime, timezone
 from typing import Any
 
 FALLBACK_LIMIT = 2000
+# How long to keep writing to memory before trying the database again.
+RETRY_AFTER_SECONDS = 20.0
 MAX_TEXT = 500
 
 
@@ -115,6 +117,14 @@ class KitchenAudit:
         self._fallback: deque[KitchenRecord] = deque(maxlen=FALLBACK_LIMIT)
         self.degraded = False
         self.last_error = ""
+        self._failed_at = 0.0
+        self._recent: tuple[str, str, str] | None = None
+
+    def _worth_retrying(self) -> bool:
+        """Aiven's free tier powers off when idle and takes about half a minute
+        to wake, so one timeout must not send us to memory until a restart."""
+        import time
+        return not self.degraded or (time.monotonic() - self._failed_at) > RETRY_AFTER_SECONDS
 
     def set_pool(self, pool: Any) -> None:
         self._pool = pool
@@ -122,6 +132,13 @@ class KitchenAudit:
     def record(self, step: str, **fields: Any) -> KitchenRecord:
         fields.setdefault("at", datetime.now(timezone.utc))
         entry = KitchenRecord(step=step, **fields)
+        # The same step can reach here twice when a caller records a list of
+        # steps that a later caller records again. A log that repeats itself is
+        # a log people stop reading.
+        signature = (step, entry.detail, entry.basket_id)
+        if signature == self._recent:
+            return entry
+        self._recent = signature
         if self._pool is not None:
             try:
                 with self._pool.connection(timeout=2.0) as conn:
@@ -130,7 +147,9 @@ class KitchenAudit:
                 self.degraded = False
                 return entry
             except Exception as exc:                 # noqa: BLE001
+                import time
                 self.degraded = True
+                self._failed_at = time.monotonic()
                 self.last_error = f"{type(exc).__name__}: {exc}"[:200]
                 print(f"[kitchen] audit log fell back to memory: {self.last_error}")
         self._fallback.append(entry)
@@ -149,7 +168,7 @@ class KitchenAudit:
 
     def recent(self, limit: int = 200, basket_id: str = "", order_id: str = "",
                crossed_only: bool = False) -> list[dict[str, Any]]:
-        if self._pool is not None and not self.degraded:
+        if self._pool is not None and self._worth_retrying():
             try:
                 with self._pool.connection(timeout=5.0) as conn:
                     from psycopg.rows import dict_row
@@ -159,7 +178,9 @@ class KitchenAudit:
                         "crossed_only": crossed_only, "limit": limit}).fetchall()
                 return [_row_as_json(r) for r in rows]
             except Exception as exc:                 # noqa: BLE001
+                import time
                 self.degraded = True
+                self._failed_at = time.monotonic()
                 self.last_error = f"{type(exc).__name__}: {exc}"[:200]
         kept = [e for e in reversed(self._fallback)
                 if (not basket_id or e.basket_id == basket_id)

@@ -31,6 +31,9 @@ from shared.signing import read_payload_unverified
 
 # Kept in memory only when the database cannot be reached.
 FALLBACK_LIMIT = 2000
+# Aiven's free tier powers off when idle and takes about half a minute to wake,
+# so one timeout must not send us to memory until the service is restarted.
+RETRY_AFTER_SECONDS = 20.0
 # How much of a free-text field we keep. Enough to see what was asked.
 MAX_TEXT = 500
 
@@ -140,6 +143,11 @@ class AuditLog:
         self._fallback: deque[AuditRecord] = deque(maxlen=FALLBACK_LIMIT)
         self.degraded = False
         self.last_error = ""
+        self._failed_at = 0.0
+
+    def _worth_retrying(self) -> bool:
+        import time
+        return not self.degraded or (time.monotonic() - self._failed_at) > RETRY_AFTER_SECONDS
 
     def set_pool(self, pool: Any) -> None:
         self._pool = pool
@@ -157,6 +165,8 @@ class AuditLog:
                 return entry
             except Exception as exc:                 # noqa: BLE001
                 # Never fail the request because the log failed; say so instead.
+                import time
+                self._failed_at = time.monotonic()
                 self.degraded = True
                 self.last_error = f"{type(exc).__name__}: {exc}"[:200]
                 print(f"[gateway] audit log fell back to memory: {self.last_error}")
@@ -166,7 +176,7 @@ class AuditLog:
     # ---- reading ---------------------------------------------------------
     def recent(self, customer: str, limit: int = 100, order_id: str = "",
                quote_jti: str = "", security_only: bool = False) -> list[dict[str, Any]]:
-        if self._pool is not None and not self.degraded:
+        if self._pool is not None and self._worth_retrying():
             try:
                 with self._pool.connection(timeout=5.0) as conn:
                     conn.row_factory = _dict_row()
@@ -176,6 +186,8 @@ class AuditLog:
                     }).fetchall()
                 return [_row_as_json(r) for r in rows]
             except Exception as exc:                 # noqa: BLE001
+                import time
+                self._failed_at = time.monotonic()
                 self.degraded = True
                 self.last_error = f"{type(exc).__name__}: {exc}"[:200]
         kept = [e for e in reversed(self._fallback)
