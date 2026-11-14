@@ -179,8 +179,12 @@ class AuditLog:
         if self._pool is not None and self._worth_retrying():
             try:
                 with self._pool.connection(timeout=5.0) as conn:
-                    conn.row_factory = _dict_row()
-                    rows = conn.execute(SELECT, {
+                    # A cursor, never the connection: the pool hands the same
+                    # connection to everyone, so setting row_factory on it made
+                    # the catalogue's own queries return dicts and blow up on
+                    # r[1]. Scope it to this one read.
+                    cursor = conn.cursor(row_factory=_dict_row())
+                    rows = cursor.execute(SELECT, {
                         "customer": customer, "limit": limit, "order_id": order_id,
                         "quote_jti": quote_jti, "security_only": security_only,
                     }).fetchall()

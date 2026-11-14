@@ -7,6 +7,26 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Sunday 15 November
 
+### 00:25 - the audit reader was breaking the catalogue
+
+`KeyError: 1` from `catalog.resolve_category`, and nothing in the catalogue had
+changed. The audit reader did `conn.row_factory = dict_row` on a **pooled**
+connection: the pool hands the same connection to everyone, so from then on the
+catalogue's own queries got dicts where they expected tuples, and `r[1]` raised.
+
+Intermittent in exactly the way that wastes an evening - it depended on whether
+the connection you were handed had been used to read the audit log first, so
+search worked until somebody opened the Activity tab.
+
+Both readers now scope the row factory to a cursor, which is where it belonged,
+and a test asserts the pooled connection comes back untouched.
+
+Two things worth taking from it: a connection borrowed from a pool is shared
+state, and a stack trace from the real thing found in one minute what reading
+the code had not.
+
+258 passing.
+
 ### 00:05 - the fish, and an Activity panel that follows the order
 
 **"Change the order to 10 kg" gave the right packs against the wrong question.**

@@ -129,6 +129,37 @@ def test_the_log_never_breaks_the_request_when_the_database_is_gone():
     assert log.recent("123")[0]["detail"] == "still recorded"
 
 
+def test_reading_the_log_never_changes_the_connection():
+    """The bug that took search down: setting row_factory on a pooled
+    connection changed how every later query on that connection returned its
+    rows, and the catalogue's own code then failed with KeyError: 1."""
+
+    class Conn:
+        def __init__(self):
+            self.row_factory = "untouched"
+            self.cursor_factories = []
+
+        def cursor(self, row_factory=None):
+            self.cursor_factories.append(row_factory)
+            return _Cursor()
+
+        def __enter__(self): return self
+        def __exit__(self, *exc): return False
+
+    class _Cursor:
+        def execute(self, *a, **k): return self
+        def fetchall(self): return []
+
+    class Pool:
+        def __init__(self, conn): self.conn = conn
+        def connection(self, timeout=None): return self.conn
+
+    conn = Conn()
+    AuditLog(pool=Pool(conn)).recent("123")
+    assert conn.row_factory == "untouched", "the pooled connection was modified"
+    assert conn.cursor_factories, "the row factory belongs on the cursor"
+
+
 def test_every_field_the_audit_lines_read_actually_exists():
     """A guard for the whole class of bug that took the gateway down.
 

@@ -171,9 +171,12 @@ class KitchenAudit:
         if self._pool is not None and self._worth_retrying():
             try:
                 with self._pool.connection(timeout=5.0) as conn:
+                    # Scoped to a cursor, never set on the connection: the pool
+                    # reuses connections, so that would change how everyone
+                    # else's rows come back.
                     from psycopg.rows import dict_row
-                    conn.row_factory = dict_row
-                    rows = conn.execute(SELECT, {
+                    cursor = conn.cursor(row_factory=dict_row)
+                    rows = cursor.execute(SELECT, {
                         "basket_id": basket_id, "order_id": order_id,
                         "crossed_only": crossed_only, "limit": limit}).fetchall()
                 return [_row_as_json(r) for r in rows]
