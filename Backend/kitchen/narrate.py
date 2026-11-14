@@ -33,7 +33,7 @@ CLAIMS = {
 # What a chef sees without asking. The rest is there, just not in the way.
 FOR_CHEF = {
     "parse_need", "rank", "split_need", "suggest_cover", "reorder",
-    "message", "policy_preview", "confirm", "sign_approval", "order_placed", "named_product", "change_date", "edit_basket", "respec", "rule_added", "rule_removed", "auto_order",
+    "message", "policy_preview", "confirm", "sign_approval", "order_placed", "named_product", "change_date", "edit_basket", "respec", "rule_added", "rule_removed", "auto_order", "revoke_mandate",
     "order_refused", "order_adjusted", "reprice",
 }
 
@@ -55,6 +55,7 @@ TEMPLATES = {
     "edit_basket": "You changed the basket by asking: {}.",
     "respec": "You asked for a different product on that line: {}.",
     "auto_order": "No one had to approve this, because your own rule already did: {}.",
+    "revoke_mandate": "You stopped the agent: {}.",
     "rule_added": "You set a standing rule: {}.",
     "rule_removed": "You switched a standing rule off: {}.",
     "named_product": "You named a product by number, so that is the one used: {}.",

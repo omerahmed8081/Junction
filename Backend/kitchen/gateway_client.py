@@ -127,6 +127,17 @@ class GatewayClient:
     def order(self, order_id: str) -> OrderRecord:
         return OrderRecord(**self._get(f"/gateway/orders/{order_id}"))
 
+    def revoke_mandate(self, mandate_jws: str, reason: str = "") -> dict:
+        """Tell Aimo to stop accepting this mandate.
+
+        Raises if it does not land. The caller must not drop its own copy
+        before this succeeds: a mandate the kitchen has forgotten but Aimo
+        still accepts is the worst of both - the screen says stopped and the
+        token keeps working.
+        """
+        return self._post("/gateway/revoke_mandate",
+                          {"mandate_jws": mandate_jws, "reason": reason})
+
     def audit(self, order_id: str) -> list[dict]:
         """What Aimo recorded about one of our orders.
 

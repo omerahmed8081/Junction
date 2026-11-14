@@ -100,6 +100,11 @@ class KitchenSigner:
 
     signer: Signer = field(default_factory=lambda: Signer(keys.kitchen_keypair()))
     mandate: Mandate | None = None
+    # True once the owner has stopped the agent. Separate from `mandate is
+    # None`, which only means "none yet" and is answered by signing one: after
+    # a revocation that would hand the agent a fresh mandate a second later,
+    # which is the opposite of what the owner asked for. Issuing one clears it.
+    stopped: bool = False
 
     def issue_mandate(
         self,
@@ -114,9 +119,10 @@ class KitchenSigner:
     ) -> Mandate:
         """Sign a new mandate. The owner does this from the Agent rules tab.
 
-        Issuing a new one replaces the old one here; Aimo accepts whichever is
-        sent with an order, so revoking early is a production concern and is on
-        the roadmap rather than built.
+        Issuing a new one replaces the old one here and lifts a stop. It does
+        not call the old one back at Aimo - `revoke()` does that, and the two
+        are deliberately separate: replacing a mandate is routine, calling one
+        back is a safety action with a reason behind it.
         """
         moment = (now or datetime.now(timezone.utc)).replace(microsecond=0)
         payload = MandatePayload(
@@ -138,10 +144,25 @@ class KitchenSigner:
         )
         self.mandate = Mandate(jws=self.signer.sign(payload.model_dump(mode="json")),
                                payload=payload)
+        self.stopped = False
         return self.mandate
+
+    def revoke(self) -> Mandate | None:
+        """Stop the agent. Returns the mandate that was in force, for Aimo.
+
+        The caller tells Aimo; this only lets go of our copy. Dropping it here
+        alone would stop nothing, because the token stands on its own and
+        whoever holds it could keep ordering until it expired.
+        """
+        was, self.mandate, self.stopped = self.mandate, None, True
+        return was
 
     def mandate_in_force(self, now: datetime | None = None) -> Mandate:
         """The current mandate, issuing a first one if there is none yet."""
+        if self.stopped:
+            raise OrderingError(
+                "the agent has been stopped and has no mandate. "
+                "Issue a new one in Agent rules to start it again.")
         moment = now or datetime.now(timezone.utc)
         if self.mandate is None or self.mandate.expires_at <= moment:
             return self.issue_mandate(now=moment)

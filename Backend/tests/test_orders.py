@@ -104,7 +104,7 @@ def make_approval(quote_id: str, *, role="manager", signer: Signer = KITCHEN_SIG
 
 
 def order(quote=None, *, mandate=None, approval="auto", key="idem-1", now: datetime = NOW,
-          registry=None, store=None, availability=None, agent=AGENT):
+          registry=None, store=None, availability=None, agent=AGENT, revoked=None):
     quote = quote or make_quote()
     if approval == "auto":
         approval = make_approval(quote.quote_id, now=now)
@@ -124,7 +124,7 @@ def order(quote=None, *, mandate=None, approval="auto", key="idem-1", now: datet
         own_verifier=AIMO_VERIFIER, kitchen_verifier=KITCHEN_VERIFIER,
         recheck_delivery=recheck, registry=registry if registry is not None else QuoteRegistry(),
         store=store if store is not None else OrderStore(), signer=AIMO,
-        new_order_id=new_order_id, now=now,
+        new_order_id=new_order_id, revoked=revoked, now=now,
     )
 
 

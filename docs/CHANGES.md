@@ -7,6 +7,57 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Sunday 15 November
 
+### 02:55 - stopping the agent
+
+There was no way to call a mandate back. Issuing a new one replaced the
+kitchen's copy, and Aimo went on accepting the old one until it expired - so
+the honest answer to "the agent is misbehaving, switch it off" was "wait seven
+days".
+
+A mandate is a signed statement that stands on its own, so this cannot be
+something the kitchen does to its own copy alone: whoever holds the token could
+keep ordering. **Aimo has to be told, and has to remember.**
+
+- `gateway.revoked_mandates` (in `sql/audit.sql`) holds the ids that must no
+  longer be accepted. In Postgres rather than memory because a safety control
+  that forgets on restart is worse than none: the screen would still say the
+  agent was stopped.
+- `POST /gateway/revoke_mandate` verifies the mandate first - a token that does
+  not verify is a forgery, not somebody's mandate to call back - and refuses
+  unless it names the customer behind the calling key. Revoking twice is not an
+  error, because the kitchen may be retrying.
+- `place_order` refuses a revoked mandate as `mandate_revoked`, flagged as a
+  security event: presenting one is either an agent that should have stopped or
+  one that was never meant to have it.
+- `DELETE /api/mandate`, owner only, is the button. **Aimo is told first and the
+  kitchen lets go only once that lands.** The other order would leave a mandate
+  the kitchen has forgotten and Aimo still accepts - the screen saying stopped
+  while the token kept working, which is worse than having no stop button.
+- `KitchenSigner.stopped` is separate from `mandate is None`. "None" means
+  "none yet" and is answered by signing one, which after a revocation would
+  hand the agent a fresh mandate a second later. Issuing one clears the stop.
+- The rules screen treats the 404 from a stopped agent as an answer rather than
+  an error: a banner saying it is stopped, with the issue form still there.
+- `clean_slate.py` does **not** clear revocations. Wiping them would quietly let
+  a stopped agent order again, which is the one thing a revocation is for.
+  `--revocations` does it anyway, for a throwaway database.
+
+Two things the tests pin that the code alone would not say: a database that is
+down never turns into a false revocation (answering "revoked" because Postgres
+is unreachable would refuse every order in the building), and one customer
+cannot call back another's mandate - checked for a 403 specifically, since a
+422 would mean the gateway simply could not read the token.
+
+Writing that last test found it was passing for the wrong reason: another test
+file points the kitchen's `GATEWAY_URL` at a fake host at import, so the
+mandate was addressed somewhere the gateway would not accept and the 403 never
+ran. It signs for the right audience now.
+
+`tests/test_revocation.py`, 14 tests. 301 passing, in forward and reverse order.
+
+**Needs `python scripts/apply_sql.py sql/audit.sql` before it works.** Without
+the table the list stays in memory and says `degraded`.
+
 ### 02:10 - bug report 1, the gateway half
 
 Seven items from the review, each with a test, and the endpoint code itself

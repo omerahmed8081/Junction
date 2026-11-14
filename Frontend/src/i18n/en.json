@@ -241,7 +241,15 @@
     "chefLimit": "Chef places orders up to",
     "managerLimit": "Manager places and approves up to",
     "ownerLimit": "Owner places and approves up to",
-    "ownerLimitValue": "the mandate ({{amount}})"
+    "ownerLimitValue": "the mandate ({{amount}})",
+    "stop": "Stop the agent",
+    "stopConfirm": "Stop the agent? It orders nothing until you issue a new mandate.",
+    "stopYes": "Yes, stop it",
+    "stopNo": "Keep it running",
+    "stopped": "The agent is stopped.",
+    "stopHint": "Aimo is told to stop accepting this mandate, so a copy of it cannot be used either.",
+    "stoppedTitle": "The agent is stopped",
+    "stoppedBody": "It has no mandate and orders nothing. Issue one below to start it again."
   },
   "activity": {
     "title": "Activity",

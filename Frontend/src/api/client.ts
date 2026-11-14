@@ -74,6 +74,11 @@ export const api = {
   orders: () => request<OrderRecord[]>("GET", "/api/orders"),
   mandate: () => request<MandateView>("GET", "/api/mandate"),
   issueMandate: (body: MandateRequest) => request<MandateView>("POST", "/api/mandate", body),
+  // Stop the agent: Aimo is told to stop accepting the mandate, and the kitchen
+  // lets go of its copy. Owner only; the agent orders nothing until a new one
+  // is issued.
+  stopAgent: () => request<{ stopped: boolean; mandate_id: string | null; note?: string }>(
+    "DELETE", "/api/mandate"),
   inventory: () => request<InventoryView>("GET", "/api/inventory"),
   suggestions: () => request<SuggestionsResponse>("GET", "/api/suggestions"),
   draftSuggestion: (productId: string) => request<ChatResponse>("POST", `/api/suggestions/${productId}/basket`),

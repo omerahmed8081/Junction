@@ -267,6 +267,7 @@ def place_order(
     store: OrderStore,
     signer: Signer,
     new_order_id: Callable[[], str],
+    revoked: Any = None,            # gateway.revocations.RevocationList
     now: datetime | None = None,
 ) -> OrderRecord:
     """Accept the order, or raise OrderRefused with a reason worth logging."""
@@ -291,6 +292,16 @@ def place_order(
 
     mandate = _verify_mandate(request.mandate_jws, customer, agent_id, gateway_url,
                               kitchen_verifier, moment)
+    # A mandate the customer has called back. Checked here, after it verifies -
+    # a token that does not verify is not somebody's revoked mandate, it is a
+    # forgery, and the reason in the log should say so. Flagged as a security
+    # event: presenting a called-back mandate is either a stale agent that
+    # should have stopped, or one that was never meant to have it.
+    if revoked is not None and revoked.is_revoked(mandate.jti):
+        raise OrderRefused("mandate_revoked",
+                           f"mandate {mandate.jti} was called back by the customer; "
+                           "the agent needs a new one",
+                           security_event=True)
     _check_limits(quote, mandate, customer, store, moment)
 
     # Verify whenever one is sent, not only when the mandate demands it. The

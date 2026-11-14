@@ -513,6 +513,14 @@ class MandateRequest(BaseModel):
     days: int | None = None
 
 
+class RevokeMandateRequest(BaseModel):
+    """Call a mandate back. The whole token, so the gateway can verify it is
+    really that customer's before it stops accepting it."""
+
+    mandate_jws: str
+    reason: str = ""
+
+
 class RuleRequest(BaseModel):
     """A standing rule the kitchen sets for itself (kitchen/rules.py)."""
 

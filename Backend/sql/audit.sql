@@ -88,6 +88,25 @@ CREATE INDEX IF NOT EXISTS kitchen_audit_basket ON kitchen.audit_log (basket_id,
 CREATE INDEX IF NOT EXISTS kitchen_audit_at ON kitchen.audit_log (id DESC);
 CREATE INDEX IF NOT EXISTS kitchen_audit_order ON kitchen.audit_log (order_id) WHERE order_id <> '';
 
+-- --------------------------------------------------------- revoked mandates --
+-- Mandates the customer has called back. A mandate is a signed statement that
+-- stands on its own and verifies until its own expiry, so stopping an agent
+-- cannot be something the kitchen only does to its own copy: Aimo has to be
+-- told, and has to remember. In Postgres rather than memory because a safety
+-- control that forgets on restart is worse than none - the screen would still
+-- say the agent was stopped.
+--
+-- Revoking is final; the owner issues a new mandate, which gets a new id.
+CREATE TABLE IF NOT EXISTS gateway.revoked_mandates (
+    mandate_jti  text        PRIMARY KEY,         -- revoking twice is not an error
+    customer_id  text        NOT NULL,
+    at           timestamptz NOT NULL DEFAULT now(),
+    reason       text        NOT NULL DEFAULT '',
+    revoked_by   text        NOT NULL DEFAULT ''  -- the agent key that asked
+);
+
+CREATE INDEX IF NOT EXISTS revoked_mandates_customer ON gateway.revoked_mandates (customer_id, at DESC);
+
 -- ------------------------------------------------------------- kitchen rules --
 -- What the kitchen has decided may go through without anyone looking: "milk
 -- under 200 euro, do not ask me". These are the kitchen's own and Aimo never

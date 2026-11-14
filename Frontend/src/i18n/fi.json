@@ -241,7 +241,15 @@
     "chefLimit": "Kokki tilaa enintään",
     "managerLimit": "Päällikkö tilaa ja hyväksyy enintään",
     "ownerLimit": "Omistaja tilaa ja hyväksyy enintään",
-    "ownerLimitValue": "valtuutuksen rajaan ({{amount}})"
+    "ownerLimitValue": "valtuutuksen rajaan ({{amount}})",
+    "stop": "Pysäytä agentti",
+    "stopConfirm": "Pysäytetäänkö agentti? Se ei tilaa mitään ennen kuin myönnät uuden valtuutuksen.",
+    "stopYes": "Kyllä, pysäytä",
+    "stopNo": "Jatka käyttöä",
+    "stopped": "Agentti on pysäytetty.",
+    "stopHint": "Aimolle kerrotaan, ettei tätä valtuutusta enää hyväksytä, joten sen kopiotakaan ei voi käyttää.",
+    "stoppedTitle": "Agentti on pysäytetty",
+    "stoppedBody": "Sillä ei ole valtuutusta eikä se tilaa mitään. Myönnä uusi alta käynnistääksesi sen uudelleen."
   },
   "activity": {
     "title": "Tapahtumat",

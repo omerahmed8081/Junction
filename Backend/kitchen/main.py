@@ -303,7 +303,11 @@ def _auto_order(state: agent.BasketState | None, steps: list) -> str:
         return ""
     if not state.basket.policy or state.basket.policy.level != ordering.AUTO_LEVEL:
         return ""
-    if kitchen.mandate_in_force().payload.approval_required:
+    try:
+        if kitchen.mandate_in_force().payload.approval_required:
+            return ""
+    except OrderingError:
+        # Stopped by the owner. Nothing is ordered on its own; the basket waits.
         return ""
 
     rule = (state.basket.policy.reasons or [""])[0]
@@ -566,8 +570,15 @@ def list_orders() -> list[OrderRecord]:
 
 @app.get("/api/mandate", response_model=MandateView)
 def get_mandate() -> MandateView:
-    """What this kitchen's agent is currently allowed to order."""
-    mandate = kitchen.mandate_in_force()
+    """What this kitchen's agent is currently allowed to order.
+
+    404 when the owner has stopped the agent: there is genuinely no mandate,
+    and inventing one to fill the screen would say the opposite of the truth.
+    """
+    try:
+        mandate = kitchen.mandate_in_force()
+    except OrderingError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return MandateView(mandate_id=mandate.payload.jti, agent_id=mandate.payload.sub,
                        agent_name=ordering.AGENT_NAME,
                        customer=mandate.payload.customer, expires_at=mandate.expires_at,
@@ -605,6 +616,7 @@ def demo_reset() -> dict:
     baskets.clear()
     orders.clear()
     kitchen.mandate = None
+    kitchen.stopped = False                     # a reset starts the agent again
     storage.clear()
     mandate = kitchen.mandate_in_force()        # a fresh one, so the next order works
     return {"cleared": counts, "mandate": mandate.payload.jti}
@@ -696,6 +708,50 @@ def whose_kitchen() -> dict:
     return {"name": os.environ.get("KITCHEN_NAME", "Kitchen ordering"),
             "agent_name": ordering.AGENT_NAME,
             "customer": ordering.CUSTOMER_ID}
+
+
+@app.delete("/api/mandate")
+def revoke_mandate(x_kitchen_role: str | None = Header(default=None)) -> dict:
+    """Stop the agent: call its mandate back, at Aimo and here.
+
+    Aimo is told first and this only lets go of our copy once it has. The other
+    order would leave a mandate the kitchen has forgotten and Aimo still
+    accepts - the screen would say stopped while the token kept working, which
+    is worse than not having a stop button at all.
+
+    The agent orders nothing until the owner issues a new mandate. Baskets and
+    orders are untouched; this stops spending, it does not undo it.
+    """
+    _owner_only(x_kitchen_role, "stop the agent")
+    if kitchen.stopped or kitchen.mandate is None:
+        return {"stopped": True, "mandate_id": None,
+                "detail": "the agent was already stopped"}
+
+    mandate = kitchen.mandate
+    try:
+        answer = gateway.revoke_mandate(mandate.jws, reason="stopped from Agent rules")
+    except (GatewayError, GatewayRefused) as exc:
+        audit.log.record("revoke_mandate", actor="human", approver_role="owner",
+                         reason=str(exc)[:200],
+                         detail=narrate.sentence("revoke_mandate",
+                                                 f"could not reach Aimo, so nothing was stopped: {exc}"))
+        raise HTTPException(
+            status_code=502,
+            detail=f"Aimo could not be told to stop accepting the mandate, so it is "
+                   f"still in force: {exc}") from exc
+
+    kitchen.revoke()
+    _save()
+    audit.log.record("revoke_mandate", actor="human", approver_role="owner",
+                     crossed_gateway=True,
+                     result={"mandate_id": mandate.payload.jti, **answer},
+                     detail=narrate.sentence(
+                         "revoke_mandate",
+                         f"{mandate.payload.jti} called back; the agent orders nothing "
+                         f"until a new mandate is issued"))
+    return {"stopped": True, "mandate_id": mandate.payload.jti,
+            "revoked_at": answer.get("revoked_at"),
+            "degraded": answer.get("degraded", False), "note": answer.get("note", "")}
 
 
 @app.get("/api/rules")

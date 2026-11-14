@@ -36,6 +36,11 @@ import httpx                                                    # noqa: E402
 
 # Tables that hold demo traffic. The catalogue is deliberately absent.
 TABLES = ["gateway.audit_log", "kitchen.audit_log"]
+# Deliberately not cleared: gateway.revoked_mandates. A mandate called back
+# stays called back - clearing it would quietly let a stopped agent order
+# again, which is the one thing a revocation is for. Pass --revocations to
+# clear it anyway, which is only ever right on a throwaway database.
+REVOCATIONS_TABLE = "gateway.revoked_mandates"
 RULES_TABLE = "kitchen.rules"
 
 STATE_FILE = Path(os.environ.get("KITCHEN_STATE_FILE") or ROOT / ".state" / "kitchen.json")
@@ -44,12 +49,13 @@ GATEWAY_URL = os.environ.get("GATEWAY_BASE_URL", "http://localhost:8001")
 AGENT_KEY = os.environ.get("AGENT_API_KEY", "demo-kitchen-key")
 
 
-def database(apply: bool, rules: bool) -> int:
+def database(apply: bool, rules: bool, revocations: bool = False) -> int:
     url = os.environ.get("DATABASE_URL")
     if not url:
         print("  DATABASE_URL is not set, so there is no audit log to clear")
         return 0
-    tables = TABLES + ([RULES_TABLE] if rules else [])
+    tables = TABLES + ([RULES_TABLE] if rules else []) + (
+        [REVOCATIONS_TABLE] if revocations else [])
     try:
         import psycopg
         with psycopg.connect(url, connect_timeout=20, autocommit=True) as conn:
@@ -117,13 +123,15 @@ def running_services(apply: bool) -> int:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--yes", action="store_true", help="actually clear, rather than listing")
+    ap.add_argument("--revocations", action="store_true",
+                    help="also clear revoked mandates (a stopped agent would order again)")
     ap.add_argument("--rules", action="store_true",
                     help="also clear the kitchen's standing rules (a setting, kept by default)")
     args = ap.parse_args()
 
     print("A clean slate for the demo." if args.yes else "Dry run. Add --yes to clear.\n")
     print("Database:")
-    bad = database(args.yes, args.rules)
+    bad = database(args.yes, args.rules, args.revocations)
     print("Files:")
     bad += files(args.yes)
     print("Services:")

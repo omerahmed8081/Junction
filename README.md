@@ -120,6 +120,7 @@ sentence to placed order works. Add `--reset` to clear the demo state first.
 | `scripts/sample_basket.py` | A real basket, or a whole order, offline |
 | `scripts/check_gemini.py` | Whether the model call works, and which models the key can use |
 | `scripts/apply_sql.py` | Apply `sql/audit.sql` to Aiven without needing psql; `--check` to look first |
+| `scripts/apply_sql.py --check` | What tables exist, with row counts |
 | `scripts/clean_slate.py` | Wipe the audit logs, the kitchen's state file and the gateway's memory. Dry run by default; `--yes` to do it |
 | `scripts/generate_seed.py` | Regenerate the seeded restaurant |
 | `scripts/load_catalogue.py` | Load the product JSON into Postgres |

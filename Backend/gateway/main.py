@@ -28,7 +28,7 @@ from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from psycopg_pool import ConnectionPool  # noqa: E402
 
 from gateway import catalog, delivery, keys, orders, quotes  # noqa: E402
-from gateway import agents, audit  # noqa: E402
+from gateway import agents, audit, revocations  # noqa: E402
 from gateway.aimo_client import AimoClient, AimoError, answer_delivery  # noqa: E402
 from gateway.orders import OrderRefused, OrderStore  # noqa: E402
 from gateway.quotes import QuoteRegistry  # noqa: E402
@@ -39,9 +39,11 @@ from shared.schemas import (  # noqa: E402
     CheckDeliveryResponse,
     CreateQuoteRequest,
     CreateQuoteResponse,
+    MandatePayload,
     OrderRecord,
     PlaceOrderRequest,
     ProductSummary,
+    RevokeMandateRequest,
     SearchRequest,
     SearchResponse,
 )
@@ -68,6 +70,7 @@ async def lifespan(_: FastAPI):
     # Small on purpose: the free Aiven plan allows 20 connections for everyone.
     pool = ConnectionPool(url, min_size=1, max_size=4, open=True)
     audit.log.set_pool(pool)        # the audit log writes to the same database
+    revocations.revoked.set_pool(pool)
     yield
     pool.close()
     if _aimo:
@@ -370,6 +373,7 @@ def place_order(req: PlaceOrderRequest,
             own_verifier=keys.own_verifier(), kitchen_verifier=kitchen_keys(),
             recheck_delivery=recheck, registry=registry, store=store,
             signer=signer(), new_order_id=quotes.new_order_id,
+            revoked=revocations.revoked,
         )
         _record(caller, "place_order", "ok", 200, started, request=asked,
                 quote_jti=quote_jti, order_id=placed.order_id,
@@ -424,6 +428,59 @@ def demo_caller(x_api_key: str | None = Header(default=None)) -> agents.Caller:
     caller's customer; without one, the demo kitchen's.
     """
     return agents.lookup(x_api_key) or agents.lookup(agents.DEMO_KITCHEN_KEY)
+
+
+@app.post("/gateway/revoke_mandate")
+def revoke_mandate(req: RevokeMandateRequest,
+                   caller: agents.Caller = Depends(current_caller)) -> dict:
+    """Call a mandate back, so no order on it is accepted from now on.
+
+    The customer's own stop button. The mandate is verified first - a token
+    that does not verify is not somebody's mandate to revoke - and it must name
+    the customer behind this key, so one customer can never call back another's.
+
+    Revoking twice is not an error: the answer is the same either way, which
+    matters because the kitchen may be retrying.
+    """
+    started = time.perf_counter()
+    try:
+        payload = kitchen_keys().verify(req.mandate_jws, audience=keys.gateway_issuer(),
+                                        max_age_seconds=None)
+        mandate = MandatePayload(**payload)
+    except Exception as exc:        # noqa: BLE001
+        _record(caller, "revoke_mandate", "refused", 422, started,
+                reason="mandate_invalid", security_event=True,
+                detail=f"not a mandate we signed off on: {exc}"[:200])
+        raise HTTPException(status_code=422,
+                            detail=f"that is not a verifiable mandate: {exc}") from exc
+
+    if mandate.customer != caller.customer_id:
+        _record(caller, "revoke_mandate", "refused", 403, started,
+                reason="mandate_wrong_customer", security_event=True,
+                detail=f"the mandate is customer {mandate.customer}'s, "
+                       f"the key is customer {caller.customer_id}'s")
+        raise HTTPException(status_code=403, detail="that mandate is not yours to call back")
+
+    entry = revocations.revoked.revoke(
+        mandate.jti, caller.customer_id, reason=req.reason or "",
+        revoked_by=caller.key_fingerprint)
+    _record(caller, "revoke_mandate", "ok", 200, started,
+            response={"mandate_jti": mandate.jti, "degraded": revocations.revoked.degraded},
+            detail=f"mandate {mandate.jti} called back"
+                   + (f": {req.reason}" if req.reason else ""))
+    return {"mandate_jti": entry.mandate_jti, "revoked_at": entry.at.isoformat(),
+            "agent": mandate.sub, "degraded": revocations.revoked.degraded,
+            "note": ("the database was unreachable, so this is remembered only until "
+                     "the gateway restarts") if revocations.revoked.degraded else ""}
+
+
+@app.get("/gateway/revoked_mandates")
+def list_revoked(limit: int = 50,
+                 caller: agents.Caller = Depends(current_caller)) -> dict:
+    """The mandates this customer has called back, newest first."""
+    rows = revocations.revoked.for_customer(caller.customer_id, limit=min(max(limit, 1), 200))
+    return {"customer": caller.customer_id, "count": len(rows),
+            "degraded": revocations.revoked.degraded, "records": rows}
 
 
 @app.get("/gateway/audit")

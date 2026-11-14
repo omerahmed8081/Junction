@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { api } from "../api/client";
+import { ApiError, api } from "../api/client";
 import { useAnnounce } from "../components/Announcer";
 import { Banner, Button, Card, ErrorNote, PageTitle, Skeleton } from "../components/ui";
 import { StandingRules } from "../features/rules/StandingRules";
@@ -17,8 +17,17 @@ export function RulesPage() {
   const isOwner = useRole() === "owner";
   const client = useQueryClient();
   const announce = useAnnounce();
-  const query = useQuery({ queryKey: ["mandate"], queryFn: api.mandate });
+  const query = useQuery({
+    queryKey: ["mandate"],
+    queryFn: api.mandate,
+    // A stopped agent has no mandate and the backend says 404. That is an
+    // answer, not a failure, so it is not retried and not shown as an error.
+    retry: (count, error) => !(error instanceof ApiError && error.kind === "missing") && count < 2,
+  });
   const mandate = query.data;
+  const stopped = query.isError && query.error instanceof ApiError
+    && query.error.kind === "missing";
+  const [confirmStop, setConfirmStop] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
 
   const [perOrder, setPerOrder] = useState("");
@@ -58,6 +67,16 @@ export function RulesPage() {
       heading.current?.focus();
     },
   });
+  const stopAgent = useMutation({
+    mutationFn: api.stopAgent,
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ["mandate"] });
+      setConfirmStop(false);
+      announce(t("rules.stopped"));
+      heading.current?.focus();
+    },
+  });
+
   const submit = (event: FormEvent) => {
     event.preventDefault();
     setTouched(true);
@@ -76,7 +95,12 @@ export function RulesPage() {
           <Card className="p-5 sm:p-6">
             <h2 ref={heading} tabIndex={-1} className="text-xl font-extrabold tracking-tight">{t("rules.inForce")}</h2>
             {query.isLoading && <div className="mt-3"><Skeleton lines={5} /></div>}
-            {query.isError && <div className="mt-3"><ErrorNote error={query.error} onRetry={() => void query.refetch()} /></div>}
+            {stopped && (
+              <div className="mt-3">
+                <Banner tone="warn" title={t("rules.stoppedTitle")}>{t("rules.stoppedBody")}</Banner>
+              </div>
+            )}
+            {query.isError && !stopped && <div className="mt-3"><ErrorNote error={query.error} onRetry={() => void query.refetch()} /></div>}
             {mandate && (<>
               <dl className="mt-3 divide-y divide-border text-sm">
                 {([
@@ -99,6 +123,28 @@ export function RulesPage() {
                 <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-2xl bg-surface p-4 text-xs">{mandate.mandate_jws}</pre>
               </details>
             </>)}
+            {mandate && isOwner && (
+              <div className="mt-5 border-t border-border pt-4">
+                {!confirmStop ? (
+                  <Button variant="ghost" onClick={() => setConfirmStop(true)}>
+                    {t("rules.stop")}
+                  </Button>
+                ) : (
+                  <div>
+                    <p className="text-sm font-semibold">{t("rules.stopConfirm")}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Button variant="primary" loading={stopAgent.isPending}
+                        onClick={() => stopAgent.mutate()}>{t("rules.stopYes")}</Button>
+                      <Button variant="ghost" onClick={() => setConfirmStop(false)}>
+                        {t("rules.stopNo")}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                <p className="mt-2 text-xs text-ink-soft">{t("rules.stopHint")}</p>
+                {stopAgent.isError && <div className="mt-2"><ErrorNote error={stopAgent.error} /></div>}
+              </div>
+            )}
           </Card>
           {mandate && (
             <Card className="p-5 sm:p-6">
