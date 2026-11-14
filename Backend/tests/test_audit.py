@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from gateway.audit import AuditLog, key_fingerprint, token_summary, MAX_TEXT  # noqa: E402
+from kitchen.audit import KitchenAudit, quote_id_of  # noqa: E402
 from shared.signing import Signer, generate_keypair  # noqa: E402
 
 NOW = datetime(2026, 11, 14, 14, 0, tzinfo=timezone.utc)
@@ -126,6 +127,69 @@ def test_the_log_never_breaks_the_request_when_the_database_is_gone():
     assert "database is away" in log.last_error
     # ...and the row is still readable, from memory.
     assert log.recent("123")[0]["detail"] == "still recorded"
+
+
+# ---- the kitchen's half ------------------------------------------------
+
+def test_the_kitchen_records_why_not_only_what():
+    log = KitchenAudit(pool=None)
+    log.record("parse_need", basket_id="b1", actor="human", parser="gemini",
+               inputs={"message": "1,000 L lactose-free milk by Tuesday"},
+               detail="gemini read 1000.0 L of 'milk'")
+    row = log.recent()[0]
+    assert row["step"] == "parse_need" and row["parser"] == "gemini"
+    assert row["inputs"]["message"].startswith("1,000 L")
+
+
+def test_what_aimo_sees_is_the_smaller_half():
+    """The toggle on the Activity tab: most rows never left the building."""
+    log = KitchenAudit(pool=None)
+    log.record("parse_need", basket_id="b1")
+    log.record("convert", basket_id="b1")
+    log.record("confirm", basket_id="b1", crossed_gateway=True)
+    assert len(log.recent()) == 3
+    crossed = log.recent(crossed_only=True)
+    assert len(crossed) == 1 and crossed[0]["step"] == "confirm"
+
+
+def test_rows_can_be_narrowed_to_one_basket_or_order():
+    log = KitchenAudit(pool=None)
+    log.record("parse_need", basket_id="b1")
+    log.record("approve", basket_id="b2", order_id="o_9")
+    assert len(log.recent(basket_id="b1")) == 1
+    assert log.recent(order_id="o_9")[0]["basket_id"] == "b2"
+
+
+def test_the_agents_own_steps_are_recorded_as_they_are():
+    class Step:
+        def __init__(self, step, detail, crossed):
+            self.step, self.detail, self.crossed_gateway, self.at = step, detail, crossed, NOW
+
+    log = KitchenAudit(pool=None)
+    log.record_steps([Step("search", "found 3 products", True),
+                      Step("convert", "1,000 L -> 50 KI", False)], basket_id="b1")
+    rows = log.recent()
+    assert [r["step"] for r in rows] == ["convert", "search"]
+    assert rows[1]["crossed_gateway"] is True and rows[0]["crossed_gateway"] is False
+    assert all(r["basket_id"] == "b1" for r in rows)
+
+
+def test_the_quote_id_joins_the_two_logs():
+    signer = Signer(generate_keypair("test-key"))
+    token = signer.sign({"jti": "q_abc", "iss": "https://aimo"})
+    assert quote_id_of(token) == "q_abc"
+    assert quote_id_of(None) == "" and quote_id_of("rubbish") == ""
+
+
+def test_the_kitchen_log_also_survives_the_database_being_gone():
+    class Broken:
+        def connection(self, timeout=None):
+            raise RuntimeError("database is away")
+
+    log = KitchenAudit(pool=Broken())
+    log.record("parse_need", basket_id="b1", detail="still recorded")
+    assert log.degraded is True
+    assert log.recent()[0]["detail"] == "still recorded"
 
 
 if __name__ == "__main__":

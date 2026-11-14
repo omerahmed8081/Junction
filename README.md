@@ -45,7 +45,7 @@ Everything offline, with no database, model or network:
 
 ```
 python tests/test_units.py && python tests/test_money.py && python tests/test_timeparse.py
-python tests/test_signing.py && python tests/test_agents.py && python tests/test_audit.py
+python tests/test_signing.py && python tests/test_agents.py && python tests/test_audit.py && python tests/test_need.py
 python tests/test_aimo_client.py
 python tests/test_delivery.py
 python tests/test_agent.py && python tests/test_inventory.py && python tests/test_orders.py
@@ -111,6 +111,7 @@ sentence to placed order works. Add `--reset` to clear the demo state first.
 | `scripts/find_products.py` | Find real product ids with their pack size; `--price` marks what is orderable |
 | `scripts/sample_basket.py` | A real basket, or a whole order, offline |
 | `scripts/check_gemini.py` | Whether the model call works, and which models the key can use |
+| `scripts/apply_sql.py` | Apply `sql/audit.sql` to Aiven without needing psql; `--check` to look first |
 | `scripts/generate_seed.py` | Regenerate the seeded restaurant |
 | `scripts/load_catalogue.py` | Load the product JSON into Postgres |
 | `scripts/label_categories.py` | Name the 349 category codes |

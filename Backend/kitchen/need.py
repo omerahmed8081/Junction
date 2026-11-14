@@ -116,7 +116,13 @@ def parse_with_rules(message: str, today: date | None = None) -> ParsedNeed:
 
 
 PROMPT = """You turn a kitchen's purchase request into JSON. Today is {today} ({weekday}).
-Reply with one JSON object and nothing else, with exactly these keys:
+
+A message often asks for more than one thing ("40 L milk and 5 kg rice by Tuesday").
+Reply with one JSON object and nothing else, shaped {{"items": [ ... ]}}, holding one
+entry per product asked for, in the order they were asked for. One product, one entry.
+A date or a dietary word that applies to the whole message applies to every entry.
+
+Each entry has exactly these keys:
 - "product_text": the product to search for, in English, 1 to 4 words, without quantity, date, brand or dietary words
 - "quantity": number
 - "unit": one of L, DL, CL, ML, KG, G, KI (cases), ST (single units)
@@ -130,7 +136,13 @@ Request: {message}"""
 
 
 def parse_with_gemini(message: str, today: date | None = None) -> ParsedNeed:
-    """One model call. No temperature or top_p: the 3.5 models ignore them and later ones reject them."""
+    """The first need in the message. Kept for callers that want exactly one."""
+    return parse_many_with_gemini(message, today)[0]
+
+
+def parse_many_with_gemini(message: str, today: date | None = None) -> list[ParsedNeed]:
+    """Every need in one message. One model call. No temperature or top_p: the
+    3.5 models ignore them and later ones reject them."""
     from google import genai
 
     today = today or date.today()
@@ -149,18 +161,60 @@ def parse_with_gemini(message: str, today: date | None = None) -> ParsedNeed:
     else:
         text = client.models.generate_content(model=model, contents=prompt).text
 
+    return needs_from_reply(text)
+
+
+def needs_from_reply(text: str | None) -> list[ParsedNeed]:
+    """The needs inside a model reply. Separated out so it can be tested
+    without calling the model, which is where the surprises live."""
     match = re.search(r"\{.*\}", text or "", flags=re.S)
     if not match:
         raise ValueError("model reply held no JSON object")
-    data = json.loads(match.group(0))
-    data["claims"] = [c for c in data.get("claims") or [] if c in KNOWN_CLAIMS]
-    data["unit"] = str(data.get("unit", "")).upper()
-    data["pack_size_unit"] = str(data.get("pack_size_unit") or "").upper()
-    data["parser"] = "gemini"
-    need = ParsedNeed(**data)
-    if need.quantity <= 0 or not need.product_text.strip():
+    payload = json.loads(match.group(0))
+    # Accept a bare object too, so an older prompt or a terse reply still works.
+    entries = payload.get("items") if isinstance(payload, dict) else None
+    if entries is None:
+        entries = [payload]
+    if not isinstance(entries, list) or not entries:
+        raise ValueError("model reply held no items")
+
+    needs: list[ParsedNeed] = []
+    for data in entries[:MAX_ITEMS_PER_MESSAGE]:
+        if not isinstance(data, dict):
+            continue
+        data = dict(data)
+        data["claims"] = [c for c in data.get("claims") or [] if c in KNOWN_CLAIMS]
+        data["unit"] = str(data.get("unit", "")).upper()
+        data["pack_size_unit"] = str(data.get("pack_size_unit") or "").upper()
+        data["parser"] = "gemini"
+        try:
+            need = ParsedNeed(**data)
+        except Exception:                     # noqa: BLE001 - one bad entry, keep the rest
+            continue
+        if need.quantity <= 0 or not need.product_text.strip():
+            continue
+        needs.append(need)
+    if not needs:
         raise ValueError("model reply had no usable quantity or product")
-    return need
+    return needs
+
+
+MAX_ITEMS_PER_MESSAGE = 10
+
+
+def parse_needs(message: str, today: date | None = None) -> list[ParsedNeed]:
+    """Every product asked for in one message, in the order they were asked for.
+
+    Nobody shops one item at a time. Gemini returns a list; the rules parser
+    only ever finds one, which is why a model is worth having here.
+    """
+    if os.environ.get("GEMINI_API_KEY") and os.environ.get("KITCHEN_PARSER", "gemini") != "rules":
+        try:
+            return parse_many_with_gemini(message, today)
+        except Exception as exc:  # noqa: BLE001 - any model trouble: the rules still give a basket
+            print(f"[kitchen] Gemini unavailable, using the rules parser: "
+                  f"{type(exc).__name__}: {exc}"[:300], file=sys.stderr)
+    return [parse_with_rules(message, today)]
 
 
 def parse_need(message: str, today: date | None = None) -> ParsedNeed:

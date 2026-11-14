@@ -9,6 +9,7 @@ They move to the kitchen's own database schema with the order flow (block 2).
 """
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 from datetime import date
 from pathlib import Path
@@ -18,12 +19,14 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from fastapi import FastAPI, HTTPException  # noqa: E402
+from psycopg_pool import ConnectionPool  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
-from kitchen import agent, keys, ordering, storage, suggestions  # noqa: E402
+from kitchen import agent, audit, keys, ordering, storage, suggestions  # noqa: E402
 from kitchen.inventory import Inventory  # noqa: E402
 from kitchen.gateway_client import GatewayClient, GatewayError, GatewayRefused  # noqa: E402
-from kitchen.need import parse_need  # noqa: E402
+from kitchen import narrate  # noqa: E402
+from kitchen.need import parse_need, parse_needs  # noqa: E402
 from kitchen.ordering import KitchenSigner, OrderingError  # noqa: E402
 from shared.schemas import (  # noqa: E402
     ApproveRequest,
@@ -43,6 +46,7 @@ from shared.schemas import (  # noqa: E402
 )
 
 gateway: GatewayClient | None = None
+pool = None                 # the kitchen's own database connection, for its audit log
 baskets: dict[str, agent.BasketState] = {}
 orders: dict[str, OrderRecord] = {}
 kitchen = KitchenSigner()
@@ -54,8 +58,20 @@ logged_services: list[dict] = []
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    global gateway
+    global gateway, pool
     gateway = gateway or GatewayClient()
+    # The kitchen's own connection, used only for kitchen.audit_log. It never
+    # reads the gateway's schema; in production these are two roles that cannot
+    # see each other. Without a URL the audit log simply keeps rows in memory.
+    url = os.environ.get("DATABASE_URL")
+    if url:
+        try:
+            pool = ConnectionPool(url, min_size=1, max_size=2, open=True)
+            audit.log.set_pool(pool)
+        except Exception as exc:        # noqa: BLE001
+            print(f"[kitchen] no audit database, keeping rows in memory: {exc}")
+    else:
+        print("[kitchen] DATABASE_URL is not set: audit rows stay in memory")
     # Baskets, orders and the mandate survive a restart: losing a basket on
     # stage is the one failure worth a file on disk (see kitchen/storage.py).
     stored_baskets, stored_orders, stored_mandate, stored_services = storage.load()
@@ -73,6 +89,8 @@ async def lifespan(_: FastAPI):
     yield
     _save()
     gateway.close()
+    if pool is not None:
+        pool.close()
 
 
 def _save() -> None:
@@ -110,19 +128,61 @@ def health() -> dict:
 
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(req: ChatRequest) -> ChatResponse:
-    """One sentence in, a basket out. With basket_id set, the need is added to that basket."""
+    """One message in, a basket out.
+
+    A message may ask for several things at once - nobody shops one item at a
+    time - so every need in it is added to the same basket, in the order asked.
+    With `basket_id` set they are added to that basket instead of a new one.
+    """
     state = _state(req.basket_id) if req.basket_id else None
     try:
-        need = parse_need(req.message)
+        needs = parse_needs(req.message)
     except ValueError as exc:
+        audit.log.record("parse_need", basket_id=req.basket_id or "", actor="human",
+                         inputs={"message": req.message}, reason=str(exc),
+                         detail="could not read a quantity and a product from the message")
         return ChatResponse(reply=str(exc), basket=state.basket if state else None)
-    try:
-        state, reply, steps = agent.add_need(state, need, gateway)
-    except GatewayError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    audit.log.record("parse_need", basket_id=req.basket_id or "", actor="human",
+                     parser=needs[0].parser, inputs={"message": req.message},
+                     result={"items": [n.model_dump(mode="json") for n in needs]},
+                     detail=narrate.sentence("parse_need", "; ".join(
+                         f"{n.quantity:g} {n.unit} of {n.product_text}" for n in needs)))
+
+    replies: list[str] = []
+    all_steps: list = []
+    failed: list[str] = []
+    for need in needs:
+        try:
+            state, reply, steps = agent.add_need(state, need, gateway)
+        except GatewayError as exc:
+            # One product the gateway could not answer for must not lose the
+            # others: say which failed and keep what was found.
+            if not replies:
+                raise HTTPException(status_code=502, detail=str(exc)) from exc
+            failed.append(need.product_text)
+            continue
+        replies.append(reply)
+        all_steps.extend(steps)
+        if state is not None:
+            audit.log.record_steps(steps, state.basket.basket_id)
+
+    if state is None:
+        return ChatResponse(reply="I could not find anything to add.", basket=None)
+    if failed:
+        replies.append("I could not reach Aimo for " + _join(failed)
+                       + ". Ask again and I will add " + ("it" if len(failed) == 1 else "them") + ".")
     baskets[state.basket.basket_id] = state
     _save()
-    return ChatResponse(reply=reply, basket=state.basket, steps=steps, parser=need.parser)
+    return ChatResponse(reply=" ".join(replies), basket=state.basket,
+                        steps=all_steps, parser=needs[0].parser)
+
+
+def _join(names: list[str]) -> str:
+    """'milk', 'rice' and 'butter' - the way a person writes a list."""
+    if len(names) == 1:
+        return names[0]
+    return ", ".join(names[:-1]) + " and " + names[-1]
 
 
 @app.get("/api/basket/{basket_id}", response_model=Basket)
@@ -160,9 +220,25 @@ def confirm_basket(basket_id: str) -> ChatResponse:
         raise HTTPException(status_code=409, detail=exc.payload or {"reason": exc.reason,
                                                                    "detail": exc.detail}) from exc
     except GatewayError as exc:
+        audit.log.record("confirm", basket_id=basket_id, reason=str(exc),
+                         detail="the gateway could not be reached for a quote",
+                         crossed_gateway=True)
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+    audit.log.record_steps(steps, basket_id)
+    audit.log.record("confirm", basket_id=basket_id,
+                     quote_jti=_quote_id(state.basket), crossed_gateway=True,
+                     result={"net_total": state.basket.net_total,
+                             "gross_total": state.basket.gross_total,
+                             "expires": str(getattr(state.basket, "quote_expires", "") or "")},
+                     detail=f"Aimo signed {state.basket.net_total} EUR net; "
+                            f"the basket now shows Aimo's own figures")
     _save()
     return ChatResponse(reply=reply, basket=state.basket, steps=steps)
+
+
+def _quote_id(basket) -> str:
+    """The quote's id, for joining this log to the gateway's."""
+    return audit.quote_id_of(getattr(basket, "quote_jws", None))
 
 
 @app.post("/api/basket/{basket_id}/approve", response_model=OrderResponse)
@@ -189,8 +265,30 @@ def approve_basket(basket_id: str, req: ApproveRequest) -> OrderResponse:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     if result.order is not None:
         orders[result.order.order_id] = result.order
+    audit.log.record_steps(getattr(result, "steps", []) or [], basket_id)
+    audit.log.record("approve", basket_id=basket_id, actor="human",
+                     approver_role=req.approver_role,
+                     order_id=result.order.order_id if result.order else "",
+                     quote_jti=_quote_id(state.basket), crossed_gateway=True,
+                     reason=(result.refusal.reason if result.refusal else ""),
+                     result={"outcome": result.outcome,
+                             "net_total": result.order.net_total if result.order else None},
+                     detail=_approval_sentence(result, req.approver_role))
     _save()
     return result
+
+
+def _approval_sentence(result, role: str) -> str:
+    """What a person reading the log a week later needs to see first."""
+    if result.outcome == "ordered" and result.order is not None:
+        return (f"{role} approved; Aimo accepted order {result.order.order_id} "
+                f"for {result.order.net_total} EUR net")
+    if result.outcome == "adjusted":
+        return (f"{role} approved, but Aimo's answer had changed "
+                f"({result.refusal.reason if result.refusal else 'unknown'}): "
+                "the basket was adjusted to match and went back to draft")
+    return (f"{role} approved, but the order was refused: "
+            f"{result.refusal.reason if result.refusal else 'unknown'}")
 
 
 @app.get("/api/orders/{order_id}", response_model=OrderRecord)
@@ -269,6 +367,23 @@ def _stock_rows() -> list[StockRow]:
                            if any(i["product_id"] == product_id for i in r.ingredients)}),
         ))
     return rows
+
+
+@app.get("/api/audit")
+def read_audit(limit: int = 200, basket_id: str = "", order_id: str = "",
+               crossed_only: bool = False) -> dict:
+    """Why this kitchen's agent did what it did, newest first.
+
+    `crossed_only=true` is the "what Aimo sees" toggle: the few rows that left
+    the building. Everything else - the sentence typed, what the model read,
+    how a quantity was worked out - stays here and Aimo never sees it.
+    """
+    rows = audit.log.recent(limit=min(max(limit, 1), 500), basket_id=basket_id,
+                            order_id=order_id, crossed_only=crossed_only)
+    return {"count": len(rows), "degraded": audit.log.degraded,
+            "note": ("the database was unreachable, these rows are from memory and "
+                     "are lost on restart") if audit.log.degraded else "",
+            "records": rows}
 
 
 @app.get("/api/inventory", response_model=InventoryView)

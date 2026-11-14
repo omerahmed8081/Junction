@@ -452,7 +452,13 @@ class AgentStep(BaseModel):
     """One row of the trace, written by the decorator on every tool call."""
 
     step: str
+    # A sentence a person can read. The terse version is in `facts`, for anyone
+    # who wants the original machine-written line.
     detail: str = ""
+    facts: str = ""
+    # False for the rows only an engineer wants. The short version of the log
+    # shows the True ones; everything is still there behind a toggle.
+    for_chef: bool = True
     crossed_gateway: bool = False               # drives the "What Aimo sees" toggle
     at: datetime
 

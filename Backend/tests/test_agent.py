@@ -145,7 +145,10 @@ def test_closest_match_is_flagged_when_no_plain_product_can_be_ordered():
 def test_kilogram_product_is_never_ranked_against_litres():
     state, _, steps = basket_for("1,000 L lactose-free milk by Tuesday")
     assert "472492" not in state.candidates                   # sold by the kilogram
-    assert "size_in_KG_but_need_in_L" in next(s.detail for s in steps if s.step == "rank")
+    # The machine reason stays in `facts`; `detail` is the sentence a chef reads.
+    rank = next(s for s in steps if s.step == "rank")
+    assert "size_in_KG_but_need_in_L" in rank.facts
+    assert "sold by weight" in rank.detail and "size_in_KG" not in rank.detail
 
 
 def test_no_orderable_product_gives_a_reason_not_an_empty_answer():

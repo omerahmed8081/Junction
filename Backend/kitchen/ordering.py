@@ -27,6 +27,7 @@ from datetime import datetime, timedelta, timezone
 
 from kitchen import agent, keys
 from kitchen.gateway_client import GatewayClient, GatewayRefused
+from kitchen import narrate
 from shared.schemas import (
     AgentStep,
     ApprovalPayload,
@@ -151,8 +152,10 @@ def _sentence(text: str) -> str:
 
 
 def _step(steps: list[AgentStep], step: str, detail: str, crossed: bool = False) -> None:
-    steps.append(AgentStep(step=step, detail=detail, crossed_gateway=crossed,
-                           at=datetime.now(timezone.utc)))
+    """Keep the terse facts, and add the sentence (kitchen/narrate.py)."""
+    steps.append(AgentStep(step=step, detail=narrate.sentence(step, detail),
+                           facts=detail, for_chef=narrate.is_for_chef(step),
+                           crossed_gateway=crossed, at=datetime.now(timezone.utc)))
 
 
 # ------------------------------------------------------------------- confirm

@@ -7,6 +7,72 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Saturday 14 November
 
+### 19:20 - several items in one message, and a log a chef can read
+
+Two things the screen made obvious.
+
+**One message, every item in it.** "40 L milk and 5 kg rice by Tuesday" drafted
+only the milk, because the model was asked for a single need per message - and
+nobody shops one item at a time. The prompt now asks for a list, `parse_needs()`
+returns every product asked for in the order asked, and the chat adds them all to
+the same basket. A date or a dietary word that applies to the whole message
+applies to every item. If the gateway cannot answer for one product the others
+still land, and the reply names the one that did not.
+
+The rules fallback still finds only one, which is a fair illustration of what the
+model is actually for.
+
+`kitchen/need.py` gained `needs_from_reply()`, split out so the list handling is
+testable without calling Gemini: a bad entry among good ones is dropped rather
+than losing the message, an invented claim is ignored, a lowercase unit is
+accepted, a bare object still parses, and a runaway list is capped at ten.
+
+**The kitchen's log is written for a chef now.** It read like a stack trace:
+`policy_binding`, `verify_quote`, `464411 x 40 for 2026-11-20`. A chef does not
+know what a signature or a mandate is and should not have to.
+
+- `kitchen/narrate.py` turns each step into a sentence in kitchen words:
+  *"Aimo locked in the price, so it cannot change while you decide."*
+  *"Confirmed the price really came from Aimo and had not been altered."*
+- Machine codes are translated on the way out - `size_in_KG_but_need_in_L`
+  becomes "sold by weight, not volume", `2026-11-16` becomes "Monday 16
+  November", `EUR` becomes `€`, and a quote id becomes "this basket".
+- `for_chef` marks the rows that belong in the short version. The engineering
+  steps are still recorded, just not in the way, and every step keeps its
+  original terse line in `facts` - nothing is lost, it is one toggle away.
+
+Aimo's side is deliberately the opposite and unchanged: full requests, responses,
+timings and token ids.
+
+10 more tests, 195 passing.
+
+### 18:50 - the kitchen's half of the audit log
+
+Both halves now exist, and the tables are live on Aiven.
+
+- `kitchen/audit.py` writes to `kitchen.audit_log`: the sentence somebody typed,
+  which parser read it and what it made of it, every step the agent took, the
+  quote the kitchen accepted and what Aimo's signature said it cost, and who
+  approved it with what outcome. A refusal or an adjustment is recorded with the
+  reason in a sentence a person can read a week later.
+- `GET /api/audit`, newest first, with `?basket_id=`, `?order_id=` and
+  `?crossed_only=true`. That last one is the "what Aimo sees" toggle, and the
+  point of it is how few rows come back: the message, the parse and the unit
+  conversion never leave the building.
+- The kitchen opens its **own** small pool (max 2) for its own schema only. It
+  never reads the gateway's. Without `DATABASE_URL` it keeps rows in memory and
+  says so.
+- The two logs join on `quote_jti` and `order_id`, so a dispute can line up both
+  halves without either side holding the other's data.
+
+Caught while wiring it: the first version imported `token_summary` from
+`gateway.audit` into the kitchen, which would have made the kitchen depend on
+the gateway's code - the separation is the architecture, not a diagram. The
+kitchen has its own `quote_id_of` now, and a grep proves neither `kitchen/` nor
+`shared/` imports `gateway/`.
+
+6 more tests, 185 passing.
+
 ### 18:20 - the gateway's audit log
 
 The audit trail Valio would read. Append-only, in Postgres, one row per call the

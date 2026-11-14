@@ -15,7 +15,7 @@ the only part that changes. Every change to the code is one line in
 
 ## Status
 
-Last updated **Saturday 14 November, 18:20 (hour 15)**. **179 tests passing**, and both services boot, all offline:
+Last updated **Saturday 14 November, 19:20 (hour 16)**. **195 tests passing**, and both services boot, all offline:
 `cd Backend && python tests/test_units.py` and the rest.
 
 | Block | Section | State |
@@ -46,17 +46,18 @@ uvicorn kitchen.main:app --reload --port 8002
 
 **Known gaps**
 
-1. **Half the audit log is built.** The gateway's side is append-only in Postgres with
-   `GET /gateway/audit` (`sql/audit.sql`). The kitchen's side has its table and nothing
-   writing to it, so "why did my agent buy that" is still only the steps the browser
-   keeps, lost on refresh.
+1. **The audit log is built, both halves.** Gateway rows in `gateway.audit_log`
+   (`GET /gateway/audit`), kitchen rows in `kitchen.audit_log` (`GET /api/audit`),
+   joining on `quote_jti` and `order_id`. Tables applied to Aiven. The Activity tab
+   still reads the browser's copy; pointing it at `/api/audit` is a frontend change.
 2. **Nothing is deployed, and two things have never run live.** Both services now start
    and the whole kitchen-side HTTP path is verified (`scripts/smoke_test.py`), with one
    origin in front of all three via `deploy/Caddyfile`. Still unverified anywhere: the
    gateway's catalogue queries against Aiven, and a single live Gemini call. Both need a
    machine that can reach Aiven and Google - run `scripts/smoke_test.py` there and it
    says which of the two is wrong.
-3. The chat takes one item per message and cannot be used to edit a basket; the basket's own
+3. The chat reads every item in a message; the basket's own buttons still handle
+   editing through `PATCH`. Needs one live Gemini run to confirm end to end.
    buttons handle editing through `PATCH`.
 4. Sixteen of the seventeen seed products have never been priced against the live API, so
    their cut-offs are unknown. If cream's has passed, beat 3 drafts an empty basket.
