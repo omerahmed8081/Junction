@@ -22,6 +22,7 @@ Backend/
   tests/      161 tests, all offline
   scripts/    tools, below
   Data/       the product catalogue (gitignored, 84 MB) and the seeded restaurant
+  sql/        audit.sql: the audit tables, run once against Aiven
 Frontend/     the two screens; fixtures/sample_basket.json is a real basket to build against
 docs/
 ```
@@ -44,7 +45,9 @@ Everything offline, with no database, model or network:
 
 ```
 python tests/test_units.py && python tests/test_money.py && python tests/test_timeparse.py
-python tests/test_signing.py && python tests/test_aimo_client.py && python tests/test_delivery.py
+python tests/test_signing.py && python tests/test_agents.py && python tests/test_audit.py
+python tests/test_aimo_client.py
+python tests/test_delivery.py
 python tests/test_agent.py && python tests/test_inventory.py && python tests/test_orders.py
 python tests/test_ordering.py
 
@@ -85,6 +88,8 @@ silently corrupts the API key.
 | `AIMO_BASE_URL`, `AIMO_CUSTOMER_ID` | gateway | |
 | `DATABASE_URL` | gateway | The product catalogue. Search and quotes fail without it; `/health` reports `degraded` |
 | **`KITCHEN_JWKS`** | gateway | The kitchen's JWKS URL. **Unset and every order is refused** while search, price and quote still work. Defaults to the kitchen on the same host |
+| `AGENT_KEYS` | gateway | `key\|agent_id\|customer_id\|label`, comma separated. Each key is one customer, and Aimo prices by customer. Defaults to the two demo agents |
+| `AGENT_API_KEY` | kitchen | The key this kitchen presents to the gateway. Defaults to `demo-kitchen-key` |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | kitchen | A wrong model name falls back to the rules parser. The chat reply's `parser` field and the kitchen log both say which one ran |
 | `GATEWAY_URL` | kitchen | Where the gateway is, server to server |
 | `KEY_DIR` | both | Signing keys. Defaults to `Backend/.keys/`. **Must be on a persistent disk** — a new key on restart invalidates every mandate already issued |
@@ -105,6 +110,7 @@ sentence to placed order works. Add `--reset` to clear the demo state first.
 | `scripts/hour0_check.py` | Call the live API and print prices, cut-offs and totals |
 | `scripts/find_products.py` | Find real product ids with their pack size; `--price` marks what is orderable |
 | `scripts/sample_basket.py` | A real basket, or a whole order, offline |
+| `scripts/check_gemini.py` | Whether the model call works, and which models the key can use |
 | `scripts/generate_seed.py` | Regenerate the seeded restaurant |
 | `scripts/load_catalogue.py` | Load the product JSON into Postgres |
 | `scripts/label_categories.py` | Name the 349 category codes |

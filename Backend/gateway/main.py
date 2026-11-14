@@ -7,6 +7,7 @@ Then http://localhost:8001/docs shows the OpenAPI page for every endpoint.
 from __future__ import annotations
 
 import os
+import time
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -16,11 +17,12 @@ from dotenv import load_dotenv
 # Before any gateway import: aimo_client reads its settings when it is imported.
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-from fastapi import FastAPI, HTTPException  # noqa: E402
+from fastapi import Depends, FastAPI, Header, HTTPException  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from psycopg_pool import ConnectionPool  # noqa: E402
 
 from gateway import catalog, delivery, keys, orders, quotes  # noqa: E402
+from gateway import agents, audit  # noqa: E402
 from gateway.aimo_client import AimoClient, AimoError, answer_delivery  # noqa: E402
 from gateway.orders import OrderRefused, OrderStore  # noqa: E402
 from gateway.quotes import QuoteRegistry  # noqa: E402
@@ -59,6 +61,7 @@ async def lifespan(_: FastAPI):
         raise RuntimeError("DATABASE_URL is not set (see Backend/.env.example)")
     # Small on purpose: the free Aiven plan allows 20 connections for everyone.
     pool = ConnectionPool(url, min_size=1, max_size=4, open=True)
+    audit.log.set_pool(pool)        # the audit log writes to the same database
     yield
     pool.close()
     if _aimo:
@@ -113,6 +116,32 @@ def orderable_by(product_ids: list[str], by: date) -> set[str]:
     return keep
 
 
+def current_caller(x_api_key: str | None = Header(default=None)) -> agents.Caller:
+    """Every gateway call names its agent. /health and the JWKS stay public.
+
+    Aimo prices by contract, so we cannot price for an agent we cannot name;
+    there is deliberately no anonymous mode.
+    """
+    found = agents.lookup(x_api_key)
+    if found is None:
+        raise HTTPException(status_code=401,
+                            detail="unknown or missing X-API-Key: every agent needs a registered key")
+    return found
+
+
+def _record(caller: agents.Caller, action: str, outcome: str, status: int,
+            started: float, **extra) -> None:
+    """One audit row. Never raises: a failed log must not fail the request."""
+    try:
+        audit.log.record(
+            agent_id=caller.agent_id, customer_id=caller.customer_id,
+            key_fingerprint=caller.key_fingerprint, action=action, outcome=outcome,
+            status=status, duration_ms=int((time.perf_counter() - started) * 1000),
+            **extra)
+    except Exception as exc:                        # noqa: BLE001
+        print(f"[gateway] could not write the audit row for {action}: {exc}")
+
+
 @app.get("/.well-known/jwks.json")
 def jwks() -> dict:
     """Aimo's public key, so any agent can verify a quote with a standard library."""
@@ -136,23 +165,35 @@ def health() -> dict:
 
 
 @app.get("/gateway/categories", response_model=CategoryListResponse)
-def list_categories() -> CategoryListResponse:
+def list_categories(caller: agents.Caller = Depends(current_caller)) -> CategoryListResponse:
     with pool.connection() as conn:
         return CategoryListResponse(categories=catalog.categories(conn))
 
 
 @app.post("/gateway/search_products", response_model=SearchResponse)
-def search_products(req: SearchRequest) -> SearchResponse:
+def search_products(req: SearchRequest,
+                    caller: agents.Caller = Depends(current_caller)) -> SearchResponse:
+    started = time.perf_counter()
+    asked = {"text": req.text, "claims": req.claims, "category": req.category,
+             "product_ids": req.product_ids, "deliverable_by": req.deliverable_by}
     try:
         with pool.connection() as conn:
-            return catalog.search(conn, req, cutoff_filter=orderable_by)
+            found = catalog.search(conn, req, cutoff_filter=orderable_by)
     except AimoError as exc:
+        _record(caller, "search_products", "error", 502, started, request=asked,
+                detail=f"Aimo availability check failed: {exc}")
         # Only reachable when deliverable_by is set: the cutoff check needs Aimo's API.
         raise HTTPException(status_code=502, detail=f"Aimo availability check failed: {exc}") from exc
+    _record(caller, "search_products", "ok", 200, started, request=asked,
+            response={"matched": found.total_matched,
+                      "returned": [p.product_id for p in found.products]},
+            detail=f"searched {req.text!r}, returned {len(found.products)}")
+    return found
 
 
 @app.post("/gateway/check_delivery", response_model=CheckDeliveryResponse)
-def check_delivery(req: CheckDeliveryRequest) -> CheckDeliveryResponse:
+def check_delivery(req: CheckDeliveryRequest,
+                   caller: agents.Caller = Depends(current_caller)) -> CheckDeliveryResponse:
     """Price and delivery for a shortlist. Never returns the warehouse count."""
     if not req.items:
         raise HTTPException(status_code=422, detail="items must not be empty")
@@ -172,13 +213,26 @@ def check_delivery(req: CheckDeliveryRequest) -> CheckDeliveryResponse:
     sales_units = dict(rows)
 
     known = [i for i in ids if i in sales_units]
+    started = time.perf_counter()
+    asked = {"requested_date": req.requested_date,
+             "items": [{"product_id": i.product_id, "quantity_sales_units": i.quantity_sales_units}
+                       for i in req.items]}
     try:
         raw_prices = aimo().prices(known, req.requested_date) if known else {}
         raw_availability = aimo().availability(known, req.requested_date) if known else {}
     except AimoError as exc:
+        _record(caller, "check_delivery", "error", 502, started, request=asked,
+                detail=f"Aimo price or availability call failed: {exc}")
         raise HTTPException(status_code=502, detail=f"Aimo price or availability call failed: {exc}") from exc
 
-    return delivery.build_response(req.items, req.requested_date, raw_prices, raw_availability, sales_units)
+    answer = delivery.build_response(req.items, req.requested_date, raw_prices,
+                                     raw_availability, sales_units)
+    _record(caller, "check_delivery", "ok", 200, started, request=asked,
+            response={"results": [{"product_id": r.product_id, "can_fulfil": r.can_fulfil,
+                                   "price_per_sales_unit": r.price_per_sales_unit}
+                                  for r in answer.results]},
+            detail=f"priced {len(known)} product(s) for {req.requested_date}")
+    return answer
 
 
 def _summaries_and_results(product_ids: list[str], quantities: dict[str, float],
@@ -198,12 +252,22 @@ def _summaries_and_results(product_ids: list[str], quantities: dict[str, float],
 
 
 @app.post("/gateway/create_quote", response_model=CreateQuoteResponse)
-def create_quote(req: CreateQuoteRequest) -> CreateQuoteResponse:
+def create_quote(req: CreateQuoteRequest,
+                 caller: agents.Caller = Depends(current_caller)) -> CreateQuoteResponse:
     """Sign a price confirmation for exactly these lines.
 
     The price is fixed until it expires; delivery is a snapshot and is checked
     again when the order is placed.
     """
+    if req.agent_id and req.agent_id != caller.agent_id:
+        # The body may not name a different agent than the key: that is how one
+        # agent would get a quote issued to another and ride its mandate.
+        _record(caller, "create_quote", "refused", 403, time.perf_counter(),
+                reason="agent_mismatch", security_event=True,
+                request={"claimed_agent": req.agent_id},
+                detail=f"key belongs to {caller.agent_id}, request claimed {req.agent_id}")
+        raise HTTPException(status_code=403,
+                            detail=f"this key is {caller.agent_id}, the request says {req.agent_id}")
     if not req.lines:
         raise HTTPException(status_code=422, detail="lines must not be empty")
     if any(l.quantity_sales_units <= 0 for l in req.lines):
@@ -211,49 +275,90 @@ def create_quote(req: CreateQuoteRequest) -> CreateQuoteResponse:
 
     quantities = {l.product_id: l.quantity_sales_units for l in req.lines}
     ids = list(quantities)
+    started = time.perf_counter()
+    asked = {"requested_date": req.requested_date, "lines": quantities}
     try:
         summaries, results = _summaries_and_results(ids, quantities, req.requested_date)
     except AimoError as exc:
+        _record(caller, "create_quote", "error", 502, started, request=asked,
+                detail=f"Aimo price or availability call failed: {exc}")
         raise HTTPException(status_code=502, detail=f"Aimo price or availability call failed: {exc}") from exc
 
-    customer = os.environ.get("AIMO_CUSTOMER_ID", "123")
     try:
-        return quotes.build_quote(
-            issuer=keys.GATEWAY_URL, customer_id=customer, agent_id=req.agent_id,
+        quote = quotes.build_quote(
+            issuer=keys.GATEWAY_URL, customer_id=caller.customer_id, agent_id=caller.agent_id,
             requested_date=req.requested_date, summaries=summaries, results=results,
             wanted=quantities, signer=signer(),
         )
+        issued = audit.token_summary(quote.quote_jws)
+        _record(caller, "create_quote", "ok", 200, started, request=asked,
+                quote_jti=str(issued.get("jti") or ""),
+                response={"quote": issued, "net_total": quote.net_total,
+                          "expires": str(quote.expires_at)},
+                detail=f"quoted {len(quantities)} line(s), {quote.net_total} EUR net, "
+                       f"for customer {caller.customer_id}")
+        return quote
     except ValueError:
         # Nothing could be stood behind. Say which line and why, rather than 500.
         refused = [quotes.refusal_for(r, quantities[pid]) or {"product_id": pid, "reason": "unknown"}
                    for pid, r in results.items()]
         missing = [{"product_id": pid, "reason": "not_found"} for pid in ids if pid not in summaries]
+        _record(caller, "create_quote", "refused", 409, started, request=asked,
+                reason="nothing_quotable", response={"refused": refused + missing},
+                detail="nothing on this request could be stood behind")
         raise HTTPException(status_code=409,
                             detail={"reason": "nothing_quotable", "refused": refused + missing})
 
 
 @app.post("/gateway/place_order", response_model=OrderRecord)
-def place_order(req: PlaceOrderRequest) -> OrderRecord:
+def place_order(req: PlaceOrderRequest,
+                caller: agents.Caller = Depends(current_caller)) -> OrderRecord:
     """Accept an order, if the quote, the mandate and the human approval all hold."""
     def recheck(requested_date: date, items: list[CheckDeliveryItem]):
         quantities = {i.product_id: i.quantity_sales_units for i in items}
         _, results = _summaries_and_results(list(quantities), quantities, requested_date)
         return results
 
+    started = time.perf_counter()
+    quote_seen = audit.token_summary(req.quote_jws)
+    asked = {"quote": quote_seen, "mandate": audit.token_summary(req.mandate_jws),
+             "approval": audit.token_summary(getattr(req, "approval_jws", None)),
+             "idempotency_key": getattr(req, "idempotency_key", None)}
+    quote_jti = str(quote_seen.get("jti") or "")
+
     agent_id = _agent_from_quote(req.quote_jws)
+    if agent_id != caller.agent_id:
+        _record(caller, "place_order", "refused", 403, started, request=asked,
+                reason="quote_for_another_agent", security_event=True, quote_jti=quote_jti,
+                detail=f"quote was issued to {agent_id}, the key is {caller.agent_id}")
+        raise HTTPException(status_code=403,
+                            detail=f"this quote was issued to {agent_id}, not to {caller.agent_id}")
     try:
-        return orders.place_order(
+        placed = orders.place_order(
             request=req, agent_id=agent_id, gateway_url=keys.GATEWAY_URL,
             own_verifier=keys.own_verifier(), kitchen_verifier=kitchen_keys(),
             recheck_delivery=recheck, registry=registry, store=store,
             signer=signer(), new_order_id=quotes.new_order_id,
         )
+        _record(caller, "place_order", "ok", 200, started, request=asked,
+                quote_jti=quote_jti, order_id=placed.order_id,
+                response={"order_id": placed.order_id, "net_total": placed.net_total,
+                          "status": placed.status},
+                detail=f"order {placed.order_id} accepted, {placed.net_total} EUR net")
+        return placed
     except OrderRefused as exc:
         # 409 rather than 400: the request was well formed, the state said no.
         detail = exc.rejection.model_dump()
         detail["claimed"] = orders.describe_failed_token(req.quote_jws)
+        # The most interesting row in the table: who was turned away, and why.
+        _record(caller, "place_order", "refused", 409, started, request=asked,
+                quote_jti=quote_jti, reason=exc.rejection.reason,
+                security_event=bool(exc.rejection.security_event),
+                response=detail, detail=str(exc.rejection.detail or exc.rejection.reason))
         raise HTTPException(status_code=409, detail=detail) from exc
     except AimoError as exc:
+        _record(caller, "place_order", "error", 502, started, request=asked,
+                quote_jti=quote_jti, detail=f"Aimo delivery re-check failed: {exc}")
         raise HTTPException(status_code=502, detail=f"Aimo delivery re-check failed: {exc}") from exc
 
 
@@ -271,15 +376,47 @@ def _agent_from_quote(token: str) -> str:
 
 
 @app.get("/gateway/orders/{order_id}", response_model=OrderRecord)
-def get_order(order_id: str) -> OrderRecord:
+def get_order(order_id: str, caller: agents.Caller = Depends(current_caller)) -> OrderRecord:
     record = store.get(order_id)
-    if record is None:
+    # Another customer's order is "no such order", never "not yours": the second
+    # answer would confirm the id exists.
+    if record is None or record.customer != caller.customer_id:
         raise HTTPException(status_code=404, detail="no such order")
     return record
 
 
+def demo_caller(x_api_key: str | None = Header(default=None)) -> agents.Caller:
+    """The demo reset is the one endpoint that works without a key.
+
+    The reset button lives in the frontend, which holds no key, and this clears
+    demo state rather than revealing anything. With a key it resets that
+    caller's customer; without one, the demo kitchen's.
+    """
+    return agents.lookup(x_api_key) or agents.lookup(agents.DEMO_KITCHEN_KEY)
+
+
+@app.get("/gateway/audit")
+def read_audit(limit: int = 100, order_id: str = "", quote_jti: str = "",
+               security_only: bool = False,
+               caller: agents.Caller = Depends(current_caller)) -> dict:
+    """Everything the gateway recorded for this customer, newest first.
+
+    Scoped to the caller's own customer: an agent reads its own history, never
+    another customer's. This is "what Aimo sees" with nothing hidden - including
+    every refusal, and every signature that did not verify.
+    """
+    rows = audit.log.recent(caller.customer_id, limit=min(max(limit, 1), 500),
+                            order_id=order_id, quote_jti=quote_jti,
+                            security_only=security_only)
+    return {"customer": caller.customer_id, "count": len(rows),
+            "degraded": audit.log.degraded,
+            "note": ("the database was unreachable, these rows are from memory and "
+                     "are lost on restart") if audit.log.degraded else "",
+            "records": rows}
+
+
 @app.post("/gateway/demo/reset")
-def demo_reset() -> dict:
+def demo_reset(caller: agents.Caller = Depends(demo_caller)) -> dict:
     """Clear this customer's orders, used quote ids and weekly spend. Demo only.
 
     Labelled on purpose. Without it, rehearsing eats the mandate's weekly limit
@@ -287,7 +424,7 @@ def demo_reset() -> dict:
     side; the kitchen has its own reset, because neither service reaches into
     the other's data.
     """
-    customer = os.environ.get("AIMO_CUSTOMER_ID", "123")
+    customer = caller.customer_id
     removed = store.forget_customer(customer)
     registry.forget_customer(removed)
     return {"customer": customer, "orders_cleared": len(removed),

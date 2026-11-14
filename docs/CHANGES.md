@@ -7,6 +7,79 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Saturday 14 November
 
+### 18:20 - the gateway's audit log
+
+The audit trail Valio would read. Append-only, in Postgres, one row per call the
+gateway served - including every refusal, which is the row that matters most.
+
+- `sql/audit.sql` creates **two** tables: `gateway.audit_log` and
+  `kitchen.audit_log`. Two, not one, because a shared table would put the
+  kitchen's menu, stock and staff inside Aimo's system. They join on `quote_jti`
+  and `order_id` when a dispute needs both halves. Run it once against Aiven.
+- `gateway/audit.py` writes a row for every call: who (agent, customer, and a
+  12-character hash of the key - never the key), what was asked, what came back,
+  how long it took, the outcome, the refusal reason in the gateway's own words,
+  and the quote and order it belongs to. A signed token is recorded by its id,
+  issuer and expiry, never its bytes.
+- `security_event` flags the rows somebody should actually look at: a signature
+  that did not verify, a mandate for another customer, a quote used twice, a
+  request naming an agent the key does not belong to.
+- `GET /gateway/audit` reads it back, newest first, scoped to the caller's own
+  customer, with `?order_id=`, `?quote_jti=` and `?security_only=true`.
+- If the database is unreachable the log keeps the last 2,000 rows in memory and
+  says `degraded: true` with a note, because a silent gap in an audit trail is
+  worse than a loud one.
+
+Also fixed while wiring it: `create_quote` checked whether the request named a
+different agent than the key **after** doing the database and Aimo work for it.
+Now first, before anything is spent on a caller who is about to be refused.
+
+`tests/test_audit.py`, 11 tests, no database needed. 179 passing.
+
+**Still to do on this:** the kitchen's half. `kitchen.audit_log` has its table but
+nothing writes to it yet, so "why did my agent buy that" is still only the steps
+the browser keeps, and they vanish on refresh.
+
+### 17:25 - the gateway now knows who is calling
+
+Aimo prices by contract, so the same product is not the same price for every
+customer. That makes the caller's identity part of a correct answer, and until now
+the gateway had none: no authentication at all, the customer read from a single
+`AIMO_CUSTOMER_ID` environment variable, and the agent id simply asserted in the
+request body. The architecture claimed "every agent is identified by its API key,
+there is no anonymous mode"; that is now true rather than aspirational.
+
+- `gateway/agents.py` maps an `X-API-Key` to one agent and one customer. Keys come
+  from `AGENT_KEYS` (`key|agent_id|customer_id|label`, comma separated) and are read
+  on each call, so a key added to the environment needs no restart. Two demo agents
+  are the default: the kitchen (customer 123) and the second client (customer 456).
+- Every gateway endpoint that touches catalogue, price or order data requires a key
+  and answers 401 without one. `/health` and the JWKS stay public, because an agent
+  must be able to fetch the public key before it has anything else.
+- A quote is now issued for **the customer behind the key**, and the request body may
+  no longer name a different agent than the key does - that was the way one agent
+  could have had a quote issued to another and ridden its mandate.
+- `place_order` refuses a quote issued to a different agent than the caller, and
+  `GET /gateway/orders/{id}` answers 404 rather than 403 for another customer's
+  order, because 403 would confirm the id exists.
+- `/gateway/demo/reset` is the one endpoint that still works without a key: the
+  reset button is in the frontend, which holds none. With a key it resets that
+  caller's customer, without one the demo kitchen's.
+- The kitchen sends `AGENT_API_KEY` (default `demo-kitchen-key`) on every gateway
+  call.
+
+This also sharpens the second client: it now has its own key and its own customer,
+so it is visibly a different tenant rather than the same one wearing a hat. It still
+cannot order, for the same reason as before - no mandate.
+
+`tests/test_agents.py`, 7 tests. 168 passing.
+
+Also: `ChatResponse` now carries `parser` ("gemini" or "rules"). The fallback is
+silent by design - the basket is still correct - so this was the only thing missing
+to tell from outside which one answered, and the smoke test checks it. New
+`scripts/check_gemini.py` calls the model directly and, when it fails, prints
+Google's error and lists the models the key can actually use.
+
 ### 17:05 - first time either service was actually started
 
 The 161 tests all run offline with stubs, so no endpoint had ever been called. Booting

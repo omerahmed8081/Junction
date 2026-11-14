@@ -59,12 +59,15 @@ def main() -> int:
     ap.add_argument("--gateway", default="http://localhost:8001")
     ap.add_argument("--message", default="1,000 L lactose-free milk by Tuesday")
     ap.add_argument("--role", default="owner", choices=["chef", "manager", "owner"])
+    ap.add_argument("--gateway-key", default="demo-kitchen-key",
+                    help="the agent key the gateway maps to a customer")
     ap.add_argument("--reset", action="store_true", help="reset both demo states first")
     ap.add_argument("--no-order", action="store_true", help="stop before placing the order")
     args = ap.parse_args()
 
     kitchen = httpx.Client(base_url=args.kitchen, timeout=60.0)
-    gateway = httpx.Client(base_url=args.gateway, timeout=60.0)
+    gateway = httpx.Client(base_url=args.gateway, timeout=60.0,
+                           headers={"X-API-Key": args.gateway_key})
     print(f"kitchen {args.kitchen}\ngateway {args.gateway}\n")
 
     # ---- 1. both services up, and the gateway's database reachable ---------
@@ -89,6 +92,15 @@ def main() -> int:
         else:
             record("gateway public key", PASS, f"kid {kids[0]}")
     step(kitchen, "kitchen JWKS", "GET", "/.well-known/jwks.json")
+
+    unknown = httpx.Client(base_url=args.gateway, timeout=20.0,
+                           headers={"X-API-Key": "not-a-real-key"})
+    try:
+        turned_away = unknown.post("/gateway/search_products", json={"text": "milk"})
+        record("unknown key is refused", PASS if turned_away.status_code == 401 else FAIL,
+               f"HTTP {turned_away.status_code}" + ("" if turned_away.status_code == 401 else " — expected 401"))
+    except Exception as exc:                                   # noqa: BLE001
+        record("unknown key is refused", FAIL, f"{type(exc).__name__}: {exc}"[:120])
 
     if args.reset:
         step(kitchen, "kitchen demo reset", "POST", "/api/demo/reset")

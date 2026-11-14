@@ -59,9 +59,13 @@ class GatewayClient:
     """`http` can be any httpx.Client; tests pass one bound to the gateway app."""
 
     def __init__(self, base_url: str | None = None, http: httpx.Client | None = None, timeout: float = 30.0) -> None:
+        # The gateway prices by customer, so every call names this agent. The key
+        # is what the gateway maps to our customer id; without it we get a 401.
+        self._api_key = os.environ.get("AGENT_API_KEY", "demo-kitchen-key")
         self._http = http or httpx.Client(
             base_url=base_url or os.environ.get("GATEWAY_URL", "http://localhost:8001"),
             timeout=timeout,
+            headers={"X-API-Key": self._api_key},
         )
 
     def close(self) -> None:

@@ -15,7 +15,7 @@ the only part that changes. Every change to the code is one line in
 
 ## Status
 
-Last updated **Saturday 14 November, 17:10 (hour 14)**. **161 tests passing**, and both services boot, all offline:
+Last updated **Saturday 14 November, 18:20 (hour 15)**. **179 tests passing**, and both services boot, all offline:
 `cd Backend && python tests/test_units.py` and the rest.
 
 | Block | Section | State |
@@ -46,7 +46,10 @@ uvicorn kitchen.main:app --reload --port 8002
 
 **Known gaps**
 
-1. The trace is not stored, so the Activity tab and "what Aimo sees" have no history.
+1. **Half the audit log is built.** The gateway's side is append-only in Postgres with
+   `GET /gateway/audit` (`sql/audit.sql`). The kitchen's side has its table and nothing
+   writing to it, so "why did my agent buy that" is still only the steps the browser
+   keeps, lost on refresh.
 2. **Nothing is deployed, and two things have never run live.** Both services now start
    and the whole kitchen-side HTTP path is verified (`scripts/smoke_test.py`), with one
    origin in front of all three via `deploy/Caddyfile`. Still unverified anywhere: the
