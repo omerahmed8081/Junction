@@ -3,9 +3,14 @@
     python scripts/clean_slate.py                 # show what would go
     python scripts/clean_slate.py --yes           # actually do it
 
-Clears the two audit logs, the kitchen's state file (baskets, orders, mandate,
-logged services), and - if the services are running - the in-memory state the
-gateway keeps, which no script can reach from outside.
+Clears both audit logs, the gateway's orders and used quote ids, the kitchen's
+state (baskets, orders, mandate, logged services), the old state file if one is
+still lying about, and - if the services are running - what they hold in memory,
+which no script can reach from outside.
+
+It counts every table again afterwards and says so if anything is left, because
+a reset that reports success without looking is how a demo starts with last
+night's data still on screen.
 
 It deliberately does NOT touch:
 
@@ -73,16 +78,39 @@ def database(apply: bool, rules: bool, revocations: bool = False) -> int:
                     "SELECT 1 FROM information_schema.tables "
                     "WHERE table_schema = %s AND table_name = %s", (schema, name)).fetchone()
                 if not exists:
-                    print(f"  {table:<22} not there yet")
+                    print(f"  {table:<25} not there yet")
                     continue
                 count = conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
                 if not apply:
-                    print(f"  {table:<22} {count:>8,} rows would go")
+                    print(f"  {table:<25} {count:>8,} rows would go")
                     continue
                 # TRUNCATE rather than DELETE: it also resets the id sequence, so
                 # a fresh demo starts at 1 instead of continuing last night's count.
                 conn.execute(f"TRUNCATE TABLE {table} RESTART IDENTITY")
-                print(f"  {table:<22} {count:>8,} rows cleared")
+                print(f"  {table:<25} {count:>8,} rows cleared")
+
+            if not apply:
+                return 0
+            # Count again on the same connection - Aiven's free tier powers off
+            # when idle and takes about half a minute to wake, so a second
+            # connection would mean a second wait.
+            print("\nChecking:")
+            left = []
+            for table in tables:
+                schema, name = table.split(".")
+                exists = conn.execute(
+                    "SELECT 1 FROM information_schema.tables "
+                    "WHERE table_schema = %s AND table_name = %s", (schema, name)).fetchone()
+                if not exists:
+                    continue
+                count = conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+                print(f"  {table:<25} {count:>8,} rows")
+                if count:
+                    left.append(table)
+            if left:
+                print(f"\n  NOT CLEAN: still holding rows in {', '.join(left)}.")
+                print("  A service was probably writing while this ran. Stop both, run again.")
+                return 1
     except Exception as exc:                                    # noqa: BLE001
         print(f"  database: FAILED {type(exc).__name__}: {exc}")
         return 1
@@ -93,16 +121,24 @@ def files(apply: bool) -> int:
     """The old state file. State lives in `kitchen.state` now; this is only
     here so a machine that ran the file version does not quietly keep it and
     load it again the next time the database is unreachable."""
+    # The atomic write leaves a .tmp beside it if it was interrupted.
+    stray = STATE_FILE.with_suffix(".tmp")
+    if stray.exists() and apply:
+        try:
+            stray.unlink()
+            print(f"  {stray.name:<25} removed (interrupted write)")
+        except Exception:                                       # noqa: BLE001
+            pass
     if not STATE_FILE.exists():
-        print(f"  {STATE_FILE.name:<22} already gone")
+        print(f"  {STATE_FILE.name:<25} already gone")
         return 0
     size = STATE_FILE.stat().st_size
     if not apply:
-        print(f"  {STATE_FILE.name:<22} {size:>8,} bytes would go ({STATE_FILE})")
+        print(f"  {STATE_FILE.name:<25} {size:>8,} bytes would go ({STATE_FILE})")
         return 0
     try:
         STATE_FILE.unlink()
-        print(f"  {STATE_FILE.name:<22} {size:>8,} bytes removed")
+        print(f"  {STATE_FILE.name:<25} {size:>8,} bytes removed")
     except Exception as exc:                                    # noqa: BLE001
         print(f"  {STATE_FILE.name}: FAILED {exc}")
         return 1
@@ -116,7 +152,7 @@ def running_services(apply: bool) -> int:
     If it is not up, they are already gone - memory does not survive a stop.
     """
     if not apply:
-        print("  running services  would be asked to reset (if they are up)")
+        print("  running services     would be asked to reset (if they are up)")
         return 0
     for name, url, path, headers in (
         ("kitchen", KITCHEN_URL, "/api/demo/reset", {}),
@@ -125,9 +161,9 @@ def running_services(apply: bool) -> int:
         try:
             response = httpx.post(f"{url}{path}", headers=headers, timeout=15)
             response.raise_for_status()
-            print(f"  {name:<22} reset in place")
+            print(f"  {name:<25} reset in place")
         except Exception:                                       # noqa: BLE001
-            print(f"  {name:<22} not running (nothing in memory to clear)")
+            print(f"  {name:<25} not running (nothing in memory to clear)")
     return 0
 
 
@@ -162,6 +198,10 @@ def main() -> int:
         return 1
     print("Clean. Restart both services, then confirm with:")
     print("    python scripts/smoke_test.py")
+    print()
+    print("The browser clears itself: the kitchen reports a new generation after")
+    print("a reset and the page drops its chat transcript when it changes. If a")
+    print("tab was already open, reload it once.")
     return 0
 
 
