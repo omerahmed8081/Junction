@@ -1,10 +1,9 @@
 // The conversation with the agent: transcript, example requests, and the input.
 // One way to start or add to a basket; the basket never depends on it.
-import { ChevronDown, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, ErrorNote } from "../../components/ui";
-import { time } from "../../lib/format";
 import { useChat } from "../../lib/session";
 
 type Props = { pending: boolean; error: unknown; onSend: (message: string) => void; notice?: string | null };
@@ -52,19 +51,6 @@ export function ChatPanel({ pending, error, onSend, notice }: Props) {
             <p className="text-xs font-semibold text-ink-soft">{t("chat.agent")}</p>
             {/* The agent's sentences come from the backend in English. */}
             <p lang="en">{m.text}</p>
-            {!!m.steps?.length && (
-              <details className="group mt-2">
-                <summary className="inline-flex min-h-9 cursor-pointer list-none items-center gap-1 rounded text-xs font-semibold text-link">
-                  <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden />
-                  {t("chat.steps", { count: m.steps.length })}
-                </summary>
-                <ol className="mt-1 space-y-1 border-l-2 border-border pl-3 text-xs text-ink-soft">
-                  {m.steps.map((s, j) => (
-                    <li key={j}><span className="tabular">{time(s.at)}</span> · <span className="font-semibold text-ink">{s.step}</span>{s.crossed_gateway ? " → Aimo" : ""}<br /><span lang="en">{s.detail}</span></li>
-                  ))}
-                </ol>
-              </details>
-            )}
           </div>
         ))}
         {pending && (
