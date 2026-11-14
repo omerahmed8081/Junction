@@ -15,7 +15,7 @@
   },
   "chat": {
     "title": "Kysy agentilta",
-    "label": "Mitä tarvitset? Yksi tuote per viesti",
+    "label": "Mitä tarvitset? Useampi tuote tai uusi päivä käy",
     "placeholder": "esim. 40 L ruokakermaa torstaiksi",
     "send": "Lähetä",
     "working": "Tarkistetaan hinnat ja toimitus Aimolta…",
@@ -24,13 +24,14 @@
     "agent": "Agentti",
     "try": "Kokeile:",
     "ex1": "1,000 L lactose-free milk by Tuesday",
-    "ex2": "20 kg butter by Friday",
+    "ex2": "5 kg butter and 10 L whipping cream by Friday",
     "ex3": "10 L whipping cream by Tuesday",
     "steps_one": "Näin päädyin tähän ({{count}} vaihe)",
     "steps_other": "Näin päädyin tähän ({{count}} vaihetta)",
     "open": "Keskustelu",
     "close": "Sulje keskustelu",
-    "empty": "Kerro agentille, mitä tarvitset. Se etsii tuotteet, tarkistaa hinnan ja toimituksen Aimolta ja tekee ostoskorin luonnoksen."
+    "empty": "Kerro agentille, mitä tarvitset. Se etsii tuotteet, tarkistaa hinnan ja toimituksen Aimolta ja tekee ostoskorin luonnoksen.",
+    "newOrder": "Hinta on vahvistettu ja ostoskori odottaa hyväksyntää. Seuraava viestisi aloittaa uuden tilauksen."
   },
   "basket": {
     "title": "Ostoskori",
@@ -73,7 +74,14 @@
     "carbon": "CO₂",
     "notFound": "Tätä ostoskoria ei enää ole. Se on voitu nollata.",
     "addMore": "Lisää tuote keskustelusta tai vähiin käyvistä.",
-    "updated": "Ostoskori päivitetty. {{net}} veroton."
+    "updated": "Ostoskori päivitetty. {{net}} veroton.",
+    "delete": "Poista tilaus",
+    "deleteTitle": "Poistetaanko tämä tilaus?",
+    "deleteBody_one": "Sen {{count}} rivi poistetaan. Tätä ei voi perua.",
+    "deleteBody_other": "Sen kaikki {{count}} riviä poistetaan. Tätä ei voi perua.",
+    "deleteConfirm": "Poista tilaus",
+    "deleting": "Poistetaan…",
+    "deleted": "Tilaus poistettu."
   },
   "status": {
     "draft": "Luonnos",

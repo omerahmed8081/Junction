@@ -9,13 +9,18 @@ import { api } from "../../api/client";
 import type { Basket, ChatResponse, LineEdit, OrderResponse } from "../../api/types";
 import { useAnnounce } from "../../components/Announcer";
 import { money } from "../../lib/format";
-import { addChatMessage, logSecurityEvent, logSteps, rememberBasket } from "../../lib/session";
+import { addChatMessage, clearChat, forgetBasket, logSecurityEvent, logSteps, rememberBasket, setCurrentBasket } from "../../lib/session";
 
 export function useBasketQuery(id: string | null) {
   return useQuery({ queryKey: ["basket", id], queryFn: () => api.basket(id!), enabled: !!id, retry: false });
 }
 
-export function useBasketActions(basketId: string | null, onBasket?: (basket: Basket) => void) {
+/**
+ * `chatTarget` is the basket the chat adds to: the open basket while it is a
+ * draft, otherwise null so the next message starts a new order.
+ */
+export function useBasketActions(basketId: string | null, onBasket?: (basket: Basket) => void,
+                                 chatTarget: string | null = basketId, onDeleted?: () => void) {
   const client = useQueryClient();
   const announce = useAnnounce();
   const { t } = useTranslation();
@@ -35,7 +40,7 @@ export function useBasketActions(basketId: string | null, onBasket?: (basket: Ba
   };
 
   const chat = useMutation({
-    mutationFn: (message: string) => api.chat(message, basketId),
+    mutationFn: (message: string) => api.chat(message, chatTarget),
     onMutate: (message) => addChatMessage({ role: "you", text: message }),
     onSuccess: (r) => { addChatMessage({ role: "agent", text: r.reply, steps: r.steps }); accept(r.basket, r.steps); },
   });
@@ -45,7 +50,20 @@ export function useBasketActions(basketId: string | null, onBasket?: (basket: Ba
   });
   const confirm = useMutation({
     mutationFn: () => api.confirm(basketId!),
-    onSuccess: (r) => accept(r.basket, r.steps),
+    // The signed basket goes on to approval; the conversation for it is over,
+    // so the chat starts clean and the next message begins a new order.
+    onSuccess: (r) => { accept(r.basket, r.steps); clearChat(); },
+  });
+  const remove = useMutation({
+    mutationFn: () => api.deleteBasket(basketId!),
+    onSuccess: () => {
+      forgetBasket(basketId!);
+      setCurrentBasket(null);
+      clearChat();
+      client.removeQueries({ queryKey: ["basket", basketId] });
+      announce(t("basket.deleted"));
+      onDeleted?.();
+    },
   });
   const approve = useMutation({
     mutationFn: () => api.approve(basketId!),
@@ -60,5 +78,5 @@ export function useBasketActions(basketId: string | null, onBasket?: (basket: Ba
     onSuccess: (r) => { accept(r.basket, r.steps); afterOrderChange(); },
   });
 
-  return { chat, edit, confirm, approve, draftSuggestion };
+  return { chat, edit, confirm, approve, draftSuggestion, remove };
 }

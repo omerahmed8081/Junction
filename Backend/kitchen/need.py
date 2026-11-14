@@ -229,3 +229,42 @@ def parse_need(message: str, today: date | None = None) -> ParsedNeed:
             print(f"[kitchen] Gemini unavailable, using the rules parser: "
                   f"{type(exc).__name__}: {exc}"[:300], file=sys.stderr)
     return parse_with_rules(message, today)
+
+
+# Finnish weekday names, so "torstaiksi" or "perjantaina" counts as naming a day.
+WEEKDAYS_FI = ["maanantai", "tiistai", "keskiviikko", "torstai", "perjantai", "lauantai", "sunnuntai"]
+
+
+def mentioned_date(message: str, today: date | None = None) -> date | None:
+    """The delivery date the message names, or None when it names none.
+
+    A follow-up like "add 5 L milk" must not move the whole basket to the
+    parser's default date, so the chat needs to know whether a date was asked
+    for at all, not only what the parser filled in.
+    """
+    today = today or date.today()
+    text = " " + (message or "").lower() + " "
+    if re.search(r"\b\d{4}-\d{2}-\d{2}\b", text) or re.search(r"\btomorrow\b", text):
+        return _date(text, today)[0]
+    for name in WEEKDAYS:
+        if re.search(rf"\b{name}\b", text):
+            return _date(text, today)[0]
+    if re.search(r"\bhuomen", text):
+        return today + timedelta(days=1)
+    for index, name in enumerate(WEEKDAYS_FI):
+        if name in text:
+            ahead = (index - today.weekday()) % 7 or 7
+            return today + timedelta(days=ahead)
+    # 18.11. or 18.11.2026, but never a decimal such as 3.5 kg.
+    dm = re.search(r"(?<![\d.,])(\d{1,2})\.(\d{1,2})\.(\d{4})?(?![\d])", text)
+    if dm:
+        day, month = int(dm.group(1)), int(dm.group(2))
+        year = int(dm.group(3)) if dm.group(3) else today.year
+        try:
+            found = date(year, month, day)
+        except ValueError:
+            return None
+        if not dm.group(3) and found < today:
+            found = date(year + 1, month, day)
+        return found
+    return None

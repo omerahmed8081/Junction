@@ -3,7 +3,7 @@
 // phone everything stacks and the primary action sticks above the tab bar.
 // The basket id lives in the URL (?basket=…), so refresh, Back and shared links work.
 import * as Dialog from "@radix-ui/react-dialog";
-import { MessageSquare, Plus, X } from "lucide-react";
+import { MessageSquare, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
@@ -34,8 +34,13 @@ export function OrderPage() {
 
   const open = (id: string) => setParams({ basket: id }, { replace: !basketId });
   const query = useBasketQuery(basketId);
-  const actions = useBasketActions(basketId, (b) => { if (b.basket_id !== basketId) open(b.basket_id); });
   const basket = query.data;
+  // The chat keeps adding to the open basket only while it is a draft. Once Aimo
+  // has signed its price, the next message starts a new order.
+  const chatTarget = basket && basket.status !== "draft" ? null : basketId;
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const actions = useBasketActions(basketId, (b) => { if (b.basket_id !== basketId) open(b.basket_id); },
+                                   chatTarget, () => { setConfirmDelete(false); setParams({}); });
 
   useEffect(() => { document.title = `${basket ? t(`status.${basket.status}`) + " · " : ""}${t("basket.title")} · ${t("app.name")}`; }, [basket?.status, t, basket]);
   useEffect(() => { setOutcome(null); }, [basketId]);
@@ -45,7 +50,8 @@ export function OrderPage() {
     if (gone && basketId) { forgetBasket(basketId); if (getCurrentBasket() === basketId) setCurrentBasket(null); }
   }, [gone, basketId]);
 
-  const busy = actions.edit.isPending || actions.confirm.isPending || actions.approve.isPending;
+  const busy = actions.edit.isPending || actions.confirm.isPending || actions.approve.isPending || actions.remove.isPending;
+  const deletable = basket?.status === "draft";
   const editable = !!basket && basket.status !== "ordered" && basket.status !== "blocked";
   const lines = basket?.lines ?? [];
   const cutoff = lines.map((l) => l.delivery?.closing_time).filter((c): c is string => !!c).sort()[0];
@@ -57,9 +63,10 @@ export function OrderPage() {
   const approve = () => actions.approve.mutate(undefined, { onSuccess: setOutcome });
   const startNew = () => { setCurrentBasket(null); setParams({}); clearChat(); setOutcome(null); actions.chat.reset(); };
   const panelProps = basket && { basket, busy, confirming: actions.confirm.isPending, approving: actions.approve.isPending, onConfirm: confirm, onApprove: approve };
-  const actionError = actions.edit.error || actions.confirm.error || actions.approve.error || actions.draftSuggestion.error;
+  const actionError = actions.edit.error || actions.confirm.error || actions.approve.error || actions.draftSuggestion.error || actions.remove.error;
 
-  const chat = <ChatPanel pending={actions.chat.isPending} error={actions.chat.error} onSend={(m) => { send(m); }} />;
+  const chat = <ChatPanel pending={actions.chat.isPending} error={actions.chat.error} onSend={(m) => { send(m); }}
+    notice={basket && basket.status === "quoted" ? t("chat.newOrder") : null} />;
 
   return (
     <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_19rem] xl:grid-cols-[21rem_minmax(0,1fr)_20rem]">
@@ -86,8 +93,33 @@ export function OrderPage() {
           <div className="ml-auto flex gap-2">
             <Button className="xl:hidden" icon={<MessageSquare className="size-4" aria-hidden />} onClick={() => setChatOpen(true)}>{t("chat.open")}</Button>
             {basket && <Button variant="ghost" icon={<Plus className="size-4" aria-hidden />} onClick={startNew}>{t("basket.new")}</Button>}
+            {deletable && (
+              <Button variant="ghost" className="text-danger hover:bg-danger-soft" disabled={busy}
+                icon={<Trash2 className="size-4" aria-hidden />} onClick={() => setConfirmDelete(true)}>
+                {t("basket.delete")}
+              </Button>
+            )}
           </div>
         </div>
+
+        {/* Deleting cannot be undone, so it asks once. Focus starts on Cancel. */}
+        <Dialog.Root open={confirmDelete} onOpenChange={(o) => { if (!actions.remove.isPending) setConfirmDelete(o); }}>
+          <Dialog.Portal>
+            <Dialog.Overlay className="fixed inset-0 z-40 bg-black/45" />
+            <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(28rem,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-surface p-5 shadow-xl"
+              onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement).querySelector<HTMLButtonElement>("[data-cancel]")?.focus(); }}>
+              <Dialog.Title className="text-lg font-bold">{t("basket.deleteTitle")}</Dialog.Title>
+              <Dialog.Description className="mt-1 text-sm text-ink-soft">{t("basket.deleteBody", { count: lines.length })}</Dialog.Description>
+              <div className="mt-5 flex flex-wrap justify-end gap-2">
+                <Dialog.Close asChild><Button data-cancel disabled={actions.remove.isPending}>{t("service.cancel")}</Button></Dialog.Close>
+                <Button variant="primary" className="bg-danger hover:bg-danger/90" loading={actions.remove.isPending}
+                  icon={<Trash2 className="size-4" aria-hidden />} onClick={() => actions.remove.mutate()}>
+                  {actions.remove.isPending ? t("basket.deleting") : t("basket.deleteConfirm")}
+                </Button>
+              </div>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
 
         {basket?.demo_scenario && <Banner tone="warn" title={`DEMO SCENARIO: ${basket.demo_scenario}`} />}
 

@@ -7,6 +7,35 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Saturday 14 November
 
+### 19:45 - the chat keeps working on one order until its price is signed
+
+Behaviour the chef asked for, with two small backend changes and one fix.
+
+**`POST /api/chat`** (`kitchen/main.py`)
+- With `basket_id` set, every message adds to that basket **while it is a draft**.
+  A basket that is `quoted` or later is closed to the chat: the message starts a new
+  basket instead of quietly voiding the signed price.
+- A follow-up that names **no date** keeps the basket's date. It used to move the whole
+  basket to the parser's default (today + 3). New `need.mentioned_date()` tells "named a
+  day" from "the parser filled one in"; it reads English and Finnish weekdays,
+  tomorrow/huomenna, ISO dates and `18.11.`, and never a decimal like `3.5 kg`.
+- A message that names a **different date** moves the basket and re-checks every line
+  for that day with `agent.reprice`. A message that is only a date ("deliver on
+  Wednesday instead", "toimitus torstaina") does just that.
+
+**`PATCH /api/basket/{id}`** with only `requested_date` now re-checks every line
+(`reprice`) instead of relabelling the date. **New `DELETE /api/basket/{id}`**: drafts
+only, `409` for anything signed or ordered, recorded in the audit log.
+
+**Fix:** `gateway/main.py` `check_delivery` audit line read `r.can_fulfil` and
+`r.price_per_sales_unit`; they are `r.delivery.can_fulfil` and
+`r.price.price_per_sales_unit`. Every price check returned 500 since the audit-log commit.
+
+**Frontend:** chat adds to the open draft; after "Confirm price" the chat clears and
+says the next message starts a new order; "Delete order" (with a confirm step) on drafts.
+
+`tests/test_chat_dates.py`, 5 tests. 200 passing.
+
 ### 19:20 - several items in one message, and a log a chef can read
 
 Two things the screen made obvious.

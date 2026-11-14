@@ -15,7 +15,7 @@
   },
   "chat": {
     "title": "Ask the agent",
-    "label": "What do you need? One item per message",
+    "label": "What do you need? Several items or a new date are fine",
     "placeholder": "e.g. 40 L cooking cream by Thursday",
     "send": "Send",
     "working": "Checking prices and delivery with Aimo…",
@@ -24,13 +24,14 @@
     "agent": "Agent",
     "try": "Try:",
     "ex1": "1,000 L lactose-free milk by Tuesday",
-    "ex2": "20 kg butter by Friday",
+    "ex2": "5 kg butter and 10 L whipping cream by Friday",
     "ex3": "10 L whipping cream by Tuesday",
     "steps_one": "How I got here ({{count}} step)",
     "steps_other": "How I got here ({{count}} steps)",
     "open": "Chat",
     "close": "Close chat",
-    "empty": "Tell the agent what you need. It finds the products, checks price and delivery with Aimo, and drafts a basket."
+    "empty": "Tell the agent what you need. It finds the products, checks price and delivery with Aimo, and drafts a basket.",
+    "newOrder": "The price is confirmed and the basket is waiting for approval. Your next message starts a new order."
   },
   "basket": {
     "title": "Basket",
@@ -73,7 +74,14 @@
     "carbon": "CO₂",
     "notFound": "This basket no longer exists. It may have been reset.",
     "addMore": "Add another item from the chat or a running-low suggestion.",
-    "updated": "Basket updated. {{net}} net."
+    "updated": "Basket updated. {{net}} net.",
+    "delete": "Delete order",
+    "deleteTitle": "Delete this order?",
+    "deleteBody_one": "The {{count}} line in it is removed. This cannot be undone.",
+    "deleteBody_other": "All {{count}} lines in it are removed. This cannot be undone.",
+    "deleteConfirm": "Delete order",
+    "deleting": "Deleting…",
+    "deleted": "Order deleted."
   },
   "status": {
     "draft": "Draft",

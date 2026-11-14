@@ -228,8 +228,8 @@ def check_delivery(req: CheckDeliveryRequest,
     answer = delivery.build_response(req.items, req.requested_date, raw_prices,
                                      raw_availability, sales_units)
     _record(caller, "check_delivery", "ok", 200, started, request=asked,
-            response={"results": [{"product_id": r.product_id, "can_fulfil": r.can_fulfil,
-                                   "price_per_sales_unit": r.price_per_sales_unit}
+            response={"results": [{"product_id": r.product_id, "can_fulfil": r.delivery.can_fulfil,
+                                   "price_per_sales_unit": r.price.price_per_sales_unit}
                                   for r in answer.results]},
             detail=f"priced {len(known)} product(s) for {req.requested_date}")
     return answer

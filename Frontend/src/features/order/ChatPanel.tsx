@@ -7,9 +7,9 @@ import { Button, ErrorNote } from "../../components/ui";
 import { time } from "../../lib/format";
 import { useChat } from "../../lib/session";
 
-type Props = { pending: boolean; error: unknown; onSend: (message: string) => void };
+type Props = { pending: boolean; error: unknown; onSend: (message: string) => void; notice?: string | null };
 
-export function ChatPanel({ pending, error, onSend }: Props) {
+export function ChatPanel({ pending, error, onSend, notice }: Props) {
   const { t } = useTranslation();
   const messages = useChat();
   const [text, setText] = useState("");
@@ -40,7 +40,9 @@ export function ChatPanel({ pending, error, onSend }: Props) {
       <h2 id="chat-title" className="mb-3 text-lg font-bold">{t("chat.title")}</h2>
 
       <div className="min-h-40 flex-1 space-y-3 overflow-y-auto pr-1" aria-live="polite" aria-relevant="additions">
-        {messages.length === 0 && <p className="text-sm text-ink-soft">{t("chat.empty")}</p>}
+        {messages.length === 0 && (notice
+          ? <p className="rounded-lg border border-ok/30 bg-ok-soft px-3 py-2 text-sm">{notice}</p>
+          : <p className="text-sm text-ink-soft">{t("chat.empty")}</p>)}
         {messages.map((m, i) => m.role === "you" ? (
           <div key={i} className="ml-6 rounded-lg bg-primary-soft px-3 py-2 text-sm">
             <span className="sr-only">{t("chat.you")}: </span>{m.text}

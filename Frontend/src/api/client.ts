@@ -60,6 +60,8 @@ export const api = {
   basket: (id: string) => request<Basket>("GET", `/api/basket/${id}`),
   editBasket: (id: string, edits: LineEdit[], requestedDate?: string) =>
     request<ChatResponse>("PATCH", `/api/basket/${id}`, { edits, requested_date: requestedDate ?? null }),
+  /** Only a draft can be deleted; a signed or ordered basket answers 409. */
+  deleteBasket: (id: string) => request<{ deleted: string }>("DELETE", `/api/basket/${id}`),
   confirm: (id: string) => request<ChatResponse>("POST", `/api/basket/${id}/confirm`),
   // One person uses the system and holds every permission, so the approval is
   // always signed with the most senior role the backend knows.

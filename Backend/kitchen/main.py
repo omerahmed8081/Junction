@@ -26,7 +26,7 @@ from kitchen import agent, audit, keys, ordering, storage, suggestions  # noqa: 
 from kitchen.inventory import Inventory  # noqa: E402
 from kitchen.gateway_client import GatewayClient, GatewayError, GatewayRefused  # noqa: E402
 from kitchen import narrate  # noqa: E402
-from kitchen.need import parse_need, parse_needs  # noqa: E402
+from kitchen.need import mentioned_date, parse_need, parse_needs  # noqa: E402
 from kitchen.ordering import KitchenSigner, OrderingError  # noqa: E402
 from shared.schemas import (  # noqa: E402
     ApproveRequest,
@@ -135,9 +135,18 @@ def chat(req: ChatRequest) -> ChatResponse:
     With `basket_id` set they are added to that basket instead of a new one.
     """
     state = _state(req.basket_id) if req.basket_id else None
+    if state is not None and state.basket.status != "draft":
+        # A basket whose price Aimo has signed (or that is ordered) is closed to
+        # the chat: adding to it would quietly void the signature. The message
+        # starts the next order instead.
+        state = None
+    asked_date = mentioned_date(req.message)
     try:
         needs = parse_needs(req.message)
     except ValueError as exc:
+        if state is not None and asked_date is not None:
+            # "Deliver on Friday instead": no product, only a new date for the basket.
+            return _redate(state, asked_date)
         audit.log.record("parse_need", basket_id=req.basket_id or "", actor="human",
                          inputs={"message": req.message}, reason=str(exc),
                          detail="could not read a quantity and a product from the message")
@@ -152,6 +161,22 @@ def chat(req: ChatRequest) -> ChatResponse:
     replies: list[str] = []
     all_steps: list = []
     failed: list[str] = []
+    if state is not None:
+        if asked_date is None:
+            # A follow-up that names no date keeps the basket's date, rather than
+            # moving the whole basket to the parser's default.
+            for need in needs:
+                need.requested_date = state.basket.requested_date
+        elif state.basket.lines and needs[0].requested_date != state.basket.requested_date:
+            # A new date for the new items is a new date for the basket: every
+            # line already in it is checked again for that day.
+            state.basket.requested_date = needs[0].requested_date
+            try:
+                notes = agent.reprice(state, gateway, all_steps)
+            except GatewayError as exc:
+                raise HTTPException(status_code=502, detail=str(exc)) from exc
+            replies.append(f"Delivery moved to {_day(state.basket.requested_date)}.")
+            replies.extend(notes)
     for need in needs:
         try:
             state, reply, steps = agent.add_need(state, need, gateway)
@@ -185,15 +210,55 @@ def _join(names: list[str]) -> str:
     return ", ".join(names[:-1]) + " and " + names[-1]
 
 
+def _day(when: date) -> str:
+    """Tuesday 17 November: how a chef says a delivery date."""
+    return f"{narrate.WEEKDAYS[when.weekday()]} {when.day} {narrate.MONTHS[when.month - 1]}"
+
+
+def _redate(state: agent.BasketState, new_date: date) -> ChatResponse:
+    """Move the whole basket to another delivery date and check every line again."""
+    if new_date == state.basket.requested_date:
+        return ChatResponse(reply=f"The basket is already for {_day(new_date)}.", basket=state.basket)
+    steps: list = []
+    state.basket.requested_date = new_date
+    try:
+        notes = agent.reprice(state, gateway, steps)
+    except GatewayError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    audit.log.record_steps(steps, state.basket.basket_id)
+    _save()
+    reply = f"Delivery moved to {_day(new_date)}. " + (
+        " ".join(notes) if notes else "Every line can still be delivered on that day.")
+    return ChatResponse(reply=reply, basket=state.basket, steps=steps)
+
+
 @app.get("/api/basket/{basket_id}", response_model=Basket)
 def get_basket(basket_id: str) -> Basket:
     return _state(basket_id).basket
+
+
+@app.delete("/api/basket/{basket_id}")
+def delete_basket(basket_id: str) -> dict:
+    """Throw away a draft. A basket Aimo has signed, or that is ordered, is kept:
+    it is part of the record, and its signed price may already be with a manager."""
+    state = _state(basket_id)
+    if state.basket.status != "draft":
+        raise HTTPException(status_code=409,
+                            detail=f"this basket is {state.basket.status} and can no longer be deleted")
+    del baskets[basket_id]
+    audit.log.record("delete_basket", basket_id=basket_id, actor="human",
+                     detail=f"draft deleted with {len(state.basket.lines)} line(s)")
+    _save()
+    return {"deleted": basket_id}
 
 
 @app.patch("/api/basket/{basket_id}", response_model=ChatResponse)
 def edit_basket(basket_id: str, req: BasketEditRequest) -> ChatResponse:
     """Change a quantity, swap to an alternative, or remove a line."""
     state = _state(basket_id)
+    if req.requested_date and not req.edits:
+        # A new date alone: check every line again for that day, not just relabel.
+        return _redate(state, req.requested_date)
     if req.requested_date:
         state.basket.requested_date = req.requested_date
     try:
