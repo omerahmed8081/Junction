@@ -42,18 +42,18 @@ export function BasketLine({ line, editable, busy, onEdit }: Props) {
   const inBulk = line.need_unit !== line.sales_unit;       // asked in litres or kilograms, sold in units or cases
 
   return (
-    <Card className="p-4">
+    <Card className="p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-        <h3 className="min-w-0 flex-1 basis-64 text-base font-semibold leading-snug" lang="en">{line.name}</h3>
+        <h3 className="min-w-0 flex-1 basis-64 text-lg font-bold leading-snug tracking-tight" lang="en">{line.name}</h3>
         <p className="text-right">
-          <span className="tabular block text-lg font-bold">{money(line.line_net)}</span>
+          <span className="tabular block text-2xl font-extrabold tracking-tight">{money(line.line_net)}</span>
           <span className="tabular block text-xs text-ink-soft">{t("basket.net")} · {t("basket.vat")} {money(line.line_vat)}</span>
         </p>
       </div>
 
       {/* The unit sum, in words: the part a chef checks first. */}
       {inBulk && (
-        <p className="tabular mt-2 rounded-lg bg-sunken px-3 py-2 text-sm">
+        <p className="tabular mt-3 rounded-2xl bg-surface px-4 py-3 text-sm">
           {amount(line.need_value, line.need_unit)} → <strong>{amount(line.quantity_sales_units, line.sales_unit)}</strong>
           {line.size_per_sales_unit ? <> × {amount(line.size_per_sales_unit, line.size_unit)}</> : null}
           {" = "}<strong>{amount(line.delivered_amount, line.need_unit)}</strong>
@@ -72,7 +72,7 @@ export function BasketLine({ line, editable, busy, onEdit }: Props) {
                 onChange={(e) => setDraft(e.target.value)}
                 onBlur={() => commit(Number(draft.replace(",", ".")))}
                 onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setDraft(String(line.quantity_sales_units)); }}
-                className="tabular min-h-11 w-24 rounded-lg border border-border-strong bg-surface px-2 text-center text-base font-semibold" />
+                className="tabular min-h-11 w-24 rounded-full border border-border-strong bg-surface px-2 text-center text-base font-semibold" />
               <Button aria-label={t("basket.increase")} disabled={busy} onClick={() => commit(line.quantity_sales_units + 1)} className="min-w-11 px-0"><Plus className="size-4" aria-hidden /></Button>
             </>) : <span id={`${id}-q`} className="tabular text-base font-semibold">{number(line.quantity_sales_units)}</span>}
             <span className="text-sm text-ink-soft">{unitLabel(line.sales_unit)}</span>
@@ -105,11 +105,11 @@ export function BasketLine({ line, editable, busy, onEdit }: Props) {
         <div className="mt-3 flex flex-wrap items-start gap-2">
           {alternatives.length > 0 && (
             <details className="group min-w-0 flex-1 basis-72">
-              <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-lg border border-border-strong px-3 text-sm font-semibold hover:bg-sunken">
+              <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-full border border-border bg-surface px-4 text-sm font-semibold hover:bg-sunken">
                 <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden />
                 {t("basket.alternatives", { count: alternatives.length })}
               </summary>
-              <ul className="mt-2 divide-y divide-border rounded-lg border border-border">
+              <ul className="mt-2 divide-y divide-border rounded-2xl bg-surface">
                 {alternatives.map((a) => (
                   <li key={a.product_id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 p-3">
                     <div className="min-w-0 flex-1 basis-56">

@@ -1,22 +1,28 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
 
-/* Design tokens. Components use these names, never raw colours. */
+/* Design tokens. Components use these names, never raw colours.
+   Look: white page, soft grey cards with large corners, black pill buttons,
+   one lilac accent for the main action, heavy tight headings. */
 @theme {
   --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  --color-bg: #f6f7f5;
-  --color-surface: #ffffff;
-  --color-sunken: #eef0ec;
-  --color-border: #d5d9d2;
-  --color-border-strong: #8a9186;      /* 3:1 on white, for input outlines */
-  --color-ink: #161a15;                /* body text, 16:1 on white */
-  --color-ink-soft: #4a5247;           /* secondary text, 8:1 on white */
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;            /* inputs, dialogs, cards inside cards */
+  --color-card: #f2f1f3;               /* the grey panel every section sits on */
+  --color-sunken: #e9e8ec;
+  --color-border: #dddce0;
+  --color-border-strong: #85848b;      /* 3:1 on white and on card, for input outlines */
+  --color-ink: #19171c;                /* body text, 17:1 on white */
+  --color-ink-soft: #5f5e66;           /* secondary text, 6:1 on white, 5.7:1 on card */
 
-  --color-primary: #14532d;            /* deep green, 9:1 on white */
-  --color-primary-hover: #0f3f22;
+  --color-primary: #19171c;            /* black pill buttons */
+  --color-primary-hover: #35323b;
   --color-on-primary: #ffffff;
-  --color-primary-soft: #e6f2ea;
+  --color-primary-soft: #f2f1f3;
+  --color-accent: #b593ff;             /* the one main action; ink text on it is 8:1 */
+  --color-accent-hover: #a47dff;
+  --color-link: #5b2fc9;               /* 7:1 on white */
 
   --color-warn: #8a4b00;               /* text on warn-soft: 6:1 */
   --color-warn-soft: #fdf1dc;
@@ -24,12 +30,16 @@
   --color-danger: #9f1c1c;             /* 7:1 on white */
   --color-danger-soft: #fdeaea;
   --color-ok: #14532d;
-  --color-ok-soft: #e6f2ea;
-  --color-info-soft: #e8eef7;
-  --color-info: #1e3a6e;
+  --color-ok-soft: #e3f5e8;
+  --color-info-soft: #e6f4ff;
+  --color-info: #0b4a7a;
 
-  --radius-card: 0.625rem;
+  --radius-lg: 1rem;                   /* every rounded-lg: inputs, small panels */
+  --radius-card: 1.75rem;
 }
+
+/* A card inside a card turns white, so it still reads as a separate thing. */
+.tta-card .tta-card { background: var(--color-surface); }
 
 html { background: var(--color-bg); color: var(--color-ink); }
 body { font-family: var(--font-sans); font-size: 1rem; line-height: 1.5; min-height: 100dvh; }

@@ -72,7 +72,7 @@ export function OrderPage() {
     <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_19rem] xl:grid-cols-[21rem_minmax(0,1fr)_20rem]">
       {/* Chat: its own column on a wide screen, a drawer everywhere else. */}
       <aside className="hidden xl:block">
-        <Card className="sticky top-20 flex h-[calc(100dvh-7rem)] flex-col p-4">{chat}</Card>
+        <Card className="sticky top-20 flex h-[calc(100dvh-7rem)] flex-col p-5">{chat}</Card>
       </aside>
       <Dialog.Root open={chatOpen} onOpenChange={setChatOpen}>
         <Dialog.Portal>
@@ -88,7 +88,7 @@ export function OrderPage() {
       {/* The basket. */}
       <section aria-labelledby="basket-title" className="min-w-0 space-y-4">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <h1 id="basket-title" className="text-2xl font-bold tracking-tight">{t("basket.title")}</h1>
+          <h1 id="basket-title" className="text-3xl font-extrabold leading-none tracking-[-0.04em] sm:text-4xl">{t("basket.title")}</h1>
           {basket && <StatusSteps status={basket.status} />}
           <div className="ml-auto flex gap-2">
             <Button className="xl:hidden" icon={<MessageSquare className="size-4" aria-hidden />} onClick={() => setChatOpen(true)}>{t("chat.open")}</Button>
@@ -106,9 +106,9 @@ export function OrderPage() {
         <Dialog.Root open={confirmDelete} onOpenChange={(o) => { if (!actions.remove.isPending) setConfirmDelete(o); }}>
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 z-40 bg-black/45" />
-            <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(28rem,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-surface p-5 shadow-xl"
+            <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(28rem,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-[1.75rem] bg-surface p-6 shadow-2xl"
               onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement).querySelector<HTMLButtonElement>("[data-cancel]")?.focus(); }}>
-              <Dialog.Title className="text-lg font-bold">{t("basket.deleteTitle")}</Dialog.Title>
+              <Dialog.Title className="text-2xl font-extrabold tracking-[-0.03em]">{t("basket.deleteTitle")}</Dialog.Title>
               <Dialog.Description className="mt-1 text-sm text-ink-soft">{t("basket.deleteBody", { count: lines.length })}</Dialog.Description>
               <div className="mt-5 flex flex-wrap justify-end gap-2">
                 <Dialog.Close asChild><Button data-cancel disabled={actions.remove.isPending}>{t("service.cancel")}</Button></Dialog.Close>
@@ -156,7 +156,7 @@ export function OrderPage() {
               <label htmlFor="deliver-by" className="font-semibold">{t("basket.deliverBy")}</label>
               <input id="deliver-by" type="date" value={basket.requested_date ?? ""} disabled={!editable || busy}
                 onChange={(e) => e.target.value && actions.edit.mutate({ edits: [], requestedDate: e.target.value })}
-                className="tabular min-h-11 rounded-lg border border-border-strong bg-surface px-3 text-base disabled:opacity-60" />
+                className="tabular min-h-11 rounded-full border border-border-strong bg-surface px-4 text-base disabled:opacity-60" />
               {cutoff && basket.status !== "ordered" && (
                 <p className={left ? "text-ink-soft" : "font-semibold text-danger"}>
                   {left ? <>{t("basket.orderBefore", { when: dayTime(cutoff) })} · <span className="tabular">{t("basket.timeLeft", { time: left })}</span></> : t("basket.cutoffPassed")}
@@ -167,15 +167,15 @@ export function OrderPage() {
             <ul className="space-y-3">
               {lines.map((line) => <li key={line.product_id}><BasketLine line={line} editable={editable} busy={busy} onEdit={edit} /></li>)}
             </ul>
-            {editable && <p className="rounded-(--radius-card) border border-dashed border-border-strong p-3 text-center text-sm text-ink-soft">{t("basket.addMore")}</p>}
+            {editable && <p className="rounded-(--radius-card) border border-dashed border-border-strong p-4 text-center text-sm text-ink-soft">{t("basket.addMore")}</p>}
           </>
         )}
       </section>
 
       {/* Totals, the action, and what is running low. */}
       <aside className="space-y-5 md:sticky md:top-20 md:max-h-[calc(100dvh-6rem)] md:self-start md:overflow-y-auto md:col-start-2 xl:col-start-3">
-        {panelProps && <Card className="p-4"><ActionPanel {...panelProps} /></Card>}
-        <Card className="p-4">
+        {panelProps && <Card className="p-5"><ActionPanel {...panelProps} /></Card>}
+        <Card className="p-5">
           <SuggestionsPanel
             draftingId={actions.draftSuggestion.isPending ? actions.draftSuggestion.variables ?? null : null}
             onDraft={(id) => { setOutcome(null); actions.draftSuggestion.mutate(id); }}

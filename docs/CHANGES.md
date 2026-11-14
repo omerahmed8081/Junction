@@ -7,6 +7,18 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Saturday 14 November
 
+### 20:00 - frontend restyle: class names only, no behaviour change
+
+White page, soft grey cards with large corners, black pill buttons, one lilac
+button for the main action (confirm, approve, sign mandate), heavier headings.
+
+- All colours and radii are in the `@theme` block of `Frontend/src/index.css`.
+  New tokens: `card`, `accent`, `accent-hover`, `link`. `rounded-lg` is now 1rem.
+- `Button` gained `variant="accent"`. `Card` is grey and borderless; a card
+  inside a card turns white (`.tta-card .tta-card`).
+- Not touched: `api/`, `lib/`, `i18n/`, `useBasket.ts`, `useWaitingBaskets.ts`,
+  the fixtures. No new strings, no new dependencies. `npm run build` passes.
+
 ### 19:45 - the chat keeps working on one order until its price is signed
 
 Behaviour the chef asked for, with two small backend changes and one fix.
