@@ -302,3 +302,76 @@ def test_the_gateway_reset_clears_its_memory_too():
     assert log.recent("c_1")
     assert log.forget_memory() == 1
     assert log.recent("c_1") == []
+
+
+# --------------------------------------- the reset must empty the table too
+
+
+class RowPool:
+    """A pool holding rows, so a reset that only clears memory is caught.
+
+    The first fix for this cleared the deque and left the table, which looked
+    right in every memory-only test and left the real log full.
+    """
+
+    def __init__(self, rows: int = 6):
+        self.rows = rows
+        self.deleted: list[tuple[str, tuple]] = []
+
+    class _Cur:
+        def __init__(self, rowcount): self.rowcount = rowcount
+        def fetchone(self): return None
+        def fetchall(self): return []
+
+    class _Conn:
+        def __init__(self, pool): self.pool = pool
+        def __enter__(self): return self
+        def __exit__(self, *exc): return False
+
+        def execute(self, sql, params=None):
+            text = " ".join(sql.split())
+            if text.startswith("DELETE"):
+                self.pool.deleted.append((text, params or ()))
+                gone, self.pool.rows = self.pool.rows, 0
+                return RowPool._Cur(gone)
+            return RowPool._Cur(0)
+
+    def connection(self, timeout=None):
+        return self._Conn(self)
+
+
+def test_the_kitchen_reset_empties_the_table_not_only_the_memory():
+    from kitchen import audit as kitchen_audit
+
+    pool = RowPool(rows=6)
+    log = kitchen_audit.KitchenAudit(pool)
+    gone = log.forget_everything()
+    assert gone == 6, f"the rows were not deleted: {gone}"
+    assert pool.deleted and "kitchen.audit_log" in pool.deleted[0][0]
+
+
+def test_the_gateway_reset_deletes_only_this_customers_rows():
+    """The gateway's table is shared, so a rehearsal must not wipe another
+    tenant's trail."""
+    from gateway import audit as gateway_audit
+
+    pool = RowPool(rows=2)
+    log = gateway_audit.AuditLog(pool)
+    gone = log.forget_customer("c_demo")
+    assert gone == 2
+    statement, params = pool.deleted[0]
+    assert "gateway.audit_log" in statement
+    assert "WHERE customer_id" in statement, "every customer's rows would go"
+    assert params == ("c_demo",)
+
+
+def test_a_database_that_is_away_still_clears_what_it_can():
+    from kitchen import audit as kitchen_audit
+
+    class Away:
+        def connection(self, timeout=None): raise RuntimeError("database is away")
+
+    log = kitchen_audit.KitchenAudit(Away())
+    log.record(kitchen_audit.KitchenRecord(at=NOW, step="search", detail="looked"))
+    assert log.forget_everything() == 1          # the memory row, and no crash
+    assert log.recent() == []

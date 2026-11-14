@@ -157,6 +157,29 @@ class AuditLog:
         self._fallback.clear()
         return held
 
+    def forget_customer(self, customer_id: str) -> int:
+        """Delete one customer's rows, in the database as well as in memory.
+
+        For the labelled demo reset only; see the kitchen's version for why an
+        append-only log has a delete at all. Scoped to the customer because
+        this table is shared: a rehearsal must not wipe another tenant's trail.
+        """
+        gone = sum(1 for e in self._fallback if e.customer_id == customer_id)
+        self._fallback = deque(
+            (e for e in self._fallback if e.customer_id != customer_id),
+            maxlen=FALLBACK_LIMIT)
+        if self._pool is None:
+            return gone
+        try:
+            with self._pool.connection(timeout=5.0) as conn:
+                deleted = conn.execute(
+                    "DELETE FROM gateway.audit_log WHERE customer_id = %s",
+                    (customer_id,)).rowcount
+            return gone + max(deleted, 0)
+        except Exception as exc:        # noqa: BLE001
+            print(f"[gateway] the audit rows were not deleted: {type(exc).__name__}: {exc}")
+            return gone
+
     def _worth_retrying(self) -> bool:
         import time
         return not self.degraded or (time.monotonic() - self._failed_at) > RETRY_AFTER_SECONDS

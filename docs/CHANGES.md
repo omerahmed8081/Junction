@@ -7,6 +7,29 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Sunday 15 November
 
+### 05:10 - the reset button left the audit rows in the table
+
+The 04:35 entry fixed half of this. The audit log keeps rows in memory when the
+database is away, and that half was cleared - but **no code anywhere in either
+service deleted a row from an audit table**. Only `scripts/clean_slate.py` ever
+truncated them. So the `/demo` reset button cleared the orders and the baskets
+and left every row in Postgres, which is why Activity showed six accepted
+orders beside "No orders yet".
+
+`forget_everything()` on the kitchen's log and `forget_customer()` on the
+gateway's, both called by their reset. An audit log is append-only by design
+and nothing in production calls either; the demo reset is labelled demo-only
+for this reason. The gateway's is scoped to the customer because that table is
+shared - a rehearsal must not wipe another tenant's trail.
+
+Checked against a real Postgres: six kitchen rows and two of this customer's
+gateway rows go, a second tenant's row stays. 317 tests.
+
+**The lesson, since it cost two rounds:** the first fix was verified only
+against memory, and memory was not where the data was. A reset is not proved by
+the object that holds the data agreeing it is empty - it is proved by asking
+the store the application actually reads from.
+
 ### 04:35 - state that outlived a reset
 
 Three things survived a reset that should not have. All three had the same

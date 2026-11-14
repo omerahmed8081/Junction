@@ -646,7 +646,7 @@ def demo_reset() -> dict:
     kitchen.mandate = None
     kitchen.stopped = False                     # a reset starts the agent again
     storage.clear()
-    counts["audit_rows_in_memory"] = audit.log.forget_memory()
+    counts["audit_rows"] = audit.log.forget_everything()
     GENERATION = _new_generation()              # the browser drops its transcript
     mandate = kitchen.mandate_in_force()        # a fresh one, so the next order works
     return {"cleared": counts, "generation": GENERATION,

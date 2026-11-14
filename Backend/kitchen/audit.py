@@ -134,6 +134,32 @@ class KitchenAudit:
                                  # step after a reset would be swallowed
         return held
 
+    def forget_everything(self) -> int:
+        """Delete every row, in the database as well as in memory.
+
+        For the labelled demo reset only. An audit log is append-only by
+        design and nothing in production would call this - but the demo reset
+        clears the orders and the baskets, and a log that outlives them is
+        worse than no log at all: the Activity page showed a full history of
+        accepted orders beside "No orders yet", which is exactly the
+        disagreement between two views that this project exists to rule out.
+        `scripts/clean_slate.py` already truncates this table; this is the
+        same clean slate from the button.
+
+        There is no tenant column because one service is one kitchen, so every
+        row here belongs to the kitchen doing the resetting.
+        """
+        gone = self.forget_memory()
+        if self._pool is None:
+            return gone
+        try:
+            with self._pool.connection(timeout=5.0) as conn:
+                deleted = conn.execute("DELETE FROM kitchen.audit_log").rowcount
+            return gone + max(deleted, 0)
+        except Exception as exc:        # noqa: BLE001
+            print(f"[kitchen] the audit rows were not deleted: {type(exc).__name__}: {exc}")
+            return gone
+
     def _worth_retrying(self) -> bool:
         """Aiven's free tier powers off when idle and takes about half a minute
         to wake, so one timeout must not send us to memory until a restart."""
