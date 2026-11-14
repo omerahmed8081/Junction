@@ -61,15 +61,16 @@ export function ActivityPage() {
           <ul className="mt-3 space-y-2">
             {(orders.data ?? []).map((o) => (
               <li key={o.order_id}>
-                <details open={openOrder === o.order_id}
-                  onToggle={(e) => {
-                    const next = new URLSearchParams(params);
-                    if ((e.currentTarget as HTMLDetailsElement).open) next.set("order", o.order_id);
-                    else if (openOrder === o.order_id) next.delete("order");
-                    setParams(next, { replace: true });
-                  }}
-                  className="rounded-2xl bg-surface">
-                  <summary className="flex min-h-11 cursor-pointer flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
+                <details open={openOrder === o.order_id} className="rounded-2xl bg-surface">
+                  <summary
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const next = new URLSearchParams(params);
+                      if (openOrder === o.order_id) next.delete("order");
+                      else next.set("order", o.order_id);
+                      setParams(next, { replace: true });
+                    }}
+                    className="flex min-h-11 cursor-pointer flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
                     <span><span className="font-semibold">{o.order_id}</span> <span className="text-ink-soft">· {dayTime(o.placed_at)}</span></span>
                     <span className="tabular">{t("basket.delivery")} {day(o.delivery_date)} · <span className="font-semibold">{money(o.net_total)}</span> {t("basket.net").toLowerCase()}</span>
                   </summary>

@@ -603,8 +603,14 @@ def order_audit(order_id: str) -> dict:
     ours = audit.log.recent(limit=500, order_id=order_id)
     # Only the approval row carries the order id; everything before it belongs
     # to the basket that became this order, and that is most of the story.
-    basket_id = next((b.basket.basket_id for b in baskets.values()
-                      if b.basket.order_id == order_id), "")
+    #
+    # The basket is looked up in the log first and only then in memory: a
+    # restart empties `baskets`, and an order from before it would then show
+    # Aimo's single row and nothing of the kitchen's.
+    basket_id = next((r.get("basket_id") for r in ours if r.get("basket_id")), "")
+    if not basket_id:
+        basket_id = next((b.basket.basket_id for b in baskets.values()
+                          if b.basket.order_id == order_id), "")
     if basket_id:
         seen = {r.get("id") for r in ours}
         ours += [r for r in audit.log.recent(limit=500, basket_id=basket_id)
