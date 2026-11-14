@@ -5,7 +5,10 @@ touches every real moving part over HTTP in the order the demo does, and says
 which one is broken. Run it after deploying, and again before the pitch.
 
     python scripts/smoke_test.py
-    python scripts/smoke_test.py --kitchen https://kitchen.example --gateway https://gw.example
+    python scripts/smoke_test.py --kitchen http://your-host --gateway http://your-host
+
+Behind one front door both flags are the same address: every path used here is
+under /api or /gateway, which is what the proxy passes through to each service.
 
 Exit code 0 means the demo path works end to end. Nothing here writes to the
 catalogue; it does place a real order against the Aimo mock, so run the demo
@@ -71,7 +74,7 @@ def main() -> int:
     print(f"kitchen {args.kitchen}\ngateway {args.gateway}\n")
 
     # ---- 1. both services up, and the gateway's database reachable ---------
-    gw_health = step(gateway, "gateway /health", "GET", "/health")
+    gw_health = step(gateway, "gateway /health", "GET", "/gateway/health")
     if gw_health and gw_health.get("status") == "degraded":
         record("gateway database", FAIL,
                f"catalogue unreachable, search and quotes will fail: {gw_health.get('detail')}")
@@ -79,10 +82,10 @@ def main() -> int:
         record("gateway database", PASS, f"{gw_health.get('products')} products loaded")
         if not gw_health.get("products"):
             record("catalogue loaded", FAIL, "0 products: run scripts/load_catalogue.py")
-    step(kitchen, "kitchen /health", "GET", "/health")
+    step(kitchen, "kitchen /health", "GET", "/api/health")
 
     # ---- 2. keys published, so a quote can be verified by anyone ----------
-    gw_jwks = step(gateway, "gateway JWKS", "GET", "/.well-known/jwks.json")
+    gw_jwks = step(gateway, "gateway JWKS", "GET", "/gateway/.well-known/jwks.json")
     if gw_jwks is not None:
         kids = [k.get("kid") for k in gw_jwks.get("keys", [])]
         if not kids:
@@ -91,7 +94,7 @@ def main() -> int:
             record("gateway public key", FAIL, "PRIVATE KEY IS BEING SERVED — stop and fix")
         else:
             record("gateway public key", PASS, f"kid {kids[0]}")
-    step(kitchen, "kitchen JWKS", "GET", "/.well-known/jwks.json")
+    step(kitchen, "kitchen JWKS", "GET", "/api/.well-known/jwks.json")
 
     unknown = httpx.Client(base_url=args.gateway, timeout=20.0,
                            headers={"X-API-Key": "not-a-real-key"})

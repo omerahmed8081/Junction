@@ -33,6 +33,7 @@ UNIT_WORDS = {
 }
 _UNITS = "|".join(sorted(UNIT_WORDS, key=len, reverse=True))
 _NUMBER = r"\d{1,3}(?:[ ,.]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?"
+NUMBER_PATTERN = _NUMBER
 DEFAULT_LEAD_DAYS = 3
 
 
@@ -52,10 +53,23 @@ class ParsedNeed(BaseModel):
 
 
 def _number(text: str) -> float:
+    """A number the way a person types it: 1,000 / 1 000 / 1.000 / 2,5 / 1,234.5.
+
+    The one reader for amounts in a chat message. The edit path had its own,
+    which turned every comma into a decimal point, so "make it 2,000 L" set the
+    line to two litres.
+    """
     text = text.strip().replace(" ", "")
     if re.fullmatch(r"\d{1,3}(?:[,.]\d{3})+", text):          # 1,000 or 1.000 is a thousand
         return float(re.sub(r"[,.]", "", text))
+    grouped = re.fullmatch(r"(\d{1,3}(?:[,.]\d{3})+)[.,](\d+)", text)
+    if grouped:                                                # 1,234.5 or 1.234,5
+        return float(re.sub(r"[,.]", "", grouped.group(1)) + "." + grouped.group(2))
     return float(text.replace(",", "."))
+
+
+# For the other readers of a chat message, so there is one definition of a number.
+read_number = _number
 
 
 def _date(text: str, today: date) -> tuple[date, str]:

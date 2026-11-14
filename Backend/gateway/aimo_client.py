@@ -37,6 +37,31 @@ BASE_URL = os.environ.get("AIMO_BASE_URL", "https://junction26.valioaimo.fi")
 API_KEY = os.environ.get("JUNCTION_API_KEY", "")
 CUSTOMER_ID = os.environ.get("AIMO_CUSTOMER_ID", "123")
 
+# How long an answer from Aimo may be reused. Long enough that building one
+# basket does not ask the same question five times, short enough that a price
+# or a stock level that moves is seen. It used to be for ever, which meant the
+# re-check at order time got the quote's own answer back and could never notice
+# that stock had changed.
+CACHE_SECONDS = float(os.environ.get("AIMO_CACHE_SECONDS", "60"))
+
+
+def upstream_customer(customer_id: str | None) -> str:
+    """The customer number to price for at Aimo.
+
+    Aimo prices by contract, so the gateway's customer decides whose prices are
+    fetched. `AIMO_CUSTOMER_MAP` ("456=300500,789=300612") says which Aimo
+    customer each of ours is. One we have no mapping for is priced on the
+    default contract rather than sent upstream as a number Aimo has never heard
+    of: this prototype holds a single real contract, and an unknown customer
+    must still be able to see a price.
+    """
+    wanted = (customer_id or "").strip()
+    for pair in (os.environ.get("AIMO_CUSTOMER_MAP") or "").split(","):
+        ours, _, theirs = pair.partition("=")
+        if ours.strip() and ours.strip() == wanted and theirs.strip():
+            return theirs.strip()
+    return CUSTOMER_ID
+
 BROWSER_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
@@ -87,7 +112,7 @@ class AimoClient:
 
     def __init__(self, timeout: float = 20.0, sleep: Any = time.sleep) -> None:
         self._client = httpx.Client(base_url=BASE_URL, headers=_headers(), timeout=timeout)
-        self._cache: dict[tuple[str, str, str], dict[str, Any]] = {}
+        self._cache: dict[tuple[str, str, str, str], tuple[float, dict[str, Any]]] = {}
         self._sleep = sleep               # injectable, so tests do not really wait
         self._last_call_at = 0.0
 
@@ -97,17 +122,30 @@ class AimoClient:
     def ping(self) -> bool:
         return self._client.get("/api/ping").status_code == 200
 
-    def _post(self, path: str, product_ids: list[str], requested_date: date) -> dict[str, Any]:
-        key = (path, requested_date.isoformat(), ",".join(sorted(product_ids)))
-        if key in self._cache:
-            return self._cache[key]
+    # A class attribute, so a client built without __init__ (the tests do) has it.
+    _clock = staticmethod(time.monotonic)
+
+    def _post(self, path: str, product_ids: list[str], requested_date: date,
+              customer: str | None = None, fresh: bool = False) -> dict[str, Any]:
+        """One question to Aimo, reused for CACHE_SECONDS.
+
+        `fresh=True` asks again whatever is cached. The order-time re-check uses
+        it: the whole point of that check is to see what changed since the quote.
+        """
+        upstream = upstream_customer(customer)
+        key = (path, requested_date.isoformat(), ",".join(sorted(product_ids)), upstream)
+        cached = self._cache.get(key)
+        if cached is not None and not fresh:
+            stored_at, payload = cached
+            if self._clock() - stored_at <= CACHE_SECONDS:
+                return payload
         body = {
-            "customer": CUSTOMER_ID,
+            "customer": upstream,
             "requestedDate": requested_date.isoformat(),
             "products": product_ids,
         }
         payload = self._post_with_backoff(path, body)
-        self._cache[key] = payload
+        self._cache[key] = (self._clock(), payload)
         return payload
 
     def _space_calls(self) -> None:
@@ -138,14 +176,16 @@ class AimoClient:
             return response.json()
         raise AimoRateLimited(path)      # unreachable, kept for the type checker
 
-    def prices(self, product_ids: Iterable[str], requested_date: date) -> dict[str, dict[str, Any]]:
+    def prices(self, product_ids: Iterable[str], requested_date: date, *,
+               customer: str | None = None, fresh: bool = False) -> dict[str, dict[str, Any]]:
         ids = list(dict.fromkeys(product_ids))[:MAX_PRODUCTS_PER_CALL]
-        payload = self._post("/api/price", ids, requested_date)
+        payload = self._post("/api/price", ids, requested_date, customer, fresh)
         return {p["productId"]: p for p in payload.get("products", [])}
 
-    def availability(self, product_ids: Iterable[str], requested_date: date) -> dict[str, dict[str, Any]]:
+    def availability(self, product_ids: Iterable[str], requested_date: date, *,
+                     customer: str | None = None, fresh: bool = False) -> dict[str, dict[str, Any]]:
         ids = list(dict.fromkeys(product_ids))[:MAX_PRODUCTS_PER_CALL]
-        payload = self._post("/api/availability", ids, requested_date)
+        payload = self._post("/api/availability", ids, requested_date, customer, fresh)
         return {p["productId"]: p for p in payload.get("products", [])}
 
 

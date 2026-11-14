@@ -22,6 +22,18 @@ KITCHEN_URL = os.environ.get("KITCHEN_URL", "http://localhost:8002/restaurant-de
 KITCHEN_KID = os.environ.get("KITCHEN_KID", "kitchen-2026-11")
 GATEWAY_URL = os.environ.get("GATEWAY_URL", "http://localhost:8001")
 
+def gateway_issuer() -> str:
+    """The name the gateway signs as, and the name tokens are addressed to.
+
+    Not the same thing as GATEWAY_URL, which is where to reach it. They were one
+    variable, so quotes on the public site were issued by "http://localhost:8001",
+    and the obvious fix - setting GATEWAY_URL to the public address - would have
+    pointed the kitchen's own calls at the wrong place. GATEWAY_ISSUER is the
+    public identity; unset, it is GATEWAY_URL, as it always was.
+    """
+    return os.environ.get("GATEWAY_ISSUER") or GATEWAY_URL
+
+
 _aimo_verifier: Verifier | None = None
 
 

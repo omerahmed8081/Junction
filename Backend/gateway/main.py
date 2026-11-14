@@ -15,7 +15,13 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # Before any gateway import: aimo_client reads its settings when it is imported.
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+# Tests set TTA_SKIP_DOTENV so that importing this module does not pull the
+# developer's own .env into the test process. It once did: a customer id from
+# .env reached modules that read it at import, and tests run afterwards built
+# mandates for a different customer than their fixtures and saw every order
+# refused - but only under one test ordering.
+if not os.environ.get("TTA_SKIP_DOTENV"):
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from fastapi import Depends, FastAPI, Header, HTTPException  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
@@ -105,9 +111,9 @@ def aimo() -> AimoClient:
     return _aimo
 
 
-def orderable_by(product_ids: list[str], by: date) -> set[str]:
+def orderable_by(product_ids: list[str], by: date, customer: str | None = None) -> set[str]:
     """Ids that can still be ordered for delivery by this date: deliverable, and cutoff not passed."""
-    raw = aimo().availability(product_ids, by)
+    raw = aimo().availability(product_ids, by, customer=customer)
     keep = set()
     for pid in product_ids:
         answer = answer_delivery(raw.get(pid), 1, by)
@@ -142,13 +148,19 @@ def _record(caller: agents.Caller, action: str, outcome: str, status: int,
         print(f"[gateway] could not write the audit row for {action}: {exc}")
 
 
+# Also under /gateway, which is the only part of this service a shared
+# front door passes through. An outside agent finds Aimo's key at
+# <issuer>/.well-known/jwks.json, and behind one origin the issuer ends in
+# /gateway; the bare path is kept for a gateway reached directly.
 @app.get("/.well-known/jwks.json")
+@app.get("/gateway/.well-known/jwks.json")
 def jwks() -> dict:
     """Aimo's public key, so any agent can verify a quote with a standard library."""
     return keys.own_jwks()
 
 
 @app.get("/health")
+@app.get("/gateway/health")
 def health() -> dict:
     """Always answers, and says whether the catalogue database is reachable.
 
@@ -178,7 +190,9 @@ def search_products(req: SearchRequest,
              "product_ids": req.product_ids, "deliverable_by": req.deliverable_by}
     try:
         with pool.connection() as conn:
-            found = catalog.search(conn, req, cutoff_filter=orderable_by)
+            found = catalog.search(
+                conn, req,
+                cutoff_filter=lambda ids, by: orderable_by(ids, by, caller.customer_id))
     except AimoError as exc:
         _record(caller, "search_products", "error", 502, started, request=asked,
                 detail=f"Aimo availability check failed: {exc}")
@@ -218,8 +232,12 @@ def check_delivery(req: CheckDeliveryRequest,
              "items": [{"product_id": i.product_id, "quantity_sales_units": i.quantity_sales_units}
                        for i in req.items]}
     try:
-        raw_prices = aimo().prices(known, req.requested_date) if known else {}
-        raw_availability = aimo().availability(known, req.requested_date) if known else {}
+        # Priced for whoever is asking: Aimo prices by contract.
+        raw_prices = (aimo().prices(known, req.requested_date, customer=caller.customer_id)
+                      if known else {})
+        raw_availability = (aimo().availability(known, req.requested_date,
+                                                customer=caller.customer_id)
+                            if known else {})
     except AimoError as exc:
         _record(caller, "check_delivery", "error", 502, started, request=asked,
                 detail=f"Aimo price or availability call failed: {exc}")
@@ -237,14 +255,22 @@ def check_delivery(req: CheckDeliveryRequest,
 
 
 def _summaries_and_results(product_ids: list[str], quantities: dict[str, float],
-                           requested_date: date):
-    """Catalogue rows and a fresh price and delivery answer for those products."""
+                           requested_date: date, customer: str | None = None,
+                           fresh: bool = False):
+    """Catalogue rows and a price and delivery answer for those products.
+
+    `customer` is whose contract to price on. `fresh` asks Aimo again rather
+    than reusing an answer from the last minute, which the order-time re-check
+    needs: its whole job is to see what changed since the quote.
+    """
     with pool.connection() as conn:
         summaries = {s.product_id: s for s in catalog.summaries(conn, product_ids)}
     sales_units = {pid: s.sales_unit for pid, s in summaries.items()}
     known = [pid for pid in product_ids if pid in summaries]
-    raw_prices = aimo().prices(known, requested_date) if known else {}
-    raw_availability = aimo().availability(known, requested_date) if known else {}
+    raw_prices = (aimo().prices(known, requested_date, customer=customer, fresh=fresh)
+                  if known else {})
+    raw_availability = (aimo().availability(known, requested_date, customer=customer, fresh=fresh)
+                        if known else {})
     items = [CheckDeliveryItem(product_id=pid, quantity_sales_units=quantities[pid])
              for pid in known]
     response = delivery.build_response(items, requested_date, raw_prices,
@@ -279,7 +305,8 @@ def create_quote(req: CreateQuoteRequest,
     started = time.perf_counter()
     asked = {"requested_date": req.requested_date, "lines": quantities}
     try:
-        summaries, results = _summaries_and_results(ids, quantities, req.requested_date)
+        summaries, results = _summaries_and_results(ids, quantities, req.requested_date,
+                                                    customer=caller.customer_id)
     except AimoError as exc:
         _record(caller, "create_quote", "error", 502, started, request=asked,
                 detail=f"Aimo price or availability call failed: {exc}")
@@ -287,7 +314,7 @@ def create_quote(req: CreateQuoteRequest,
 
     try:
         quote = quotes.build_quote(
-            issuer=keys.GATEWAY_URL, customer_id=caller.customer_id, agent_id=caller.agent_id,
+            issuer=keys.gateway_issuer(), customer_id=caller.customer_id, agent_id=caller.agent_id,
             requested_date=req.requested_date, summaries=summaries, results=results,
             wanted=quantities, signer=signer(),
         )
@@ -317,7 +344,10 @@ def place_order(req: PlaceOrderRequest,
     """Accept an order, if the quote, the mandate and the human approval all hold."""
     def recheck(requested_date: date, items: list[CheckDeliveryItem]):
         quantities = {i.product_id: i.quantity_sales_units for i in items}
-        _, results = _summaries_and_results(list(quantities), quantities, requested_date)
+        # Asked again, never from the cache: this is the check that notices the
+        # stock moved or a cut-off passed between the quote and the order.
+        _, results = _summaries_and_results(list(quantities), quantities, requested_date,
+                                            customer=caller.customer_id, fresh=True)
         return results
 
     started = time.perf_counter()
@@ -336,7 +366,7 @@ def place_order(req: PlaceOrderRequest,
                             detail=f"this quote was issued to {agent_id}, not to {caller.agent_id}")
     try:
         placed = orders.place_order(
-            request=req, agent_id=agent_id, gateway_url=keys.GATEWAY_URL,
+            request=req, agent_id=agent_id, gateway_url=keys.gateway_issuer(),
             own_verifier=keys.own_verifier(), kitchen_verifier=kitchen_keys(),
             recheck_delivery=recheck, registry=registry, store=store,
             signer=signer(), new_order_id=quotes.new_order_id,

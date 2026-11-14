@@ -16,7 +16,13 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+# Tests set TTA_SKIP_DOTENV so that importing this module does not pull the
+# developer's own .env into the test process. It once did: a customer id from
+# .env reached modules that read it at import, and tests run afterwards built
+# mandates for a different customer than their fixtures and saw every order
+# refused - but only under one test ordering.
+if not os.environ.get("TTA_SKIP_DOTENV"):
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from fastapi import FastAPI, Header, HTTPException  # noqa: E402
 from psycopg_pool import ConnectionPool  # noqa: E402
@@ -136,13 +142,17 @@ def _state(basket_id: str) -> agent.BasketState:
     return state
 
 
+# Also under /api, the only part of this service a shared front door passes
+# through; the bare path is kept for a kitchen reached directly.
 @app.get("/.well-known/jwks.json")
+@app.get("/api/.well-known/jwks.json")
 def jwks() -> dict:
     """The kitchen's public key, so the gateway can verify its mandates and approvals."""
     return keys.own_jwks()
 
 
 @app.get("/health")
+@app.get("/api/health")
 def health() -> dict:
     return {"status": "ok", "baskets": len(baskets), "orders": len(orders),
             "mandate": kitchen.mandate.payload.jti if kitchen.mandate else None}

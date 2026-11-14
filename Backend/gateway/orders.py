@@ -95,15 +95,15 @@ class OrderStore:
         An ISO week rather than a rolling seven days, so the figure a kitchen
         sees in its rules screen is the same one the gateway enforces.
         """
-        year, week, _ = when.isocalendar()
+        # The kitchen's own week, like the kitchen's own day: with the week in
+        # UTC and the day local, an order placed at 00:30 on a Monday counted
+        # towards Monday's budget and last week's.
+        year, week, _ = _local(when).isocalendar()
         total = 0.0
         for order in self.orders.values():
             if order.customer != customer or order.status != "placed":
                 continue
-            placed = order.placed_at
-            if placed.tzinfo is None:
-                placed = placed.replace(tzinfo=timezone.utc)
-            o_year, o_week, _ = placed.isocalendar()
+            o_year, o_week, _ = _local(order.placed_at).isocalendar()
             if (o_year, o_week) == (year, week):
                 total += order.net_total
         return round(total, 2)
@@ -135,7 +135,9 @@ def _verify_quote(token: str, agent_id: str, gateway_url: str,
 def _verify_mandate(token: str, customer: str, agent_id: str, gateway_url: str,
                     kitchen: Verifier, now: datetime) -> MandatePayload:
     try:
-        payload = kitchen.verify(token, audience=gateway_url, now=now)
+        # No age cap: a mandate lives for as long as its exp says, which the
+        # verifier still requires and checks. Quotes and approvals keep the cap.
+        payload = kitchen.verify(token, audience=gateway_url, now=now, max_age_seconds=None)
     except VerificationError as exc:
         raise OrderRefused("mandate_invalid", f"the mandate does not verify: {exc}",
                            security_event=True) from exc

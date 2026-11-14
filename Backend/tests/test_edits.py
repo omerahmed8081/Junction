@@ -124,6 +124,17 @@ def test_a_new_amount_in_kilos_restates_what_was_asked_for():
     assert change.need_value == 10.0 and change.need_unit == "KG"
 
 
+def test_a_thousands_comma_is_not_a_decimal_point():
+    """"make it 2,000 L" set the line to two litres. The demo sentence is
+    "1,000 L", so this was one edit away from happening on stage."""
+    for message, litres in [("make it 2,000 L", 2000.0), ("change it to 1 500 L", 1500.0),
+                            ("make it 2,5 L", 2.5), ("make it 1,234.5 L", 1234.5)]:
+        change = edits.read(a_basket(), message)
+        assert change and change.need_value == litres, (message, change and change.need_value)
+    # 1 L packs, so the packs follow the litres exactly.
+    assert edits.read(a_basket(), "make it 2,000 L").quantity_sales_units == 2000.0
+
+
 def test_a_count_of_packs_leaves_the_need_alone():
     """"12 units" is about packs, not about how much the kitchen needs."""
     change = edits.read(a_basket(), "make it 12 units")

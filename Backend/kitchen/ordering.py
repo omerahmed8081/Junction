@@ -122,7 +122,7 @@ class KitchenSigner:
         payload = MandatePayload(
             iss=keys.KITCHEN_URL,
             sub=AGENT_ID,
-            aud=keys.GATEWAY_URL,
+            aud=keys.gateway_issuer(),
             customer=CUSTOMER_ID,
             jti=f"m_{secrets.token_hex(5)}",
             iat=now_seconds(moment),
@@ -145,6 +145,19 @@ class KitchenSigner:
         moment = now or datetime.now(timezone.utc)
         if self.mandate is None or self.mandate.expires_at <= moment:
             return self.issue_mandate(now=moment)
+        if self.mandate.payload.aud != keys.gateway_issuer():
+            # The gateway's name changed under a mandate that is still in force
+            # (a deployment that sets GATEWAY_ISSUER, say). Addressed to the old
+            # name it would be refused on every order, so it is signed again for
+            # the new one - same limits, same categories, same expiry. Nothing
+            # the owner decided is touched.
+            payload = self.mandate.payload.model_copy(update={
+                "aud": keys.gateway_issuer(),
+                "jti": f"m_{secrets.token_hex(5)}",
+                "iat": now_seconds(moment.replace(microsecond=0)),
+            })
+            self.mandate = Mandate(jws=self.signer.sign(payload.model_dump(mode="json")),
+                                   payload=payload)
         return self.mandate
 
     def sign_approval(self, quote_id: str, approver_role: str,
@@ -153,7 +166,7 @@ class KitchenSigner:
         moment = (now or datetime.now(timezone.utc)).replace(microsecond=0)
         payload = ApprovalPayload(
             iss=keys.KITCHEN_URL,
-            aud=keys.GATEWAY_URL,
+            aud=keys.gateway_issuer(),
             jti=f"a_{secrets.token_hex(5)}",
             quote_jti=quote_id,
             approver_role=approver_role,
@@ -203,7 +216,7 @@ def confirm(basket: Basket, gateway: GatewayClient, kitchen: KitchenSigner,
     # verify is worse than no quote: it would put unchecked figures on screen.
     try:
         payload = keys.aimo_verifier().verify(
-            quote.quote_jws, issuer=keys.GATEWAY_URL, audience=AGENT_ID, now=now)
+            quote.quote_jws, issuer=keys.gateway_issuer(), audience=AGENT_ID, now=now)
     except VerificationError as exc:
         basket.status = "blocked"
         basket.quote_verified = False

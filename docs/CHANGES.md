@@ -7,6 +7,58 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Sunday 15 November
 
+### 02:10 - bug report 1, the gateway half
+
+Seven items from the review, each with a test, and the endpoint code itself
+finally under test.
+
+- **A1. A seven-day mandate was refused after one day.** The verifier caps a
+  token's age at 24 hours, which is right for a quote or an approval and wrong
+  for a mandate bounded by its own `exp`. `verify(max_age_seconds=None)` for the
+  mandate only; an expired mandate is still refused and an approval keeps the cap.
+- **C3. Aimo's answers were cached for ever**, so the re-check at order time got
+  the quote's own answer back and `stock_changed` could not happen. Answers now
+  live `AIMO_CACHE_SECONDS` (60), and the order-time check passes `fresh=True`.
+- **C4. Every caller was priced as one fixed customer.** The caller's customer
+  now reaches Aimo and is part of the cache key. It goes through
+  `AIMO_CUSTOMER_MAP`, and a customer with no entry is priced on the default
+  contract: forwarding our invented `456` would have made the second client fail
+  at pricing instead of at the mandate, which is the beat it exists to show.
+- **C1. The public key address served the kitchen's key**, so nobody outside
+  could verify a quote. `/.well-known/jwks.json` is Aimo's now, and each
+  service's key and health check also answer under its own prefix
+  (`/gateway/...`, `/api/...`), which is what a shared front door passes through.
+- **C9. Quotes were issued by `http://localhost:8001`.** The report's fix was to
+  set `GATEWAY_URL` to the public address, which would have broken the site: one
+  variable was both the name signed into tokens and the address the kitchen
+  calls. `GATEWAY_ISSUER` is the name; `GATEWAY_URL` stays the address. A mandate
+  still in force when the name changes is signed again for the new one with its
+  limits, categories and expiry untouched, rather than refused on every order.
+- **C8. The week was counted in UTC and the day locally**, so an order at 00:30
+  on a Monday fell in Monday's budget and last week's. Both are local now.
+- **A6. "make it 2,000 L" set the line to two litres.** The edit path had its
+  own number reader. There is one now (`need.read_number`), and it also reads
+  `1,234.5`, which the old shared one could not.
+
+`tests/test_gateway_http.py` calls the gateway's endpoints over HTTP with the
+database and Aimo faked. Until now nothing ran that code before a real request
+did, which is how a misspelt attribute returned 500 on every price check.
+
+Writing it found one more: importing `gateway.main` loaded the developer's
+`.env` into the test process, and under one test ordering a customer id from it
+made later tests refuse every order. `TTA_SKIP_DOTENV` keeps test imports
+hermetic. The suite passes in forward and reverse file order.
+
+**Deploying this:** add `GATEWAY_ISSUER=http://<host>/gateway` to the server's
+`.env`, run `update.sh` (it reinstalls the Caddyfile), then
+`python scripts/smoke_test.py --kitchen http://<host> --gateway http://<host>`.
+Baskets confirmed before the restart need confirming again.
+
+Not in this pass: A2, A3, A4, A5 and section B (kitchen files someone else is
+in), and section D.
+
+287 passing under pytest, 281 under the script runner.
+
 ### 01:30 - the approval note speaks to whoever is looking
 
 A EUR 1,010 basket said "Needs a manager's approval" to the owner too, who can

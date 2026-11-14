@@ -18,6 +18,7 @@ import math
 import re
 from dataclasses import dataclass, field
 
+from kitchen.need import NUMBER_PATTERN, read_number
 from shared.schemas import Basket, BasketLine, LineEdit
 from shared.units import NEED_TO_KILOS, NEED_TO_LITRES, _round_up_to_lot
 
@@ -33,8 +34,10 @@ CHANGE = re.compile(
     r"\b(make|change|set|update|increase|decrease|reduce|raise|lower|only|just"
     r"|muuta|vaihda)\b", re.I)
 
+# The number is read by the same pattern and the same reader as a new request
+# (kitchen/need.py), so "2,000" means the same thing wherever it is typed.
 AMOUNT = re.compile(
-    r"(\d[\d\s.,]*)\s*(l|dl|cl|ml|kg|g|ki|st|litres?|liters?|kilos?|kilograms?|cases?|units?|pieces?)?\b",
+    rf"({NUMBER_PATTERN})\s*(l|dl|cl|ml|kg|g|ki|st|litres?|liters?|kilos?|kilograms?|cases?|units?|pieces?)?\b",
     re.I)
 
 UNIT_WORDS = {
@@ -223,9 +226,8 @@ def read(basket: Basket, message: str) -> Change | None:
     if not found:
         return None
 
-    raw = found.group(1).replace(" ", "").replace(",", ".").rstrip(".")
     try:
-        value = float(raw)
+        value = read_number(found.group(1))
     except ValueError:
         return None
     if value <= 0:

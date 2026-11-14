@@ -347,6 +347,37 @@ def test_an_unsigned_token_is_never_accepted():
     raise AssertionError("an unsigned token was accepted")
 
 
+# ---- a mandate lives as long as its exp says ---------------------------
+
+def test_a_mandate_signed_three_days_ago_still_orders():
+    """Signed for seven days, it was refused after one: the verifier's age cap
+    for use-at-once tokens was being applied to it too."""
+    three_days_ago = NOW - timedelta(days=3)
+    record = order(mandate=make_mandate(now=three_days_ago))
+    assert record.status == "placed"
+
+
+def test_a_mandate_past_its_own_expiry_is_still_refused():
+    eight_days_ago = NOW - timedelta(days=8)          # exp is iat + 7 days
+    reason, security = refused(mandate=make_mandate(now=eight_days_ago))
+    assert reason == "mandate_invalid" and security
+
+
+def test_an_approval_keeps_the_age_cap():
+    """Lifting the cap for mandates must not lift it for anything else."""
+    from shared.signing import VerificationError
+    old_approval = KITCHEN_SIGNER.sign({
+        "iss": KITCHEN, "aud": GATEWAY, "jti": "a_old", "quote_jti": "q",
+        "approver_role": "manager", "approved_at": 0,
+        "iat": now_seconds(NOW) - 2 * 24 * 3600, "exp": now_seconds(NOW) + 3600})
+    try:
+        KITCHEN_VERIFIER.verify(old_approval, audience=GATEWAY, now=NOW)
+    except VerificationError as exc:
+        assert "older than a day" in str(exc)
+        return
+    raise AssertionError("a two-day-old approval verified")
+
+
 # ---- the daily budget --------------------------------------------------
 
 def _an_order(*, customer=CUSTOMER, net=100.0, placed_at=NOW, order_id=None) -> OrderRecord:
@@ -390,6 +421,20 @@ def test_a_days_spending_is_counted_in_the_kitchens_local_day():
     on_the_17th = datetime(2026, 11, 17, 10, 0, tzinfo=timezone.utc)
     assert store.daily_net("123", on_the_16th) == 100.0
     assert store.daily_net("123", on_the_17th) == 50.0
+
+
+def test_the_week_and_the_day_agree_on_what_time_it_is():
+    """00:30 on Monday in Helsinki is still Sunday in UTC. The day was counted
+    locally and the week in UTC, so that order landed in Monday's budget and in
+    the week before's."""
+    store = OrderStore()
+    monday_0030_local = datetime(2026, 11, 15, 22, 30, tzinfo=timezone.utc)   # Mon 16th, 00:30
+    store.add(_an_order(net=100.0, placed_at=monday_0030_local))
+    later_that_monday = datetime(2026, 11, 16, 10, 0, tzinfo=timezone.utc)
+    the_sunday_before = datetime(2026, 11, 15, 10, 0, tzinfo=timezone.utc)
+    assert store.daily_net(CUSTOMER, later_that_monday) == 100.0
+    assert store.weekly_net(CUSTOMER, later_that_monday) == 100.0     # same week as its day
+    assert store.weekly_net(CUSTOMER, the_sunday_before) == 0.0       # not last week's
 
 
 def test_another_customers_spending_is_not_counted():

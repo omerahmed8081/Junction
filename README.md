@@ -95,6 +95,9 @@ silently corrupts the API key.
 | `LOCAL_UTC_OFFSET_HOURS` | gateway | Which day "today" means for the daily budget. Default 2, Finland in winter |
 | `KITCHEN_NAME` | kitchen | What the title bar says. The frontend asks `GET /api/kitchen`, so a second tenant needs no frontend change |
 | `AGENT_API_KEY` | kitchen | The key this kitchen presents to the gateway. Defaults to `demo-kitchen-key` |
+| **`GATEWAY_ISSUER`** | both | The gateway's public name, signed into every quote and written on every mandate, e.g. `http://your-host/gateway`. **Not** `GATEWAY_URL`, which is where the kitchen reaches the gateway and must stay `http://localhost:8001`. Unset, quotes are issued by `localhost` |
+| `AIMO_CACHE_SECONDS` | gateway | How long an answer from Aimo is reused. Default 60. The order-time re-check never uses the cache |
+| `AIMO_CUSTOMER_MAP` | gateway | `ours=theirs,...`: which Aimo customer each gateway customer is priced as. One with no entry is priced on `AIMO_CUSTOMER_ID` |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | kitchen | A wrong model name falls back to the rules parser. The chat reply's `parser` field and the kitchen log both say which one ran |
 | `GATEWAY_URL` | kitchen | Where the gateway is, server to server |
 | `KEY_DIR` | both | Signing keys. Defaults to `Backend/.keys/`. **Must be on a persistent disk** — a new key on restart invalidates every mandate already issued |
@@ -102,7 +105,7 @@ silently corrupts the API key.
 **Check it before trusting it:**
 
 ```
-python scripts/smoke_test.py --kitchen https://your-host --gateway https://your-host/gateway
+python scripts/smoke_test.py --kitchen http://your-host --gateway http://your-host
 ```
 
 It walks the whole demo path over HTTP and names whatever is broken. Exit code 0 means

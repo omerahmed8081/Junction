@@ -16,6 +16,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 from fastapi.testclient import TestClient  # noqa: E402
 
 from kitchen import agent, ordering  # noqa: E402
+# Before the kitchen is imported: it must not load the developer's .env here.
+os.environ.setdefault("TTA_SKIP_DOTENV", "1")
 from kitchen import main as kitchen_main  # noqa: E402
 from kitchen.ordering import OrderingError  # noqa: E402
 from shared.schemas import Basket, BasketLine  # noqa: E402

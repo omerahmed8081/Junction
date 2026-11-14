@@ -20,9 +20,16 @@
 		reverse_proxy localhost:8001
 	}
 
-	# The kitchen's own public key.
+	# Aimo's public key, the one an outside agent needs to verify a quote. This
+	# used to serve the kitchen's key, so a signed quote could not be checked by
+	# anyone but us. Each service's own key and health check are also reachable
+	# under its prefix, which the two blocks above already pass through:
+	#   /gateway/.well-known/jwks.json   /gateway/health   (Aimo's)
+	#   /api/.well-known/jwks.json       /api/health       (the kitchen's)
+	# The gateway does not fetch the kitchen's key through here; KITCHEN_JWKS
+	# points at the kitchen directly.
 	handle /.well-known/jwks.json {
-		reverse_proxy localhost:8002
+		reverse_proxy localhost:8001
 	}
 
 	# The built frontend. `npm run build` writes it to Frontend/dist.

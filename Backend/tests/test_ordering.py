@@ -10,6 +10,7 @@ So if this file passes, the demo's first beat works.
 """
 from __future__ import annotations
 
+import os
 import sys
 import tempfile
 from datetime import date, datetime, timedelta, timezone
@@ -353,6 +354,33 @@ def test_a_mandate_is_issued_on_first_use_and_reused_after():
     assert kitchen.mandate_in_force(now=NOW).payload.jti == first.payload.jti
     assert first.payload.aud == GATEWAY_URL and first.payload.sub == ordering.AGENT_ID
     assert first.expires_at > NOW
+
+
+def test_a_mandate_follows_the_gateway_to_a_new_name_with_its_terms_intact():
+    """A deployment that gives the gateway its public name must not leave a
+    mandate addressed to the old one, refused on every order - nor quietly
+    reset what the owner decided."""
+    kitchen = KitchenSigner()
+    first = kitchen.issue_mandate(per_order=750.0, per_week=3000.0, approval_required=True,
+                                  now=NOW)
+    before = os.environ.get("GATEWAY_ISSUER")
+    os.environ["GATEWAY_ISSUER"] = "https://aimo.example/gateway"
+    try:
+        moved = kitchen.mandate_in_force(now=NOW)
+        assert moved.payload.aud == "https://aimo.example/gateway"
+        assert moved.payload.jti != first.payload.jti                  # signed again
+        assert moved.payload.limits == first.payload.limits            # same limits
+        assert moved.payload.approval_required is True
+        assert moved.payload.exp == first.payload.exp                  # same expiry
+        # It verifies, and it is stable: asking again does not re-sign it.
+        Verifier([keys.kitchen_keypair().public_jwk]).verify(
+            moved.jws, audience="https://aimo.example/gateway", now=NOW, max_age_seconds=None)
+        assert kitchen.mandate_in_force(now=NOW).payload.jti == moved.payload.jti
+    finally:
+        if before is None:
+            os.environ.pop("GATEWAY_ISSUER", None)
+        else:
+            os.environ["GATEWAY_ISSUER"] = before
 
 
 def test_an_empty_basket_cannot_be_confirmed():

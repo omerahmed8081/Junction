@@ -119,6 +119,61 @@ def test_the_same_question_is_asked_once():
     assert len(client._client.calls) == 1
 
 
+def test_an_answer_is_reused_only_for_a_while():
+    """It used to be reused for ever, so a stock level that moved was never seen."""
+    from gateway import aimo_client
+    client = build([StubResponse(200, {"products": [{"productId": "1"}]}),
+                    StubResponse(200, {"products": [{"productId": "1"}]})])
+    moment = [1000.0]
+    client._clock = lambda: moment[0]
+    client.prices(["1"], WHEN)
+    moment[0] += aimo_client.CACHE_SECONDS - 1
+    client.prices(["1"], WHEN)
+    assert len(client._client.calls) == 1            # still fresh enough
+    moment[0] += 2
+    client.prices(["1"], WHEN)
+    assert len(client._client.calls) == 2            # too old: asked again
+
+
+def test_the_order_time_check_always_asks_again():
+    client = build([StubResponse(200, {"products": [{"productId": "1", "n": 1}]}),
+                    StubResponse(200, {"products": [{"productId": "1", "n": 2}]})])
+    first = client.availability(["1"], WHEN)
+    again = client.availability(["1"], WHEN, fresh=True)
+    assert len(client._client.calls) == 2
+    assert first["1"]["n"] == 1 and again["1"]["n"] == 2
+    # ...and the fresh answer is what later callers get.
+    assert client.availability(["1"], WHEN)["1"]["n"] == 2
+
+
+def test_one_customers_answer_is_never_served_to_another():
+    import os
+    from gateway import aimo_client
+    before = os.environ.get("AIMO_CUSTOMER_MAP")
+    os.environ["AIMO_CUSTOMER_MAP"] = "456=300500"
+    try:
+        client = build([StubResponse(200, {"products": [{"productId": "1", "p": "ours"}]}),
+                        StubResponse(200, {"products": [{"productId": "1", "p": "theirs"}]})])
+        mine = client.prices(["1"], WHEN, customer="123")
+        theirs = client.prices(["1"], WHEN, customer="456")
+        assert mine["1"]["p"] == "ours" and theirs["1"]["p"] == "theirs"
+        sent = [body["customer"] for _, body in client._client.calls]
+        assert sent == [aimo_client.CUSTOMER_ID, "300500"]
+    finally:
+        if before is None:
+            os.environ.pop("AIMO_CUSTOMER_MAP", None)
+        else:
+            os.environ["AIMO_CUSTOMER_MAP"] = before
+
+
+def test_a_customer_with_no_mapping_is_priced_on_the_default_contract():
+    """Never sent upstream as a number Aimo has never heard of."""
+    from gateway import aimo_client
+    assert aimo_client.upstream_customer("456") == aimo_client.CUSTOMER_ID
+    assert aimo_client.upstream_customer(None) == aimo_client.CUSTOMER_ID
+    assert aimo_client.upstream_customer("") == aimo_client.CUSTOMER_ID
+
+
 def test_sentinels_mean_availability_unknown():
     for amount in (999_999.0, 666_666_666.0, 9_999_999_999.0):
         assert is_availability_unknown(amount)

@@ -186,6 +186,7 @@ class Verifier:
         audience: str | None = None,
         now: datetime | None = None,
         require_expiry: bool = True,
+        max_age_seconds: int | None = MAX_TOKEN_AGE_SECONDS,
     ) -> dict[str, Any]:
         """The payload, or VerificationError saying what was wrong.
 
@@ -236,7 +237,11 @@ class Verifier:
         if isinstance(issued, (int, float)):
             if issued > seconds + CLOCK_SKEW_SECONDS:
                 raise VerificationError("the token is issued in the future")
-            if seconds - issued > MAX_TOKEN_AGE_SECONDS:
+            # A cap on age is for tokens meant to be used at once: a quote, an
+            # approval. A mandate is signed for days and bounded by its own exp,
+            # so its caller passes None - with the cap applied to it, every
+            # order was refused from 24 hours after the mandate was signed.
+            if max_age_seconds is not None and seconds - issued > max_age_seconds:
                 raise VerificationError("the token is older than a day")
 
         if issuer is not None and payload.get("iss") != issuer:
