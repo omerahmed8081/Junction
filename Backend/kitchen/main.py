@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-from fastapi import FastAPI, HTTPException  # noqa: E402
+from fastapi import FastAPI, Header, HTTPException  # noqa: E402
 from psycopg_pool import ConnectionPool  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
@@ -109,6 +109,26 @@ app = FastAPI(title="Kitchen service", version="0.1.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
+# Who is using the screen. There is no sign-in yet: the browser says which role
+# it is acting as, in this header. Good enough to show each person their view;
+# a real deployment puts this behind a login and reads it from the session.
+ROLES = ("chef", "manager", "owner")
+
+
+def _role(value: str | None) -> str:
+    role = (value or "chef").strip().lower()
+    if role not in ROLES:
+        raise HTTPException(status_code=422, detail=f"{value!r} is not a role (chef, manager or owner)")
+    return role
+
+
+def _owner_only(value: str | None, what: str) -> None:
+    """The mandate and the standing rules decide what can be spent without
+    asking, so only the owner may change them."""
+    if _role(value) != "owner":
+        raise HTTPException(status_code=403, detail=f"only the owner can {what}")
+
+
 def _state(basket_id: str) -> agent.BasketState:
     state = baskets.get(basket_id)
     if not state:
@@ -129,13 +149,14 @@ def health() -> dict:
 
 
 @app.post("/api/chat", response_model=ChatResponse)
-def chat(req: ChatRequest) -> ChatResponse:
+def chat(req: ChatRequest, x_kitchen_role: str | None = Header(default=None)) -> ChatResponse:
     """One message in, a basket out.
 
     A message may ask for several things at once - nobody shops one item at a
     time - so every need in it is added to the same basket, in the order asked.
     With `basket_id` set they are added to that basket instead of a new one.
     """
+    role = _role(x_kitchen_role)
     state = _state(req.basket_id) if req.basket_id else None
     if state is not None and state.basket.status != "draft":
         # A basket whose price Aimo has signed (or that is ordered) is closed to
@@ -210,6 +231,9 @@ def chat(req: ChatRequest) -> ChatResponse:
 
     if state is None:
         return ChatResponse(reply="I could not find anything to add.", basket=None)
+    if state.basket.basket_id not in baskets:
+        # A new basket belongs to whoever started it; that decides who approves.
+        state.basket.created_by = role
     if failed:
         replies.append("I could not reach Aimo for " + _join(failed)
                        + ". Ask again and I will add " + ("it" if len(failed) == 1 else "them") + ".")
@@ -276,6 +300,16 @@ def _redate(state: agent.BasketState, new_date: date) -> ChatResponse:
     reply = f"Delivery moved to {_day(new_date)}. " + (
         " ".join(notes) if notes else "Every line can still be delivered on that day.")
     return ChatResponse(reply=reply, basket=state.basket, steps=steps)
+
+
+@app.get("/api/baskets", response_model=list[Basket])
+def list_baskets(status: str = "") -> list[Basket]:
+    """Every basket, or those in one status, newest price first.
+
+    The Approvals page uses `?status=quoted`, so a basket the chef confirmed on
+    the kitchen tablet shows up on the manager's phone."""
+    found = [s.basket for s in baskets.values() if not status or s.basket.status == status]
+    return sorted(found, key=lambda b: str(b.quote_expires or ""), reverse=True)
 
 
 @app.get("/api/basket/{basket_id}", response_model=Basket)
@@ -427,12 +461,15 @@ def get_mandate() -> MandateView:
                        limits=mandate.payload.limits,
                        allowed_categories=mandate.payload.allowed_categories,
                        approval_required=mandate.payload.approval_required,
-                       mandate_jws=mandate.jws)
+                       mandate_jws=mandate.jws,
+                       role_limits={"chef": agent.CHEF_LIMIT_EUR,
+                                    "manager": agent.MANAGER_LIMIT_EUR})
 
 
 @app.post("/api/mandate", response_model=MandateView)
-def issue_mandate(req: MandateRequest) -> MandateView:
-    """Sign a new mandate. The owner does this from the Agent rules tab."""
+def issue_mandate(req: MandateRequest, x_kitchen_role: str | None = Header(default=None)) -> MandateView:
+    """Sign a new mandate. Only the owner may change what the agent can spend."""
+    _owner_only(x_kitchen_role, "change the agent's spending limits")
     mandate = kitchen.issue_mandate(
         per_order=req.max_net_per_order, per_week=req.max_net_per_week,
         categories=req.allowed_categories, approval_required=req.approval_required,
@@ -539,13 +576,14 @@ def list_rules(include_inactive: bool = False) -> dict:
 
 
 @app.post("/api/rules")
-def add_rule(req: RuleRequest) -> dict:
+def add_rule(req: RuleRequest, x_kitchen_role: str | None = Header(default=None)) -> dict:
     """Set a standing rule: what may go through without anyone looking.
 
     A rule only ever relaxes an approval the kitchen would ask for itself, and
     the signed mandate still sits above it, so the worst a wrong rule can do is
     skip a click.
     """
+    _owner_only(x_kitchen_role, "set standing rules")
     if req.match not in rules.MATCHES:
         raise HTTPException(status_code=422,
                             detail=f"match must be one of {', '.join(rules.MATCHES)}")
@@ -566,9 +604,10 @@ def add_rule(req: RuleRequest) -> dict:
 
 
 @app.delete("/api/rules/{rule_id}")
-def remove_rule(rule_id: int) -> dict:
+def remove_rule(rule_id: int, x_kitchen_role: str | None = Header(default=None)) -> dict:
     """Switch a rule off. Rules are never deleted: one that was in force when an
     order went through has to stay readable afterwards."""
+    _owner_only(x_kitchen_role, "switch standing rules off")
     if not rules.store.remove(rule_id):
         raise HTTPException(status_code=404, detail=f"no rule {rule_id}")
     audit.log.record("rule_removed", actor="human", result={"rule_id": rule_id},
@@ -598,7 +637,7 @@ def get_suggestions() -> SuggestionsResponse:
 
 
 @app.post("/api/suggestions/{product_id}/basket", response_model=ChatResponse)
-def draft_suggestion(product_id: str) -> ChatResponse:
+def draft_suggestion(product_id: str, x_kitchen_role: str | None = Header(default=None)) -> ChatResponse:
     """Turn one suggestion into a draft basket, through the normal agent path."""
     found = next((s for s in suggestions.find(inventory) if s.product_id == product_id), None)
     if found is None:
@@ -608,6 +647,7 @@ def draft_suggestion(product_id: str) -> ChatResponse:
         state, reply, steps = suggestions.draft(found, inventory, gateway, baskets)
     except GatewayError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+    state.basket.created_by = _role(x_kitchen_role)
     _save()
     return ChatResponse(reply=reply, basket=state.basket, steps=steps)
 

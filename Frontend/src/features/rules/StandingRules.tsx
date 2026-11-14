@@ -9,12 +9,15 @@ import { api } from "../../api/client";
 import type { RuleMatch } from "../../api/types";
 import { useAnnounce } from "../../components/Announcer";
 import { Banner, Button, Card, EmptyState, ErrorNote, Skeleton } from "../../components/ui";
+import { useRole } from "../../lib/session";
 
 const MATCHES: RuleMatch[] = ["any", "name", "product", "claim", "category"];
 const toNumber = (text: string) => Number(text.replace(/\s/g, "").replace(",", "."));
 
 export function StandingRules() {
   const { t } = useTranslation();
+  // Rules decide what goes through without anyone approving, so only the owner sets them.
+  const isOwner = useRole() === "owner";
   const client = useQueryClient();
   const announce = useAnnounce();
   const query = useQuery({ queryKey: ["rules"], queryFn: api.rules });
@@ -72,17 +75,18 @@ export function StandingRules() {
         {(query.data?.rules ?? []).map((rule) => (
           <li key={rule.rule_id} className="flex items-start justify-between gap-3 rounded-2xl bg-surface px-4 py-3">
             <span className="text-sm" lang="en">{rule.said}</span>
-            <Button size="sm" variant="ghost" icon={<Trash2 className="size-4" aria-hidden />}
+            {isOwner && <Button size="sm" variant="ghost" icon={<Trash2 className="size-4" aria-hidden />}
               aria-label={t("standing.remove", { rule: rule.said })}
               loading={remove.isPending && remove.variables === rule.rule_id}
               onClick={() => rule.rule_id != null && remove.mutate(rule.rule_id)}>
               {t("standing.off")}
-            </Button>
+            </Button>}
           </li>
         ))}
       </ul>
 
-      <form onSubmit={submit} className="mt-5 border-t border-border pt-4">
+      {!isOwner && <Banner tone="info" className="mt-4">{t("standing.ownerOnly")}</Banner>}
+      {isOwner && <form onSubmit={submit} className="mt-5 border-t border-border pt-4">
         <h3 className="font-bold">{t("standing.add")}</h3>
         <div className="mt-2 grid gap-3 sm:grid-cols-2">
           <label className="block text-sm">
@@ -109,7 +113,7 @@ export function StandingRules() {
         </div>
         {add.isError && <div className="mt-3"><ErrorNote error={add.error} /></div>}
         <Button type="submit" className="mt-4" loading={add.isPending}>{t("standing.save")}</Button>
-      </form>
+      </form>}
 
       <p className="mt-4 text-xs text-ink-soft">{t("standing.footnote")}</p>
     </Card>

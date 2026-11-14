@@ -5,6 +5,7 @@ import { Activity, ChefHat, ClipboardCheck, Package, ShoppingBasket, SlidersHori
 import { useTranslation } from "react-i18next";
 import { NavLink, Outlet } from "react-router-dom";
 import { useWaitingBaskets } from "../features/approvals/useWaitingBaskets";
+import { ROLES, setRole, useRole, type Role } from "../lib/session";
 
 const ITEMS = [
   { to: "/", key: "order", icon: ShoppingBasket },
@@ -33,6 +34,23 @@ function LanguageSwitch() {
         </button>
       ))}
     </div>
+  );
+}
+
+/** Who is using the screen. No sign-in yet, so it is a choice this browser remembers. */
+function RoleSwitch() {
+  const { t } = useTranslation();
+  const role = useRole();
+  return (
+    <label className="flex items-center gap-2 text-sm font-semibold" title={t("role.hint")}>
+      <span className="hidden lg:inline">{t("role.label")}</span>
+      <span className="sr-only lg:hidden">{t("role.label")}</span>
+      <select value={role} onChange={(e) => setRole(e.target.value as Role)} aria-describedby="role-hint"
+        className="min-h-11 cursor-pointer rounded-full border border-border-strong bg-surface px-4 text-sm font-semibold">
+        {ROLES.map((r) => <option key={r} value={r}>{t(`role.${r}`)}</option>)}
+      </select>
+      <span id="role-hint" className="sr-only">{t("role.hint")}</span>
+    </label>
   );
 }
 
@@ -73,7 +91,7 @@ export function AppShell() {
               ))}
             </ul>
           </nav>
-          <div className="ml-auto"><LanguageSwitch /></div>
+          <div className="ml-auto flex items-center gap-3"><RoleSwitch /><LanguageSwitch /></div>
         </div>
       </header>
 

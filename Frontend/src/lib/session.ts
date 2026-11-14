@@ -50,10 +50,26 @@ export function logSteps(received: AgentStep[] | undefined, basketId?: string | 
   steps.write([...steps.read(), ...received.map((s) => ({ ...s, basketId }))].slice(-300));
 }
 export function logSecurityEvent(detail: string, basketId?: string | null) {
-  steps.write([...steps.read(), { step: "security_event", detail, crossed_gateway: true, at: new Date().toISOString(), basketId, security: true }]);
+  steps.write([...steps.read(), { step: "security_event", detail, facts: "", for_chef: true, crossed_gateway: true, at: new Date().toISOString(), basketId, security: true }]);
 }
 export function clearSteps() { steps.write([]); }
 export function useSteps(): LoggedStep[] { return useSyncExternalStore(steps.subscribe, steps.read); }
+
+// Who is using the screen: chef, manager or owner. There is no sign-in yet, so
+// the person picks it in the header and this browser remembers it. Every
+// request sends it (X-Kitchen-Role) and the backend decides what it allows.
+export type Role = "chef" | "manager" | "owner";
+export const ROLES: Role[] = ["chef", "manager", "owner"];
+export const RANK: Record<string, number> = { chef: 1, manager: 2, owner: 3 };
+const role = store<Role>(() => localStorage, "tta.role", "chef");
+export function getRole(): Role { const r = role.read(); return ROLES.includes(r) ? r : "chef"; }
+export function setRole(r: Role) { role.write(r); }
+export function useRole(): Role { useSyncExternalStore(role.subscribe, role.read); return getRole(); }
+/** Whether `who` may approve a basket whose policy needs `level`. */
+export function canApprove(who: Role, level: string | null | undefined): boolean {
+  if (level === "blocked") return false;
+  return RANK[who] >= (RANK[level ?? "chef"] ?? 1);
+}
 
 // The chat transcript, so it survives moving between tabs of the app.
 export type ChatMessage = { role: "you" | "agent"; text: string; steps?: AgentStep[] };

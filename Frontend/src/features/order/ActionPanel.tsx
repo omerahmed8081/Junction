@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import type { Basket } from "../../api/types";
 import { Banner, Button } from "../../components/ui";
 import { money, time, timeLeft } from "../../lib/format";
+import { canApprove, useRole } from "../../lib/session";
 
 type Props = { basket: Basket; busy: boolean; confirming: boolean; approving: boolean; onConfirm: () => void; onApprove: () => void };
 
@@ -20,9 +21,12 @@ export function useNow(): number {
 
 function usePrimary({ basket, busy, confirming, approving, onConfirm, onApprove }: Props, now: number) {
   const { t } = useTranslation();
+  const role = useRole();
   const expired = basket.status === "quoted" && !!basket.quote_expires && new Date(basket.quote_expires).getTime() <= now;
   if (!basket.lines?.length || basket.status === "ordered" || basket.status === "blocked") return { expired, button: null };
   if (basket.status === "quoted" && !expired) {
+    // Above this person's limit the signed basket waits for someone more senior.
+    if (!canApprove(role, basket.policy?.level)) return { expired, button: null, waiting: true };
     return { expired, button: <Button variant="accent" size="lg" loading={approving} disabled={busy} onClick={onApprove} className="w-full">{approving ? t("action.approving") : t("action.approve")}</Button> };
   }
   return { expired, button: <Button variant="accent" size="lg" loading={confirming} disabled={busy} onClick={onConfirm} className="w-full">{confirming ? t("action.confirming") : expired ? t("action.confirmAgain") : t("action.confirm")}</Button> };
@@ -32,9 +36,11 @@ export function ActionPanel(props: Props) {
   const { t } = useTranslation();
   const now = useNow();
   const { basket } = props;
-  const { expired, button } = usePrimary(props, now);
+  const { expired, button, waiting } = usePrimary(props, now);
   const policy = basket.policy;
   const reasons = policy?.reasons ?? [];
+  const level = policy?.level ?? "chef";
+  const who = t(`role.gen_${level}`, { defaultValue: level });
 
   return (
     <section aria-labelledby="totals-title" className="space-y-3">
@@ -46,8 +52,10 @@ export function ActionPanel(props: Props) {
       </dl>
 
       {policy && basket.status !== "ordered" && (
-        reasons.length > 0 ? (
-          <Banner tone="warn" title={t("policy.title")}>
+        level === "auto_ok" ? (
+          <Banner tone="ok" title={t("policy.ruleTitle")}><span lang="en">{reasons.join(" ")}</span></Banner>
+        ) : reasons.length > 0 ? (
+          <Banner tone="warn" title={level === "manager" || level === "owner" ? t("policy.needsTitle", { who }) : t("policy.title")}>
             <ul className="list-disc pl-4" lang="en">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>
             <p className="mt-1 text-xs text-ink-soft">{policy.binding ? t("policy.binding") : t("policy.preview")}</p>
           </Banner>
@@ -65,6 +73,12 @@ export function ActionPanel(props: Props) {
 
       {basket.status === "draft" && !!basket.lines?.length && <p className="text-xs text-ink-soft">{t("action.draftHint")}</p>}
       {basket.status === "quoted" && !expired && <p className="text-xs text-ink-soft">{t("action.editVoids")}</p>}
+      {waiting && (
+        <Banner tone="info" title={t("policy.waiting", { who })}>
+          {t("policy.waitingHint", { role: t(`role.${level}`) })}{" "}
+          <Link to="/approvals" className="font-semibold underline">{t("nav.approvals")}</Link>
+        </Banner>
+      )}
       {button}
       {basket.status === "ordered" && basket.order_id && (
         <Link to={`/activity?order=${basket.order_id}`} className="flex min-h-12 items-center justify-center rounded-full border border-border bg-surface px-5 text-sm font-semibold hover:bg-sunken">{t("action.viewOrder")}</Link>

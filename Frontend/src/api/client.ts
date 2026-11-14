@@ -5,13 +5,14 @@ import type {
   NewRule, OrderAuditView, OrderRecord, OrderResponse, Rule, RuleList,
   ServiceResponse, SuggestionsResponse,
 } from "./types";
+import { getRole } from "../lib/session";
 
 export class ApiError extends Error {
   status: number;
   /**
    * "network"  = the kitchen service itself did not answer
    * "upstream" = the kitchen answered 502: the gateway or Aimo behind it failed
-   * "rule"     = the backend said no (409), "missing" = 404, "invalid" = 422
+   * "rule"     = the backend said no (409, or 403 for a role that may not), "missing" = 404, "invalid" = 422
    */
   kind: "network" | "upstream" | "rule" | "missing" | "invalid" | "server";
   constructor(status: number, message: string, fromProxy = false) {
@@ -19,7 +20,7 @@ export class ApiError extends Error {
     this.status = status;
     this.kind = status === 0 || fromProxy || status === 503 || status === 504 ? "network"
       : status === 502 ? "upstream"
-      : status === 409 ? "rule" : status === 404 ? "missing" : status === 422 ? "invalid" : "server";
+      : status === 409 || status === 403 ? "rule" : status === 404 ? "missing" : status === 422 ? "invalid" : "server";
   }
 }
 
@@ -39,7 +40,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   try {
     response = await fetch(path, {
       method,
-      headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+      // Who is acting. The backend decides what this role may do.
+      headers: { "X-Kitchen-Role": getRole(), ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
@@ -64,9 +66,11 @@ export const api = {
   /** Only a draft can be deleted; a signed or ordered basket answers 409. */
   deleteBasket: (id: string) => request<{ deleted: string }>("DELETE", `/api/basket/${id}`),
   confirm: (id: string) => request<ChatResponse>("POST", `/api/basket/${id}/confirm`),
-  // One person uses the system and holds every permission, so the approval is
-  // always signed with the most senior role the backend knows.
-  approve: (id: string) => request<OrderResponse>("POST", `/api/basket/${id}/approve`, { approver_role: "owner" }),
+  /** Every basket in one status, e.g. "quoted" for the Approvals list, from any device. */
+  baskets: (status = "") => request<Basket[]>("GET", `/api/baskets${status ? `?status=${status}` : ""}`),
+  // The approval is signed as whoever is using the screen; the backend refuses
+  // a role below what the basket's policy needs.
+  approve: (id: string) => request<OrderResponse>("POST", `/api/basket/${id}/approve`, { approver_role: getRole() }),
   orders: () => request<OrderRecord[]>("GET", "/api/orders"),
   mandate: () => request<MandateView>("GET", "/api/mandate"),
   issueMandate: (body: MandateRequest) => request<MandateView>("POST", "/api/mandate", body),

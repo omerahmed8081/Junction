@@ -111,7 +111,12 @@
     "chefTitle": "Normaalin rajan sisällä",
     "preview": "Esikatselu. Lopullinen, kun hinta on allekirjoitettu.",
     "binding": "Päätetty allekirjoitetun hinnan perusteella.",
-    "none": "Ei varoituksia tässä ostoskorissa."
+    "none": "Ei varoituksia tässä ostoskorissa.",
+    "needsTitle": "Tarvitsee {{who}} hyväksynnän",
+    "waiting": "Odottaa {{who}} hyväksyntää",
+    "waitingHint": "Allekirjoitettu hinta on tallessa. Se näkyy Hyväksynnöissä roolille {{role}} ja ylemmille. Chatin seuraava viesti aloittaa uuden tilauksen.",
+    "yours": "Voit tehdä tämän tilauksen itse.",
+    "ruleTitle": "Hyväksyntää ei tarvita"
   },
   "quote": {
     "signed": "Aimo allekirjoitti tämän hinnan",
@@ -163,14 +168,18 @@
     "openBasket": "Avaa luonnosteltu ostoskori"
   },
   "approvals": {
-    "title": "Odottaa hyväksyntääsi",
+    "title": "Hyväksynnät",
     "empty": "Mikään ei odota.",
     "emptyHint": "Ostoskorit näkyvät täällä, kun Aimo on allekirjoittanut niiden hinnan.",
     "open": "Avaa",
     "lines_one": "{{count}} rivi",
     "lines_other": "{{count}} riviä",
     "expires": "Allekirjoitettu hinta päättyy {{time}}",
-    "thisBrowser": "Näyttää tässä selaimessa aloitetut ostoskorit."
+    "forYou": "Voit hyväksyä",
+    "forYouEmpty": "Mikään ei odota sinua.",
+    "forOthers": "Odottaa jonkun muun hyväksyntää",
+    "needs": "Tarvitsee {{who}} hyväksynnän",
+    "startedBy": "Aloittaja: {{who}}"
   },
   "inventory": {
     "title": "Varasto",
@@ -216,10 +225,16 @@
     "errPositive": "Anna nollaa suurempi summa.",
     "errWeek": "Pienempi kuin tilauskohtainen raja: täyttä tilausta ei voisi koskaan tehdä.",
     "checks": "Mikä aiheuttaa lisätarkistuksen",
-    "check1": "Veroton arvo yli 500 EUR",
+    "check1": "Yli kokin rajan ({{chef}} veroton) päällikön on hyväksyttävä; yli päällikön rajan ({{manager}}) omistajan",
     "check2": "Vain osa rivistä voidaan toimittaa",
     "check3": "Tuote poikkeaa pyydetystä",
-    "check4": "Pakkauskoko ja hintatiedot ovat ristiriidassa"
+    "check4": "Pakkauskoko ja hintatiedot ovat ristiriidassa",
+    "ownerOnly": "Vain omistaja voi muuttaa agentin kulurajoja. Vaihda yläpalkista rooliksi Omistaja muokataksesi.",
+    "roleLimits": "Kuka voi tilata mitä",
+    "chefLimit": "Kokki tilaa enintään",
+    "managerLimit": "Päällikkö tilaa ja hyväksyy enintään",
+    "ownerLimit": "Omistaja tilaa ja hyväksyy enintään",
+    "ownerLimitValue": "valtuutuksen rajaan ({{amount}})"
   },
   "activity": {
     "title": "Tapahtumat",
@@ -352,7 +367,8 @@
       "product": "464306",
       "claim": "FREE_FROM_LACTOSE",
       "category": "esim. 1234"
-    }
+    },
+    "ownerOnly": "Vain omistaja voi asettaa pysyviä sääntöjä tai poistaa niitä käytöstä."
   },
   "audit": {
     "title": "Mitä tapahtui, vaihe vaiheelta",
@@ -361,5 +377,15 @@
     "aimo": "Aimo",
     "counts": "{{kitchen}} keittiöltä, {{aimo}} Aimolta.",
     "degraded": "Tietokantaan ei saatu yhteyttä, joten nämä rivit ovat muistissa ja katoavat uudelleenkäynnistyksessä."
+  },
+  "role": {
+    "label": "Käyttäjä",
+    "chef": "Kokki",
+    "manager": "Päällikkö",
+    "owner": "Omistaja",
+    "hint": "Ei vielä kirjautumista: valitse, kuka käyttää näyttöä.",
+    "gen_chef": "kokin",
+    "gen_manager": "päällikön",
+    "gen_owner": "omistajan"
   }
 }
