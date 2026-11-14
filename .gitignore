@@ -4,3 +4,4 @@ __pycache__/
 
 # 87 MB of given product data: load it locally, do not commit it
 Backend/Data/valio_aimo_junction26_product_data.json
+.venv/

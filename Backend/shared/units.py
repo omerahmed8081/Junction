@@ -255,3 +255,87 @@ def convert(
         if drift > 0.02:
             out.flags.append("size_disagrees_with_price")
     return out
+
+
+def convert_summary(
+    summary: Any,
+    need_value: float,
+    need_unit: str,
+    derived_size_per_sales_unit: float | None = None,
+) -> Conversion:
+    """convert() for the kitchen side, which never holds a raw catalogue row.
+
+    `summary` is a ProductSummary from the gateway (or a dict with the same keys).
+    The pack size on it was worked out by pack_size() when the catalogue was
+    loaded, so this gives the same quantity convert() would: same rounding, same
+    flags, same refusal to turn litres into kilograms.
+    """
+    get = summary.get if isinstance(summary, dict) else lambda k, d=None: getattr(summary, k, d)
+    need_unit = (need_unit or "").upper()
+    sales_unit = get("sales_unit") or ""
+    lot = float(get("allowed_lot_size") or 0)
+    per_sales = float(get("base_units_per_sales_unit") or 1.0)
+    out = Conversion(
+        ok=False,
+        sales_unit=sales_unit,
+        base_unit=get("base_unit") or "",
+        base_units_per_sales_unit=per_sales,
+        need_value=need_value,
+        need_unit=need_unit,
+    )
+
+    if get("variable_weight"):
+        out.flags.append("variable_weight")
+        out.reason = "variable_weight"
+        return out
+
+    if need_unit in {sales_unit, "KI", "ST", "CASES", "PCS"} and need_unit not in NEED_TO_LITRES and need_unit not in NEED_TO_KILOS:
+        quantity = _round_up_to_lot(need_value, lot)
+        out.ok = True
+        out.size_source = "not_needed"
+        out.quantity_sales_units = quantity
+        out.delivered_amount = quantity
+        out.overshoot = round(quantity - need_value, 6)
+        return out
+
+    if need_unit in NEED_TO_LITRES:
+        need_in, kind = need_value * NEED_TO_LITRES[need_unit], "L"
+    elif need_unit in NEED_TO_KILOS:
+        need_in, kind = need_value * NEED_TO_KILOS[need_unit], "KG"
+    else:
+        out.reason = f"unsupported_need_unit:{need_unit}"
+        return out
+
+    size_sales = get("size_per_sales_unit")
+    size_unit = (get("size_unit") or "").upper()
+    source = get("size_source") or "unknown"
+    if not size_sales and derived_size_per_sales_unit:
+        size_sales, size_unit, source = derived_size_per_sales_unit, "", "derived"
+    out.size_per_sales_unit = size_sales
+    out.size_per_base_unit = size_sales / per_sales if size_sales and per_sales else None
+    out.size_unit, out.size_source = size_unit or kind, source
+
+    if not size_sales:
+        out.size_source = "unknown"
+        out.reason = "size_unknown"
+        return out
+    if size_unit and size_unit != kind:
+        out.reason = f"size_in_{size_unit}_but_need_in_{kind}"
+        return out
+
+    quantity = _round_up_to_lot(need_in / size_sales, lot)
+    delivered = quantity * size_sales
+    factor = NEED_TO_LITRES.get(need_unit) or NEED_TO_KILOS.get(need_unit)
+    out.ok = True
+    out.quantity_sales_units = quantity
+    out.delivered_amount = round(delivered / factor, 6)
+    out.overshoot = round(out.delivered_amount - need_value, 6)
+    if source == "name":
+        out.flags.append("size_from_product_name")
+    if source == "derived":
+        out.flags.append("size_derived_from_price")
+    if derived_size_per_sales_unit and source != "derived":
+        drift = abs(size_sales - derived_size_per_sales_unit) / size_sales
+        if drift > 0.02:
+            out.flags.append("size_disagrees_with_price")
+    return out

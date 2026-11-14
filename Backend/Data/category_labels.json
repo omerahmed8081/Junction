@@ -1,0 +1,2096 @@
+[
+ {
+  "category": "17300",
+  "label": "prepared meals",
+  "product_count": 443,
+  "checked": false
+ },
+ {
+  "category": "22630",
+  "label": "dried spices",
+  "product_count": 432,
+  "checked": false
+ },
+ {
+  "category": "41763",
+  "label": "frozen cakes",
+  "product_count": 349,
+  "checked": false
+ },
+ {
+  "category": "64004",
+  "label": "takeaway containers",
+  "product_count": 343,
+  "checked": false
+ },
+ {
+  "category": "41760",
+  "label": "sliced breads",
+  "product_count": 244,
+  "checked": false
+ },
+ {
+  "category": "63235",
+  "label": "paper napkins",
+  "product_count": 238,
+  "checked": false
+ },
+ {
+  "category": "41755",
+  "label": "frozen foods",
+  "product_count": 221,
+  "checked": false
+ },
+ {
+  "category": "22601",
+  "label": "baking ingredients",
+  "product_count": 190,
+  "checked": false
+ },
+ {
+  "category": "21917",
+  "label": "table sauces",
+  "product_count": 184,
+  "checked": false
+ },
+ {
+  "category": "63114",
+  "label": "cleaning chemicals",
+  "product_count": 181,
+  "checked": false
+ },
+ {
+  "category": "64001",
+  "label": "disposable cups",
+  "product_count": 180,
+  "checked": false
+ },
+ {
+  "category": "41764",
+  "label": "sweet pastries",
+  "product_count": 179,
+  "checked": false
+ },
+ {
+  "category": "63120",
+  "label": "cleaning tools",
+  "product_count": 164,
+  "checked": false
+ },
+ {
+  "category": "22700",
+  "label": "soft drinks",
+  "product_count": 157,
+  "checked": false
+ },
+ {
+  "category": "52210",
+  "label": "confectionery items",
+  "product_count": 152,
+  "checked": false
+ },
+ {
+  "category": "10412",
+  "label": "dairy yoghurts",
+  "product_count": 150,
+  "checked": false
+ },
+ {
+  "category": "18720",
+  "label": "fresh beef",
+  "product_count": 149,
+  "checked": false
+ },
+ {
+  "category": "21596",
+  "label": "pickled vegetables",
+  "product_count": 147,
+  "checked": false
+ },
+ {
+  "category": "41753",
+  "label": "frozen vegetables",
+  "product_count": 146,
+  "checked": false
+ },
+ {
+  "category": "21380",
+  "label": "dry pasta",
+  "product_count": 140,
+  "checked": false
+ },
+ {
+  "category": "41705",
+  "label": "frozen meats",
+  "product_count": 140,
+  "checked": false
+ },
+ {
+  "category": "41820",
+  "label": "bulk ice creams",
+  "product_count": 139,
+  "checked": false
+ },
+ {
+  "category": "41731",
+  "label": "frozen mushrooms",
+  "product_count": 136,
+  "checked": false
+ },
+ {
+  "category": "41762",
+  "label": "savory pastries",
+  "product_count": 131,
+  "checked": false
+ },
+ {
+  "category": "41710",
+  "label": "poultry products",
+  "product_count": 129,
+  "checked": false
+ },
+ {
+  "category": "10600",
+  "label": "block cheeses",
+  "product_count": 129,
+  "checked": false
+ },
+ {
+  "category": "22140",
+  "label": "syrup dispensers",
+  "product_count": 125,
+  "checked": false
+ },
+ {
+  "category": "64003",
+  "label": "catering accessories",
+  "product_count": 125,
+  "checked": false
+ },
+ {
+  "category": "63001",
+  "label": "personal hygiene products",
+  "product_count": 125,
+  "checked": false
+ },
+ {
+  "category": "41800",
+  "label": "ice cream bars",
+  "product_count": 124,
+  "checked": false
+ },
+ {
+  "category": "17306",
+  "label": "plant proteins",
+  "product_count": 123,
+  "checked": false
+ },
+ {
+  "category": "41720",
+  "label": "frozen fish",
+  "product_count": 122,
+  "checked": false
+ },
+ {
+  "category": "20012",
+  "label": "gastronorm containers",
+  "product_count": 119,
+  "checked": false
+ },
+ {
+  "category": "41761",
+  "label": "burger buns",
+  "product_count": 119,
+  "checked": false
+ },
+ {
+  "category": "63100",
+  "label": "dishwashing detergents",
+  "product_count": 117,
+  "checked": false
+ },
+ {
+  "category": "63232",
+  "label": "table covers",
+  "product_count": 113,
+  "checked": false
+ },
+ {
+  "category": "21902",
+  "label": "bouillon powders",
+  "product_count": 111,
+  "checked": false
+ },
+ {
+  "category": "20022",
+  "label": "kitchen utensils",
+  "product_count": 110,
+  "checked": false
+ },
+ {
+  "category": "22300",
+  "label": "ground coffees",
+  "product_count": 109,
+  "checked": false
+ },
+ {
+  "category": "41702",
+  "label": "raw meats",
+  "product_count": 109,
+  "checked": false
+ },
+ {
+  "category": "41801",
+  "label": "frozen ice cream",
+  "product_count": 109,
+  "checked": false
+ },
+ {
+  "category": "17210",
+  "label": "prepared meats",
+  "product_count": 108,
+  "checked": false
+ },
+ {
+  "category": "18750",
+  "label": "poultry products",
+  "product_count": 107,
+  "checked": false
+ },
+ {
+  "category": "18710",
+  "label": "pork cuts",
+  "product_count": 106,
+  "checked": false
+ },
+ {
+  "category": "22530",
+  "label": "tea bags",
+  "product_count": 106,
+  "checked": false
+ },
+ {
+  "category": "20031",
+  "label": "ceramic tableware",
+  "product_count": 106,
+  "checked": false
+ },
+ {
+  "category": "17443",
+  "label": "fresh vegetables",
+  "product_count": 105,
+  "checked": false
+ },
+ {
+  "category": "17301",
+  "label": "prepared salads",
+  "product_count": 102,
+  "checked": false
+ },
+ {
+  "category": "17200",
+  "label": "sausages",
+  "product_count": 99,
+  "checked": false
+ },
+ {
+  "category": "21140",
+  "label": "sweet biscuits",
+  "product_count": 96,
+  "checked": false
+ },
+ {
+  "category": "21450",
+  "label": "jams and marmalades",
+  "product_count": 95,
+  "checked": false
+ },
+ {
+  "category": "20032",
+  "label": "drinking glasses",
+  "product_count": 95,
+  "checked": false
+ },
+ {
+  "category": "21403",
+  "label": "fruit juices",
+  "product_count": 94,
+  "checked": false
+ },
+ {
+  "category": "63231",
+  "label": "paper napkins",
+  "product_count": 94,
+  "checked": false
+ },
+ {
+  "category": "10400",
+  "label": "milk drinks",
+  "product_count": 91,
+  "checked": true
+ },
+ {
+  "category": "52200",
+  "label": "chocolate bars",
+  "product_count": 91,
+  "checked": false
+ },
+ {
+  "category": "52290",
+  "label": "chocolate pralines",
+  "product_count": 90,
+  "checked": false
+ },
+ {
+  "category": "10602",
+  "label": "cheese slices",
+  "product_count": 89,
+  "checked": false
+ },
+ {
+  "category": "64005",
+  "label": "paper bags",
+  "product_count": 88,
+  "checked": false
+ },
+ {
+  "category": "21400",
+  "label": "juice drinks",
+  "product_count": 88,
+  "checked": false
+ },
+ {
+  "category": "20033",
+  "label": "serving jugs",
+  "product_count": 87,
+  "checked": false
+ },
+ {
+  "category": "21910",
+  "label": "mayonnaises",
+  "product_count": 87,
+  "checked": false
+ },
+ {
+  "category": "63115",
+  "label": "cleaning chemicals",
+  "product_count": 83,
+  "checked": false
+ },
+ {
+  "category": "17203",
+  "label": "sliced cold cuts",
+  "product_count": 82,
+  "checked": false
+ },
+ {
+  "category": "18701",
+  "label": "fresh fish",
+  "product_count": 81,
+  "checked": false
+ },
+ {
+  "category": "21918",
+  "label": "salad dressings",
+  "product_count": 81,
+  "checked": false
+ },
+ {
+  "category": "41765",
+  "label": "frozen pastries",
+  "product_count": 81,
+  "checked": false
+ },
+ {
+  "category": "11030",
+  "label": "bakery pastries",
+  "product_count": 81,
+  "checked": false
+ },
+ {
+  "category": "52240",
+  "label": "sugar confectionery",
+  "product_count": 80,
+  "checked": false
+ },
+ {
+  "category": "63230",
+  "label": "small napkins",
+  "product_count": 79,
+  "checked": false
+ },
+ {
+  "category": "22701",
+  "label": "energy drinks",
+  "product_count": 78,
+  "checked": false
+ },
+ {
+  "category": "21590",
+  "label": "tomato products",
+  "product_count": 78,
+  "checked": false
+ },
+ {
+  "category": "41751",
+  "label": "frozen potatoes",
+  "product_count": 78,
+  "checked": false
+ },
+ {
+  "category": "63071",
+  "label": "safety gloves",
+  "product_count": 77,
+  "checked": false
+ },
+ {
+  "category": "10603",
+  "label": "grated cheese",
+  "product_count": 77,
+  "checked": false
+ },
+ {
+  "category": "20021",
+  "label": "kitchen knives",
+  "product_count": 76,
+  "checked": false
+ },
+ {
+  "category": "41723",
+  "label": "frozen ready meals",
+  "product_count": 74,
+  "checked": false
+ },
+ {
+  "category": "10901",
+  "label": "sliced bread",
+  "product_count": 71,
+  "checked": false
+ },
+ {
+  "category": "21370",
+  "label": "breakfast flakes",
+  "product_count": 71,
+  "checked": false
+ },
+ {
+  "category": "21150",
+  "label": "snack bars",
+  "product_count": 70,
+  "checked": false
+ },
+ {
+  "category": "17303",
+  "label": "filled sandwiches",
+  "product_count": 68,
+  "checked": false
+ },
+ {
+  "category": "10402",
+  "label": "plant milks",
+  "product_count": 66,
+  "checked": false
+ },
+ {
+  "category": "21340",
+  "label": "grains and rice",
+  "product_count": 66,
+  "checked": false
+ },
+ {
+  "category": "41766",
+  "label": "bread doughs",
+  "product_count": 66,
+  "checked": false
+ },
+ {
+  "category": "22620",
+  "label": "vinegars",
+  "product_count": 65,
+  "checked": false
+ },
+ {
+  "category": "21595",
+  "label": "table olives",
+  "product_count": 65,
+  "checked": false
+ },
+ {
+  "category": "41742",
+  "label": "frozen fruit purees",
+  "product_count": 64,
+  "checked": false
+ },
+ {
+  "category": "21460",
+  "label": "nuts and seeds",
+  "product_count": 64,
+  "checked": false
+ },
+ {
+  "category": "22641",
+  "label": "cooking pastes",
+  "product_count": 64,
+  "checked": false
+ },
+ {
+  "category": "17206",
+  "label": "cured sausages",
+  "product_count": 63,
+  "checked": false
+ },
+ {
+  "category": "22706",
+  "label": "mineral waters",
+  "product_count": 63,
+  "checked": false
+ },
+ {
+  "category": "52209",
+  "label": "loose candies",
+  "product_count": 62,
+  "checked": false
+ },
+ {
+  "category": "21401",
+  "label": "juice concentrates",
+  "product_count": 61,
+  "checked": false
+ },
+ {
+  "category": "21461",
+  "label": "dried fruits",
+  "product_count": 61,
+  "checked": false
+ },
+ {
+  "category": "64010",
+  "label": "candles",
+  "product_count": 61,
+  "checked": false
+ },
+ {
+  "category": "20011",
+  "label": "cooking pans",
+  "product_count": 60,
+  "checked": false
+ },
+ {
+  "category": "21310",
+  "label": "flours",
+  "product_count": 59,
+  "checked": false
+ },
+ {
+  "category": "18705",
+  "label": "herring preserves",
+  "product_count": 59,
+  "checked": false
+ },
+ {
+  "category": "52201",
+  "label": "chocolate bars",
+  "product_count": 58,
+  "checked": false
+ },
+ {
+  "category": "21904",
+  "label": "prepared sauces",
+  "product_count": 57,
+  "checked": false
+ },
+ {
+  "category": "21994",
+  "label": "mexican sauces",
+  "product_count": 56,
+  "checked": false
+ },
+ {
+  "category": "41701",
+  "label": "pork cuts",
+  "product_count": 56,
+  "checked": false
+ },
+ {
+  "category": "17454",
+  "label": "microgreens",
+  "product_count": 55,
+  "checked": false
+ },
+ {
+  "category": "20035",
+  "label": "eating utensils",
+  "product_count": 54,
+  "checked": false
+ },
+ {
+  "category": "10635",
+  "label": "cream cheeses",
+  "product_count": 54,
+  "checked": false
+ },
+ {
+  "category": "21594",
+  "label": "canned beans",
+  "product_count": 54,
+  "checked": false
+ },
+ {
+  "category": "21600",
+  "label": "baby foods",
+  "product_count": 54,
+  "checked": false
+ },
+ {
+  "category": "10401",
+  "label": "cooking creams",
+  "product_count": 53,
+  "checked": false
+ },
+ {
+  "category": "41721",
+  "label": "shellfish",
+  "product_count": 52,
+  "checked": false
+ },
+ {
+  "category": "63113",
+  "label": "laundry detergents",
+  "product_count": 52,
+  "checked": false
+ },
+ {
+  "category": "21905",
+  "label": "sauce mixes",
+  "product_count": 51,
+  "checked": false
+ },
+ {
+  "category": "17445",
+  "label": "melon pieces",
+  "product_count": 50,
+  "checked": false
+ },
+ {
+  "category": "21404",
+  "label": "fruit smoothies",
+  "product_count": 50,
+  "checked": false
+ },
+ {
+  "category": "21130",
+  "label": "sweet wafers",
+  "product_count": 50,
+  "checked": false
+ },
+ {
+  "category": "90011",
+  "label": "office folders",
+  "product_count": 49,
+  "checked": false
+ },
+ {
+  "category": "17442",
+  "label": "vegetable cuts",
+  "product_count": 49,
+  "checked": false
+ },
+ {
+  "category": "10430",
+  "label": "curd products",
+  "product_count": 49,
+  "checked": false
+ },
+ {
+  "category": "41732",
+  "label": "frozen vegetables",
+  "product_count": 49,
+  "checked": false
+ },
+ {
+  "category": "17209",
+  "label": "cooked meats",
+  "product_count": 49,
+  "checked": false
+ },
+ {
+  "category": "21990",
+  "label": "snack chips",
+  "product_count": 49,
+  "checked": false
+ },
+ {
+  "category": "21591",
+  "label": "pickled cucumbers",
+  "product_count": 49,
+  "checked": false
+ },
+ {
+  "category": "17431",
+  "label": "root vegetables",
+  "product_count": 49,
+  "checked": false
+ },
+ {
+  "category": "21980",
+  "label": "dessert powders",
+  "product_count": 48,
+  "checked": false
+ },
+ {
+  "category": "10900",
+  "label": "sliced bread",
+  "product_count": 47,
+  "checked": false
+ },
+ {
+  "category": "41754",
+  "label": "vegan proteins",
+  "product_count": 47,
+  "checked": false
+ },
+ {
+  "category": "22702",
+  "label": "soft drinks",
+  "product_count": 47,
+  "checked": false
+ },
+ {
+  "category": "20034",
+  "label": "kitchen utensils",
+  "product_count": 47,
+  "checked": false
+ },
+ {
+  "category": "10636",
+  "label": "salad cheeses",
+  "product_count": 47,
+  "checked": false
+ },
+ {
+  "category": "41712",
+  "label": "frozen chicken",
+  "product_count": 46,
+  "checked": false
+ },
+ {
+  "category": "10413",
+  "label": "plant yogurts",
+  "product_count": 46,
+  "checked": false
+ },
+ {
+  "category": "63272",
+  "label": "baking papers",
+  "product_count": 46,
+  "checked": false
+ },
+ {
+  "category": "22610",
+  "label": "table mustards",
+  "product_count": 45,
+  "checked": false
+ },
+ {
+  "category": "90012",
+  "label": "marking pens",
+  "product_count": 45,
+  "checked": false
+ },
+ {
+  "category": "10531",
+  "label": "olive oils",
+  "product_count": 45,
+  "checked": false
+ },
+ {
+  "category": "63121",
+  "label": "garbage bags",
+  "product_count": 44,
+  "checked": false
+ },
+ {
+  "category": "17404",
+  "label": "cabbages",
+  "product_count": 44,
+  "checked": false
+ },
+ {
+  "category": "22410",
+  "label": "coffee beans",
+  "product_count": 44,
+  "checked": false
+ },
+ {
+  "category": "17302",
+  "label": "prepared meals",
+  "product_count": 43,
+  "checked": false
+ },
+ {
+  "category": "21920",
+  "label": "cooking sauces",
+  "product_count": 43,
+  "checked": false
+ },
+ {
+  "category": "21993",
+  "label": "snack dips",
+  "product_count": 42,
+  "checked": false
+ },
+ {
+  "category": "64011",
+  "label": "table lanterns",
+  "product_count": 42,
+  "checked": false
+ },
+ {
+  "category": "10431",
+  "label": "dairy snacks",
+  "product_count": 42,
+  "checked": false
+ },
+ {
+  "category": "17441",
+  "label": "salad mixes",
+  "product_count": 42,
+  "checked": false
+ },
+ {
+  "category": "21580",
+  "label": "canned fruits",
+  "product_count": 42,
+  "checked": false
+ },
+ {
+  "category": "10515",
+  "label": "spreadable margarines",
+  "product_count": 42,
+  "checked": false
+ },
+ {
+  "category": "63240",
+  "label": "paper towel rolls",
+  "product_count": 42,
+  "checked": false
+ },
+ {
+  "category": "17403",
+  "label": "fresh lettuce",
+  "product_count": 41,
+  "checked": false
+ },
+ {
+  "category": "21921",
+  "label": "soy sauces",
+  "product_count": 41,
+  "checked": false
+ },
+ {
+  "category": "22100",
+  "label": "granulated sugars",
+  "product_count": 40,
+  "checked": false
+ },
+ {
+  "category": "21320",
+  "label": "baking flours",
+  "product_count": 40,
+  "checked": false
+ },
+ {
+  "category": "63233",
+  "label": "dispenser napkins",
+  "product_count": 40,
+  "checked": false
+ },
+ {
+  "category": "52202",
+  "label": "chocolate pralines",
+  "product_count": 40,
+  "checked": false
+ },
+ {
+  "category": "22600",
+  "label": "cooking salts",
+  "product_count": 40,
+  "checked": false
+ },
+ {
+  "category": "41830",
+  "label": "frozen desserts",
+  "product_count": 39,
+  "checked": false
+ },
+ {
+  "category": "21981",
+  "label": "dessert syrups",
+  "product_count": 39,
+  "checked": false
+ },
+ {
+  "category": "41703",
+  "label": "game meats",
+  "product_count": 39,
+  "checked": false
+ },
+ {
+  "category": "63241",
+  "label": "paper dispensers",
+  "product_count": 38,
+  "checked": false
+ },
+ {
+  "category": "90022",
+  "label": "office tapes",
+  "product_count": 37,
+  "checked": false
+ },
+ {
+  "category": "63210",
+  "label": "toilet papers",
+  "product_count": 37,
+  "checked": false
+ },
+ {
+  "category": "17201",
+  "label": "cooked sausages",
+  "product_count": 37,
+  "checked": false
+ },
+ {
+  "category": "20036",
+  "label": "bar accessories",
+  "product_count": 36,
+  "checked": false
+ },
+ {
+  "category": "21451",
+  "label": "fruit purées",
+  "product_count": 36,
+  "checked": false
+ },
+ {
+  "category": "63300",
+  "label": "kitchen textiles and uniforms",
+  "product_count": 36,
+  "checked": false
+ },
+ {
+  "category": "41740",
+  "label": "frozen berries",
+  "product_count": 35,
+  "checked": false
+ },
+ {
+  "category": "64000",
+  "label": "disposable plates",
+  "product_count": 35,
+  "checked": false
+ },
+ {
+  "category": "21992",
+  "label": "salted nuts",
+  "product_count": 35,
+  "checked": false
+ },
+ {
+  "category": "21462",
+  "label": "seeds and kernels",
+  "product_count": 35,
+  "checked": false
+ },
+ {
+  "category": "52208",
+  "label": "sweets and candies",
+  "product_count": 34,
+  "checked": false
+ },
+ {
+  "category": "20014",
+  "label": "storage bags and jars",
+  "product_count": 34,
+  "checked": false
+ },
+ {
+  "category": "64002",
+  "label": "wooden cutlery",
+  "product_count": 33,
+  "checked": false
+ },
+ {
+  "category": "21991",
+  "label": "tex mex products",
+  "product_count": 33,
+  "checked": false
+ },
+ {
+  "category": "21912",
+  "label": "tomato ketchups",
+  "product_count": 33,
+  "checked": false
+ },
+ {
+  "category": "21120",
+  "label": "crackers and crispbreads",
+  "product_count": 33,
+  "checked": false
+ },
+ {
+  "category": "17455",
+  "label": "edible flowers",
+  "product_count": 32,
+  "checked": false
+ },
+ {
+  "category": "17415",
+  "label": "fresh exotic fruits",
+  "product_count": 32,
+  "checked": false
+ },
+ {
+  "category": "17305",
+  "label": "hummus and pastes",
+  "product_count": 32,
+  "checked": false
+ },
+ {
+  "category": "90024",
+  "label": "office supplies",
+  "product_count": 32,
+  "checked": false
+ },
+ {
+  "category": "17423",
+  "label": "prepared potatoes",
+  "product_count": 32,
+  "checked": false
+ },
+ {
+  "category": "21211",
+  "label": "rye crispbreads",
+  "product_count": 32,
+  "checked": false
+ },
+ {
+  "category": "21381",
+  "label": "noodles and vermicelli",
+  "product_count": 31,
+  "checked": false
+ },
+ {
+  "category": "41704",
+  "label": "frozen lamb and mutton",
+  "product_count": 31,
+  "checked": false
+ },
+ {
+  "category": "21402",
+  "label": "fruit juices and soups",
+  "product_count": 31,
+  "checked": false
+ },
+ {
+  "category": "90015",
+  "label": "notebooks and pads",
+  "product_count": 31,
+  "checked": false
+ },
+ {
+  "category": "63271",
+  "label": "coffee filters",
+  "product_count": 31,
+  "checked": false
+ },
+ {
+  "category": "85001",
+  "label": "non-alcoholic beers",
+  "product_count": 31,
+  "checked": false
+ },
+ {
+  "category": "20023",
+  "label": "kitchen equipment",
+  "product_count": 30,
+  "checked": false
+ },
+ {
+  "category": "10406",
+  "label": "plant-based cooking creams",
+  "product_count": 30,
+  "checked": false
+ },
+ {
+  "category": "22670",
+  "label": "baking additives",
+  "product_count": 30,
+  "checked": false
+ },
+ {
+  "category": "21452",
+  "label": "baking marmalades",
+  "product_count": 29,
+  "checked": false
+ },
+ {
+  "category": "10419",
+  "label": "sour cream and kefir",
+  "product_count": 29,
+  "checked": false
+ },
+ {
+  "category": "17401",
+  "label": "fresh tomatoes",
+  "product_count": 29,
+  "checked": false
+ },
+ {
+  "category": "17451",
+  "label": "fresh herbs",
+  "product_count": 29,
+  "checked": false
+ },
+ {
+  "category": "64007",
+  "label": "takeaway packaging",
+  "product_count": 29,
+  "checked": false
+ },
+ {
+  "category": "21390",
+  "label": "beans and lentils",
+  "product_count": 28,
+  "checked": false
+ },
+ {
+  "category": "21373",
+  "label": "breakfast mueslis",
+  "product_count": 28,
+  "checked": false
+ },
+ {
+  "category": "21360",
+  "label": "starches and thickeners",
+  "product_count": 28,
+  "checked": false
+ },
+ {
+  "category": "21300",
+  "label": "wheat flours",
+  "product_count": 28,
+  "checked": false
+ },
+ {
+  "category": "10641",
+  "label": "vegan cheese alternatives",
+  "product_count": 27,
+  "checked": false
+ },
+ {
+  "category": "21382",
+  "label": "grains and couscous",
+  "product_count": 27,
+  "checked": false
+ },
+ {
+  "category": "22413",
+  "label": "iced coffee drinks",
+  "product_count": 27,
+  "checked": false
+ },
+ {
+  "category": "17406",
+  "label": "fresh peppers",
+  "product_count": 27,
+  "checked": false
+ },
+ {
+  "category": "85028",
+  "label": "non-alcoholic wine drinks",
+  "product_count": 27,
+  "checked": false
+ },
+ {
+  "category": "22703",
+  "label": "vitamin drinks",
+  "product_count": 27,
+  "checked": false
+ },
+ {
+  "category": "22540",
+  "label": "cocoa drinks",
+  "product_count": 27,
+  "checked": false
+ },
+ {
+  "category": "17205",
+  "label": "cold cuts",
+  "product_count": 26,
+  "checked": false
+ },
+ {
+  "category": "10640",
+  "label": "fresh cheeses",
+  "product_count": 26,
+  "checked": false
+ },
+ {
+  "category": "20013",
+  "label": "bakeware pans",
+  "product_count": 26,
+  "checked": false
+ },
+ {
+  "category": "21530",
+  "label": "canned fish",
+  "product_count": 26,
+  "checked": false
+ },
+ {
+  "category": "21371",
+  "label": "grains and semolina",
+  "product_count": 25,
+  "checked": false
+ },
+ {
+  "category": "63002",
+  "label": "dental care products",
+  "product_count": 25,
+  "checked": false
+ },
+ {
+  "category": "10632",
+  "label": "blue cheeses",
+  "product_count": 25,
+  "checked": false
+ },
+ {
+  "category": "21550",
+  "label": "canned mushrooms",
+  "product_count": 25,
+  "checked": false
+ },
+ {
+  "category": "41771",
+  "label": "frozen cheese",
+  "product_count": 25,
+  "checked": false
+ },
+ {
+  "category": "17405",
+  "label": "fresh onions",
+  "product_count": 24,
+  "checked": false
+ },
+ {
+  "category": "10530",
+  "label": "cooking oils",
+  "product_count": 24,
+  "checked": false
+ },
+ {
+  "category": "10631",
+  "label": "white mould cheeses",
+  "product_count": 24,
+  "checked": false
+ },
+ {
+  "category": "22531",
+  "label": "loose leaf teas",
+  "product_count": 23,
+  "checked": false
+ },
+ {
+  "category": "10411",
+  "label": "fermented milk",
+  "product_count": 23,
+  "checked": false
+ },
+ {
+  "category": "22412",
+  "label": "instant coffee",
+  "product_count": 23,
+  "checked": false
+ },
+ {
+  "category": "17407",
+  "label": "fresh vegetables",
+  "product_count": 22,
+  "checked": false
+ },
+ {
+  "category": "17402",
+  "label": "fresh cucumbers",
+  "product_count": 22,
+  "checked": false
+ },
+ {
+  "category": "17432",
+  "label": "peeled vegetables",
+  "product_count": 22,
+  "checked": false
+ },
+ {
+  "category": "52260",
+  "label": "chewing gum",
+  "product_count": 21,
+  "checked": false
+ },
+ {
+  "category": "10592",
+  "label": "egg products",
+  "product_count": 21,
+  "checked": false
+ },
+ {
+  "category": "22532",
+  "label": "iced teas",
+  "product_count": 21,
+  "checked": false
+ },
+ {
+  "category": "64006",
+  "label": "carrier bags",
+  "product_count": 21,
+  "checked": false
+ },
+ {
+  "category": "63130",
+  "label": "storage containers",
+  "product_count": 21,
+  "checked": false
+ },
+ {
+  "category": "21372",
+  "label": "breakfast cereals",
+  "product_count": 21,
+  "checked": false
+ },
+ {
+  "category": "63072",
+  "label": "personal hygiene products",
+  "product_count": 21,
+  "checked": false
+ },
+ {
+  "category": "17202",
+  "label": "bacon products",
+  "product_count": 21,
+  "checked": false
+ },
+ {
+  "category": "17471",
+  "label": "fresh mushrooms",
+  "product_count": 21,
+  "checked": false
+ },
+ {
+  "category": "64301",
+  "label": "batteries and bulbs",
+  "product_count": 21,
+  "checked": false
+ },
+ {
+  "category": "10633",
+  "label": "processed cheeses",
+  "product_count": 20,
+  "checked": false
+ },
+ {
+  "category": "10500",
+  "label": "dairy butter",
+  "product_count": 20,
+  "checked": false
+ },
+ {
+  "category": "21919",
+  "label": "savory sauces",
+  "product_count": 20,
+  "checked": false
+ },
+ {
+  "category": "17421",
+  "label": "fresh potatoes",
+  "product_count": 20,
+  "checked": false
+ },
+ {
+  "category": "22150",
+  "label": "natural honey",
+  "product_count": 19,
+  "checked": false
+ },
+ {
+  "category": "22646",
+  "label": "food pastes",
+  "product_count": 19,
+  "checked": false
+ },
+ {
+  "category": "63122",
+  "label": "waste bins",
+  "product_count": 19,
+  "checked": false
+ },
+ {
+  "category": "18761",
+  "label": "meat patties",
+  "product_count": 19,
+  "checked": false
+ },
+ {
+  "category": "18703",
+  "label": "fresh shellfish",
+  "product_count": 18,
+  "checked": false
+ },
+ {
+  "category": "18760",
+  "label": "minced meat",
+  "product_count": 18,
+  "checked": false
+ },
+ {
+  "category": "63000",
+  "label": "hair and body care products",
+  "product_count": 18,
+  "checked": false
+ },
+ {
+  "category": "18708",
+  "label": "smoked fish",
+  "product_count": 18,
+  "checked": false
+ },
+ {
+  "category": "64300",
+  "label": "thermometers and clocks",
+  "product_count": 18,
+  "checked": false
+ },
+ {
+  "category": "22705",
+  "label": "mineral waters",
+  "product_count": 17,
+  "checked": false
+ },
+ {
+  "category": "10532",
+  "label": "cooking oils",
+  "product_count": 17,
+  "checked": false
+ },
+ {
+  "category": "41770",
+  "label": "ice cubes and coffee",
+  "product_count": 17,
+  "checked": false
+ },
+ {
+  "category": "41741",
+  "label": "frozen fruits",
+  "product_count": 17,
+  "checked": false
+ },
+ {
+  "category": "22640",
+  "label": "liquid seasonings",
+  "product_count": 17,
+  "checked": false
+ },
+ {
+  "category": "17481",
+  "label": "fresh berries",
+  "product_count": 17,
+  "checked": false
+ },
+ {
+  "category": "10637",
+  "label": "mozzarella cheeses",
+  "product_count": 17,
+  "checked": false
+ },
+ {
+  "category": "17412",
+  "label": "fresh apples",
+  "product_count": 16,
+  "checked": false
+ },
+ {
+  "category": "21510",
+  "label": "canned meats",
+  "product_count": 16,
+  "checked": false
+ },
+ {
+  "category": "10432",
+  "label": "dessert mixes",
+  "product_count": 16,
+  "checked": false
+ },
+ {
+  "category": "17453",
+  "label": "fresh herbs",
+  "product_count": 16,
+  "checked": false
+ },
+ {
+  "category": "10902",
+  "label": "hamburger buns",
+  "product_count": 16,
+  "checked": false
+ },
+ {
+  "category": "10639",
+  "label": "halloumi cheeses",
+  "product_count": 16,
+  "checked": false
+ },
+ {
+  "category": "63234",
+  "label": "napkin dispensers",
+  "product_count": 16,
+  "checked": false
+ },
+ {
+  "category": "17204",
+  "label": "sliced turkey",
+  "product_count": 16,
+  "checked": false
+ },
+ {
+  "category": "17207",
+  "label": "liver pates",
+  "product_count": 16,
+  "checked": false
+ },
+ {
+  "category": "18702",
+  "label": "hot smoked fish",
+  "product_count": 16,
+  "checked": false
+ },
+ {
+  "category": "17411",
+  "label": "citrus fruits",
+  "product_count": 16,
+  "checked": false
+ },
+ {
+  "category": "17444",
+  "label": "peeled onions",
+  "product_count": 15,
+  "checked": false
+ },
+ {
+  "category": "21453",
+  "label": "sweet spreads",
+  "product_count": 15,
+  "checked": false
+ },
+ {
+  "category": "22704",
+  "label": "kombucha drinks",
+  "product_count": 15,
+  "checked": false
+ },
+ {
+  "category": "84966",
+  "label": "non-alcoholic beers",
+  "product_count": 15,
+  "checked": false
+ },
+ {
+  "category": "64500",
+  "label": "gift boxes",
+  "product_count": 14,
+  "checked": false
+ },
+ {
+  "category": "10405",
+  "label": "milk powders",
+  "product_count": 14,
+  "checked": false
+ },
+ {
+  "category": "21901",
+  "label": "instant soups",
+  "product_count": 13,
+  "checked": false
+ },
+ {
+  "category": "32990",
+  "label": "lighters and matches",
+  "product_count": 13,
+  "checked": false
+ },
+ {
+  "category": "90021",
+  "label": "mailing bags",
+  "product_count": 12,
+  "checked": false
+ },
+ {
+  "category": "63273",
+  "label": "roasting bags",
+  "product_count": 12,
+  "checked": false
+ },
+ {
+  "category": "64008",
+  "label": "thermal boxes",
+  "product_count": 12,
+  "checked": false
+ },
+ {
+  "category": "22707",
+  "label": "drink concentrates",
+  "product_count": 11,
+  "checked": false
+ },
+ {
+  "category": "21900",
+  "label": "prepared soups",
+  "product_count": 11,
+  "checked": false
+ },
+ {
+  "category": "17414",
+  "label": "stone fruits",
+  "product_count": 11,
+  "checked": false
+ },
+ {
+  "category": "63900",
+  "label": "kitchen appliances",
+  "product_count": 11,
+  "checked": false
+ },
+ {
+  "category": "17424",
+  "label": "processed potatoes",
+  "product_count": 11,
+  "checked": false
+ },
+ {
+  "category": "17452",
+  "label": "fresh herbs",
+  "product_count": 11,
+  "checked": false
+ },
+ {
+  "category": "90014",
+  "label": "receipt rolls",
+  "product_count": 11,
+  "checked": false
+ },
+ {
+  "category": "63070",
+  "label": "sanitary products",
+  "product_count": 11,
+  "checked": false
+ },
+ {
+  "category": "41733",
+  "label": "frozen herbs",
+  "product_count": 11,
+  "checked": false
+ },
+ {
+  "category": "64100",
+  "label": "grill charcoals",
+  "product_count": 11,
+  "checked": false
+ },
+ {
+  "category": "10630",
+  "label": "goat cheeses",
+  "product_count": 10,
+  "checked": false
+ },
+ {
+  "category": "17422",
+  "label": "peeled potatoes",
+  "product_count": 10,
+  "checked": false
+ },
+ {
+  "category": "22190",
+  "label": "table sweeteners",
+  "product_count": 10,
+  "checked": false
+ },
+ {
+  "category": "21593",
+  "label": "beetroot products",
+  "product_count": 10,
+  "checked": false
+ },
+ {
+  "category": "21463",
+  "label": "seaweed products",
+  "product_count": 10,
+  "checked": false
+ },
+ {
+  "category": "21200",
+  "label": "crispbreads",
+  "product_count": 10,
+  "checked": false
+ },
+ {
+  "category": "63131",
+  "label": "plastic buckets",
+  "product_count": 10,
+  "checked": false
+ },
+ {
+  "category": "21592",
+  "label": "fermented vegetables",
+  "product_count": 9,
+  "checked": false
+ },
+ {
+  "category": "17408",
+  "label": "fresh beans",
+  "product_count": 9,
+  "checked": false
+ },
+ {
+  "category": "10903",
+  "label": "bread rolls",
+  "product_count": 9,
+  "checked": false
+ },
+ {
+  "category": "41711",
+  "label": "game birds",
+  "product_count": 9,
+  "checked": false
+ },
+ {
+  "category": "10590",
+  "label": "whole eggs",
+  "product_count": 9,
+  "checked": false
+ },
+ {
+  "category": "21540",
+  "label": "snail products",
+  "product_count": 8,
+  "checked": false
+ },
+ {
+  "category": "41722",
+  "label": "fish roe",
+  "product_count": 8,
+  "checked": false
+ },
+ {
+  "category": "21394",
+  "label": "mashed potato powders",
+  "product_count": 8,
+  "checked": false
+ },
+ {
+  "category": "41752",
+  "label": "prepared foods",
+  "product_count": 8,
+  "checked": false
+ },
+ {
+  "category": "21950",
+  "label": "dietary supplements",
+  "product_count": 8,
+  "checked": false
+ },
+ {
+  "category": "63242",
+  "label": "facial tissues",
+  "product_count": 8,
+  "checked": false
+ },
+ {
+  "category": "10517",
+  "label": "liquid fats",
+  "product_count": 7,
+  "checked": false
+ },
+ {
+  "category": "22660",
+  "label": "baking yeasts",
+  "product_count": 7,
+  "checked": false
+ },
+ {
+  "category": "10404",
+  "label": "condensed milks",
+  "product_count": 7,
+  "checked": false
+ },
+ {
+  "category": "67800",
+  "label": "party decorations",
+  "product_count": 7,
+  "checked": false
+ },
+ {
+  "category": "90013",
+  "label": "printing papers",
+  "product_count": 7,
+  "checked": false
+ },
+ {
+  "category": "41734",
+  "label": "vegetable purees",
+  "product_count": 7,
+  "checked": false
+ },
+ {
+  "category": "18704",
+  "label": "caviar substitutes",
+  "product_count": 6,
+  "checked": false
+ },
+ {
+  "category": "41750",
+  "label": "pureed foods",
+  "product_count": 6,
+  "checked": false
+ },
+ {
+  "category": "21393",
+  "label": "soy products",
+  "product_count": 6,
+  "checked": false
+ },
+ {
+  "category": "10516",
+  "label": "portion butter",
+  "product_count": 6,
+  "checked": false
+ },
+ {
+  "category": "21903",
+  "label": "liquid bouillons",
+  "product_count": 6,
+  "checked": false
+ },
+ {
+  "category": "63200",
+  "label": "paper towels",
+  "product_count": 6,
+  "checked": false
+ },
+ {
+  "category": "67730",
+  "label": "newspapers",
+  "product_count": 6,
+  "checked": false
+ },
+ {
+  "category": "17413",
+  "label": "fresh bananas",
+  "product_count": 6,
+  "checked": false
+ },
+ {
+  "category": "84988",
+  "label": "non-alcoholic drinks",
+  "product_count": 6,
+  "checked": false
+ },
+ {
+  "category": "17208",
+  "label": "meat aspics",
+  "product_count": 5,
+  "checked": false
+ },
+ {
+  "category": "84967",
+  "label": "non-alcoholic ciders",
+  "product_count": 5,
+  "checked": false
+ },
+ {
+  "category": "10518",
+  "label": "baking fats",
+  "product_count": 5,
+  "checked": false
+ },
+ {
+  "category": "20024",
+  "label": "kitchen thermometers",
+  "product_count": 5,
+  "checked": false
+ },
+ {
+  "category": "21391",
+  "label": "malt extracts",
+  "product_count": 5,
+  "checked": false
+ },
+ {
+  "category": "17472",
+  "label": "fresh mushrooms",
+  "product_count": 5,
+  "checked": false
+ },
+ {
+  "category": "21982",
+  "label": "baking supplies",
+  "product_count": 4,
+  "checked": false
+ },
+ {
+  "category": "10418",
+  "label": "plant creams",
+  "product_count": 4,
+  "checked": false
+ },
+ {
+  "category": "21100",
+  "label": "rusks and crispbreads",
+  "product_count": 4,
+  "checked": false
+ },
+ {
+  "category": "17433",
+  "label": "vegetable purees",
+  "product_count": 4,
+  "checked": false
+ },
+ {
+  "category": "22411",
+  "label": "ground coffees",
+  "product_count": 4,
+  "checked": false
+ },
+ {
+  "category": "21405",
+  "label": "non-alcoholic drinks",
+  "product_count": 4,
+  "checked": false
+ },
+ {
+  "category": "20000",
+  "label": "pet treats",
+  "product_count": 4,
+  "checked": false
+ },
+ {
+  "category": "64310",
+  "label": "car care products",
+  "product_count": 4,
+  "checked": false
+ },
+ {
+  "category": "21121",
+  "label": "soup croutons",
+  "product_count": 3,
+  "checked": false
+ },
+ {
+  "category": "17304",
+  "label": "fresh pastas",
+  "product_count": 3,
+  "checked": false
+ },
+ {
+  "category": "30010",
+  "label": "pest control products",
+  "product_count": 3,
+  "checked": false
+ },
+ {
+  "category": "17456",
+  "label": "sprouts and shoots",
+  "product_count": 3,
+  "checked": false
+ },
+ {
+  "category": "18740",
+  "label": "lamb cuts",
+  "product_count": 3,
+  "checked": false
+ },
+ {
+  "category": "10501",
+  "label": "butter portions",
+  "product_count": 3,
+  "checked": false
+ },
+ {
+  "category": "18707",
+  "label": "cooked fish",
+  "product_count": 3,
+  "checked": false
+ },
+ {
+  "category": "18706",
+  "label": "fish fillets",
+  "product_count": 3,
+  "checked": false
+ },
+ {
+  "category": "63270",
+  "label": "twines and ties",
+  "product_count": 2,
+  "checked": false
+ },
+ {
+  "category": "17457",
+  "label": "banana leaves",
+  "product_count": 2,
+  "checked": false
+ },
+ {
+  "category": "21952",
+  "label": "food thickeners",
+  "product_count": 2,
+  "checked": false
+ },
+ {
+  "category": "77722",
+  "label": "gas cylinders",
+  "product_count": 2,
+  "checked": false
+ },
+ {
+  "category": "64130",
+  "label": "dog accessories",
+  "product_count": 2,
+  "checked": false
+ },
+ {
+  "category": "17473",
+  "label": "salted mushrooms",
+  "product_count": 2,
+  "checked": false
+ },
+ {
+  "category": "10502",
+  "label": "flavored butters",
+  "product_count": 1,
+  "checked": false
+ },
+ {
+  "category": "18730",
+  "label": "reindeer meats",
+  "product_count": 1,
+  "checked": false
+ },
+ {
+  "category": "18751",
+  "label": "duck fillets",
+  "product_count": 1,
+  "checked": false
+ },
+ {
+  "category": "85034",
+  "label": "non-alcoholic ciders",
+  "product_count": 1,
+  "checked": false
+ }
+]

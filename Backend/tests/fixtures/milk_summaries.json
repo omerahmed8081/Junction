@@ -1,0 +1,1173 @@
+[
+ {
+  "product_id": "464768",
+  "name": "12 x Arla Whole milk drink 1 L UHT lactose free",
+  "vendor": "ARLA OY",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "KI",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 12.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 12.0,
+  "size_unit": "L",
+  "size_source": "name",
+  "claims": [
+   "FREE_FROM_LACTOSE"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6413300918434",
+  "variable_weight": false,
+  "delivery_reliability": null,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "464399",
+  "name": "14 x Arla Low fat milkdrink 2 dl Suomesta UHT lactose free",
+  "vendor": "ARLA OY",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "KI",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 14.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 2.8,
+  "size_unit": "L",
+  "size_source": "name",
+  "claims": [
+   "FREE_FROM_LACTOSE"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6413300918168",
+  "variable_weight": false,
+  "delivery_reliability": null,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "469330",
+  "name": "5 x Arla 1 L lactose free semi-skimmed milk drink Suomesta ESL",
+  "vendor": "ARLA OY",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "KI",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 5.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 5.0,
+  "size_unit": "L",
+  "size_source": "structured_case",
+  "claims": [
+   "FREE_FROM_LACTOSE"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6413300715644",
+  "variable_weight": false,
+  "delivery_reliability": null,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "469331",
+  "name": "5 x Arla Acidofilus-Bifidus sour milk 1 L lactose free fatfree Suomi",
+  "vendor": "ARLA OY",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "KI",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 5.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 5.0,
+  "size_unit": "L",
+  "size_source": "structured_case",
+  "claims": [
+   "FREE_FROM_FAT",
+   "FREE_FROM_LACTOSE"
+  ],
+  "labels": [
+   "FINNISH_HEART_SYMBOL",
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6413300816464",
+  "variable_weight": false,
+  "delivery_reliability": null,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "469386",
+  "name": "5 x Arla Lactose- and fatfree milkdrink 1 L Suomi ESL",
+  "vendor": "ARLA OY",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "KI",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 5.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 5.0,
+  "size_unit": "L",
+  "size_source": "name",
+  "claims": [
+   "FREE_FROM_FAT",
+   "FREE_FROM_LACTOSE"
+  ],
+  "labels": [
+   "FINNISH_HEART_SYMBOL",
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6413300715637",
+  "variable_weight": false,
+  "delivery_reliability": null,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "465149",
+  "name": "6 x Arla 5 dl lactose free low fat milk drink Suomi ESL",
+  "vendor": "ARLA OY",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "KI",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 6.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 3.0,
+  "size_unit": "L",
+  "size_source": "name",
+  "claims": [
+   "FREE_FROM_LACTOSE"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6413300919080",
+  "variable_weight": false,
+  "delivery_reliability": null,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "464179",
+  "name": "Arla 10 L Novobox Suomi semi skimmed lactose free milk drink ESL",
+  "vendor": "ARLA OY",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "ST",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 1.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 10.0,
+  "size_unit": "L",
+  "size_source": "structured",
+  "claims": [
+   "FREE_FROM_LACTOSE"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6413300017656",
+  "variable_weight": false,
+  "delivery_reliability": null,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "463380",
+  "name": "Arla Cafè milk 1 L UHT lactose free",
+  "vendor": "ARLA OY",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "ST",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 1.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 1.0,
+  "size_unit": "L",
+  "size_source": "structured",
+  "claims": [
+   "FREE_FROM_LACTOSE"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6413300015515",
+  "variable_weight": false,
+  "delivery_reliability": null,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "462775",
+  "name": "Arla Milkdrink 1L lactose free fat free UHT Suomesta",
+  "vendor": "ARLA OY",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "ST",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 1.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 1.0,
+  "size_unit": "L",
+  "size_source": "structured",
+  "claims": [
+   "FREE_FROM_FAT",
+   "FREE_FROM_LACTOSE"
+  ],
+  "labels": [
+   "FINNISH_HEART_SYMBOL",
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6413300011500",
+  "variable_weight": false,
+  "delivery_reliability": null,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "463203",
+  "name": "Arla Portion milk 100x2 cl lactose free 1,5% UHT",
+  "vendor": "ARLA OY",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "KI",
+  "base_unit": "KI",
+  "base_units_per_sales_unit": 1.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 2.0,
+  "size_unit": "L",
+  "size_source": "structured",
+  "claims": [
+   "FREE_FROM_LACTOSE"
+  ],
+  "labels": [],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "dk",
+  "gtin": "5760466959940",
+  "variable_weight": false,
+  "delivery_reliability": 0.998,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "469363",
+  "name": "Arla Semi skimmed milkdrink 1 L UHT lactose free Suomesta",
+  "vendor": "ARLA OY",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "ST",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 1.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 1.0,
+  "size_unit": "L",
+  "size_source": "structured",
+  "claims": [
+   "FREE_FROM_LACTOSE"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6413300011517",
+  "variable_weight": false,
+  "delivery_reliability": null,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "462921",
+  "name": "Valio Eila®  Luomu™ semi skimmed milk drink 1 l lactose free, organic",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "KI",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 5.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 5.0,
+  "size_unit": "L",
+  "size_source": "name",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_FAT",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "EU_ORGANIC_FARMING",
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430208890",
+  "variable_weight": false,
+  "delivery_reliability": 1.0,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "463335",
+  "name": "Valio Eila® 3 % milk drink 1 l lactose free",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "ST",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 1.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 1.0,
+  "size_unit": "L",
+  "size_source": "structured",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430000296",
+  "variable_weight": false,
+  "delivery_reliability": 1.0,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "464398",
+  "name": "Valio Eila® semi skimmed milk drink 1 l UHT lactose free",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "ST",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 1.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 1.0,
+  "size_unit": "L",
+  "size_source": "structured",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "LOW_FAT",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430011681",
+  "variable_weight": false,
+  "delivery_reliability": 1.0,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "465039",
+  "name": "Valio Eila® semi skimmed milk drink 1 l lactose free",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "KI",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 5.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 5.0,
+  "size_unit": "L",
+  "size_source": "name",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_FAT",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430100248",
+  "variable_weight": false,
+  "delivery_reliability": 1.0,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "469287",
+  "name": "Valio Eila® semi skimmed milk drink 1,75 l lactose free",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "KI",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 12.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 21.0,
+  "size_unit": "L",
+  "size_source": "name",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_FAT",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430101108",
+  "variable_weight": false,
+  "delivery_reliability": null,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "463038",
+  "name": "Valio Eila® semi skimmed milk drink 10 l novobox lactose free",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "KI",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 2.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 20.0,
+  "size_unit": "L",
+  "size_source": "name",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_FAT",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430100330",
+  "variable_weight": false,
+  "delivery_reliability": null,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "463779",
+  "name": "Valio Eila® semi skimmed milk drink 2,5 dl UHT lactose free",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "KI",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 15.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 3.75,
+  "size_unit": "L",
+  "size_source": "name",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "LOW_FAT",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430100750",
+  "variable_weight": false,
+  "delivery_reliability": 0.99,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "464198",
+  "name": "Valio Eila® semi skimmed milk drink 5 dl lactose free",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "KI",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 5.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 2.5,
+  "size_unit": "L",
+  "size_source": "name",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_FAT",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430100309",
+  "variable_weight": false,
+  "delivery_reliability": null,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "476240",
+  "name": "Valio Eila® skimmed milk drink 1 l lactose free",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "KI",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 5.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 5.0,
+  "size_unit": "L",
+  "size_source": "name",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_FAT",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "FINNISH_HEART_SYMBOL",
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430100224",
+  "variable_weight": false,
+  "delivery_reliability": 1.0,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "469119",
+  "name": "Valio Eila® skimmed milk drink 1,75 l lactose free",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "ST",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 1.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 1.75,
+  "size_unit": "L",
+  "size_source": "structured",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_FAT",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "FINNISH_HEART_SYMBOL",
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430000517",
+  "variable_weight": false,
+  "delivery_reliability": null,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "477050",
+  "name": "Valio Eila® skimmed sour milk 1 l lactose free",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "ST",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 1.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 1.0,
+  "size_unit": "L",
+  "size_source": "structured",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_FAT",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "FINNISH_HEART_SYMBOL",
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430001996",
+  "variable_weight": false,
+  "delivery_reliability": 0.998,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "476957",
+  "name": "Valio Gefilus® AB sour milk 1% 1 l lactose free",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "ST",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 1.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 1.0,
+  "size_unit": "L",
+  "size_source": "structured",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_FAT",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430001859",
+  "variable_weight": false,
+  "delivery_reliability": 1.0,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "464306",
+  "name": "Valio Hyvä suomalainen Arki® Eila® semi skimmed milk drink 1 l lactose free",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "ST",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 1.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 1.0,
+  "size_unit": "L",
+  "size_source": "structured",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_FAT",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430000487",
+  "variable_weight": false,
+  "delivery_reliability": 1.0,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "464401",
+  "name": "Valio Hyvä suomalainen Arki® Eila® skimmed milk drink 1 l lactose free",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "ST",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 1.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 1.0,
+  "size_unit": "L",
+  "size_source": "structured",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_FAT",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "FINNISH_HEART_SYMBOL",
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430000494",
+  "variable_weight": false,
+  "delivery_reliability": 1.0,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "469266",
+  "name": "Valio Latte original coffee drink 1 l lactose free",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "KI",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 5.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 5.0,
+  "size_unit": "L",
+  "size_source": "name",
+  "claims": [
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "LOW_FAT",
+   "LOW_SODIUM_SALT",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN",
+   "RAINFOREST_ALLIANCE"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430213054",
+  "variable_weight": false,
+  "delivery_reliability": null,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "464237",
+  "name": "Valio coffee milk 1 l lactose free UHT",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "ST",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 1.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 1.0,
+  "size_unit": "L",
+  "size_source": "structured",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430000500",
+  "variable_weight": false,
+  "delivery_reliability": 1.0,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "462626",
+  "name": "Valio coffee milk 5 dl lactose free",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "KI",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 10.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 5.0,
+  "size_unit": "L",
+  "size_source": "name",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430100149",
+  "variable_weight": false,
+  "delivery_reliability": 1.0,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "473142",
+  "name": "Valio coffee milk drink vanilla 1 l lactose free UHT",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "KI",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 10.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 10.0,
+  "size_unit": "L",
+  "size_source": "name",
+  "claims": [
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "LOW_SODIUM_SALT",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408431472450",
+  "variable_weight": false,
+  "delivery_reliability": null,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "464440",
+  "name": "Valio semi skimmed milk 0,5 l lactose free UHT",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "ST",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 1.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 0.5,
+  "size_unit": "L",
+  "size_source": "structured",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_FAT",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430011643",
+  "variable_weight": false,
+  "delivery_reliability": null,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "464201",
+  "name": "Valio semi skimmed milk 1 l lactose free UHT",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "ST",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 1.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 1.0,
+  "size_unit": "L",
+  "size_source": "structured",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_FAT",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430011667",
+  "variable_weight": false,
+  "delivery_reliability": 1.0,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "466288",
+  "name": "Valio semi skimmed milk 2,5 dl lactose free UHT",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "KI",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 15.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 3.75,
+  "size_unit": "L",
+  "size_source": "name",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_FAT",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430218530",
+  "variable_weight": false,
+  "delivery_reliability": 1.0,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "464119",
+  "name": "Valio skimmed milk 1 l lactose free UHT",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "KI",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 10.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 10.0,
+  "size_unit": "L",
+  "size_source": "name",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_FAT",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "FINNISH_HEART_SYMBOL",
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430100866",
+  "variable_weight": false,
+  "delivery_reliability": 1.0,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "472492",
+  "name": "Valio skimmed sour milk 5 kg lactose free",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "ST",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 1.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 5.0,
+  "size_unit": "KG",
+  "size_source": "structured",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_FAT",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "FINNISH_HEART_SYMBOL",
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430102662",
+  "variable_weight": false,
+  "delivery_reliability": null,
+  "carbon_kg_per_kg": 1.1
+ },
+ {
+  "product_id": "464073",
+  "name": "Valio whole milk 1 l lactose free UHT",
+  "vendor": "VALIO OY TUORE",
+  "category": "10400",
+  "category_label": "milk drinks",
+  "sales_unit": "ST",
+  "base_unit": "ST",
+  "base_units_per_sales_unit": 1.0,
+  "allowed_lot_size": 0.01,
+  "size_per_sales_unit": 1.0,
+  "size_unit": "L",
+  "size_source": "structured",
+  "claims": [
+   "FREE_FROM_ADDITIVES",
+   "FREE_FROM_COLOURING_AGENTS",
+   "FREE_FROM_LACTOSE",
+   "FREE_FROM_PRESERVATIVES",
+   "FREE_FROM_SWEETENERS",
+   "LOW_SODIUM_SALT",
+   "NO_ADDED_SUGARS",
+   "VEGETARIAN"
+  ],
+  "labels": [
+   "GOODS_FROM_FINLAND_BLUE_SWAN"
+  ],
+  "allergens": [
+   "AM"
+  ],
+  "origin": "fi",
+  "gtin": "6408430011674",
+  "variable_weight": false,
+  "delivery_reliability": 1.0,
+  "carbon_kg_per_kg": 1.1
+ }
+]

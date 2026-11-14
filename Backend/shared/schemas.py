@@ -33,6 +33,7 @@ class ProductSummary(BaseModel):
     sales_unit: str
     base_unit: str
     base_units_per_sales_unit: float
+    allowed_lot_size: float | None = None      # smallest order step, in sales units
     size_per_sales_unit: float | None = None   # litres or kilograms
     size_unit: str = ""                        # "L" | "KG" | ""
     size_source: SizeSource = "unknown"
