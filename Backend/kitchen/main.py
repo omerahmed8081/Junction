@@ -22,7 +22,7 @@ from fastapi import FastAPI, HTTPException  # noqa: E402
 from psycopg_pool import ConnectionPool  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
-from kitchen import agent, audit, keys, ordering, storage, suggestions  # noqa: E402
+from kitchen import agent, audit, edits, keys, ordering, storage, suggestions  # noqa: E402
 from kitchen.inventory import Inventory  # noqa: E402
 from kitchen.gateway_client import GatewayClient, GatewayError, GatewayRefused  # noqa: E402
 from kitchen import narrate  # noqa: E402
@@ -141,6 +141,20 @@ def chat(req: ChatRequest) -> ChatResponse:
         # starts the next order instead.
         state = None
     asked_date = mentioned_date(req.message)
+
+    # "make it 20", "drop the rice": a change to what is already there, not a
+    # new product. Checked first, because "only 10 kg of butter" parses as a
+    # perfectly good new request and would add a second butter line.
+    if state is not None and state.basket.lines:
+        try:
+            change = edits.read(state.basket, req.message)
+        except edits.Ambiguous as exc:
+            return ChatResponse(
+                reply=f"Did you mean {_join(exc.names)}? Say which one and I will change it.",
+                basket=state.basket)
+        if change is not None:
+            return _apply_change(state, change, req.message)
+
     try:
         needs = parse_needs(req.message)
     except ValueError as exc:
@@ -213,6 +227,36 @@ def _join(names: list[str]) -> str:
 def _day(when: date) -> str:
     """Tuesday 17 November: how a chef says a delivery date."""
     return f"{narrate.WEEKDAYS[when.weekday()]} {when.day} {narrate.MONTHS[when.month - 1]}"
+
+
+def _apply_change(state: agent.BasketState, change, message: str) -> ChatResponse:
+    """One spoken change, through the same path the basket's buttons use."""
+    before = change.line.quantity_sales_units
+    try:
+        reply, steps = agent.apply_edits(state, [change.as_edit()], gateway)
+    except GatewayError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    if change.action == "remove":
+        said = f"Removed {change.line.name}."
+    else:
+        said = reply or f"{change.line.name}: {change.quantity_sales_units:g} {change.line.sales_unit}."
+        if "rounded_up_to_whole_packs" in change.flags:
+            said += (f" That is whole {change.line.sales_unit.lower()}s, so you get "
+                     f"{change.line.delivered_amount:g} {change.line.need_unit}.")
+        if "unit_ignored" in change.flags:
+            said += (f" I read that as {change.quantity_sales_units:g} "
+                     f"{change.line.sales_unit}, because that product has no pack size.")
+
+    audit.log.record("edit_basket", basket_id=state.basket.basket_id, actor="human",
+                     inputs={"message": message, "product_id": change.line.product_id,
+                             "was": before},
+                     result={"action": change.action,
+                             "quantity_sales_units": change.quantity_sales_units},
+                     detail=narrate.sentence("edit_basket", said))
+    audit.log.record_steps(steps, state.basket.basket_id)
+    _save()
+    return ChatResponse(reply=said, basket=state.basket, steps=steps)
 
 
 def _redate(state: agent.BasketState, new_date: date) -> ChatResponse:

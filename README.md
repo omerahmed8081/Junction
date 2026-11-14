@@ -46,6 +46,7 @@ Everything offline, with no database, model or network:
 ```
 python tests/test_units.py && python tests/test_money.py && python tests/test_timeparse.py
 python tests/test_signing.py && python tests/test_agents.py && python tests/test_audit.py && python tests/test_need.py
+python tests/test_edits.py && python tests/test_chat_dates.py
 python tests/test_aimo_client.py
 python tests/test_delivery.py
 python tests/test_agent.py && python tests/test_inventory.py && python tests/test_orders.py

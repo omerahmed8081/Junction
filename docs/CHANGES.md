@@ -7,6 +7,37 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Saturday 14 November
 
+### 21:05 - changing a basket by saying so
+
+"make it 20", "drop the rice", "only 10 kg of butter". The basket's buttons
+already did all three; `kitchen/edits.py` reads the same intentions out of a
+sentence and turns them into the `LineEdit` the basket already understands, so
+there is one set of rules for changing a basket rather than two.
+
+Checked **before** the message is read as a new product, because "only 10 kg of
+butter" parses as a perfectly good new request and would otherwise add a second
+butter line.
+
+Finding which line is meant is the fiddly half, and the risk is not failing to
+understand - it is understanding wrongly and silently changing the wrong line of
+somebody's order. So:
+
+- A line is matched on the words of its name, on a six-digit product number, or
+  on "it" when the basket holds exactly one line and nothing else is meant.
+- **Two lines matching equally asks which.** A basket with whipping cream and
+  cooking cream in it answers "Did you mean Valio whipping cream and Valio
+  cooking cream?" rather than picking one.
+- **Nothing is changed when no line is named.** Two lines and "make it 20"
+  points at neither, so it does nothing.
+- A spoken amount goes back through the pack size and lands on whole packs -
+  7 L of a 2 L pack is four packs - and the reply says so.
+- A six-digit number is a product, never an amount.
+
+Most of the 14 tests pin what is *not* an edit: a new request, a date follow-up,
+an empty basket, a zero amount.
+
+227 passing.
+
 ### 20:00 - frontend restyle: class names only, no behaviour change
 
 White page, soft grey cards with large corners, black pill buttons, one lilac
