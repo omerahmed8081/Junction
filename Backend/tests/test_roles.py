@@ -148,6 +148,30 @@ def test_a_product_chosen_by_number_is_not_flagged_as_different():
     assert state.basket.policy.level == "chef"
 
 
+def test_the_chat_can_add_to_a_signed_basket_until_it_is_ordered(monkeypatch):
+    """After "Confirm price" the chef may still remember the cream. The basket
+    stays the same one, the signed price is voided, and the reply says so."""
+    gateway = StubGateway()
+    monkeypatch.setattr(kitchen_main, "_save", lambda: None)
+    monkeypatch.setattr(kitchen_main, "gateway", gateway)
+    monkeypatch.setattr(kitchen_main, "baskets", {})
+    client = TestClient(kitchen_main.app)
+    first = client.post("/api/chat", json={"message": "100 L lactose-free milk by Tuesday"}).json()["basket"]
+    state = kitchen_main.baskets[first["basket_id"]]
+    ordering.confirm(state.basket, gateway, kitchen_main.kitchen, now=NOW)
+    assert state.basket.status == "quoted"
+
+    r = client.post("/api/chat", json={"message": "50 L lactose-free milk", "basket_id": first["basket_id"]}).json()
+    assert r["basket"]["basket_id"] == first["basket_id"]
+    assert r["basket"]["status"] == "draft" and r["basket"]["quote_id"] is None
+    assert "confirm it again" in r["reply"]
+
+    # An ordered basket is closed: the next message starts a new one.
+    state.basket.status = "ordered"                 # placing it is tested in test_ordering.py
+    r = client.post("/api/chat", json={"message": "10 L lactose-free milk", "basket_id": first["basket_id"]}).json()
+    assert r["basket"]["basket_id"] != first["basket_id"]
+
+
 if __name__ == "__main__":
     # The same runner as every other file here, so one loop runs them all.
     # monkeypatch is a pytest fixture, so those tests are left to pytest.

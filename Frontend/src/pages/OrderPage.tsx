@@ -35,9 +35,9 @@ export function OrderPage() {
   const open = (id: string) => setParams({ basket: id }, { replace: !basketId });
   const query = useBasketQuery(basketId);
   const basket = query.data;
-  // The chat keeps adding to the open basket only while it is a draft. Once Aimo
-  // has signed its price, the next message starts a new order.
-  const chatTarget = basket && basket.status !== "draft" ? null : basketId;
+  // The chat keeps adding to the open basket until it is ordered. Adding to a
+  // basket whose price Aimo signed voids the signature; the reply says so.
+  const chatTarget = basket && basket.status !== "draft" && basket.status !== "quoted" ? null : basketId;
   const [confirmDelete, setConfirmDelete] = useState(false);
   const actions = useBasketActions(basketId, (b) => { if (b.basket_id !== basketId) open(b.basket_id); },
                                    chatTarget, () => { setConfirmDelete(false); setParams({}); });
@@ -83,8 +83,7 @@ export function OrderPage() {
   const panelProps = basket && { basket, busy, confirming: actions.confirm.isPending, approving: actions.approve.isPending, onConfirm: confirm, onApprove: approve };
   const actionError = actions.edit.error || actions.confirm.error || actions.approve.error || actions.draftSuggestion.error || actions.remove.error;
 
-  const chat = <ChatPanel pending={actions.chat.isPending} error={actions.chat.error} onSend={(m) => { send(m); }}
-    notice={basket && basket.status === "quoted" ? t("chat.newOrder") : null} />;
+  const chat = <ChatPanel pending={actions.chat.isPending} error={actions.chat.error} onSend={(m) => { send(m); }} />;
 
   return (
     <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_19rem] xl:grid-cols-[21rem_minmax(0,1fr)_20rem]">

@@ -158,11 +158,14 @@ def chat(req: ChatRequest, x_kitchen_role: str | None = Header(default=None)) ->
     """
     role = _role(x_kitchen_role)
     state = _state(req.basket_id) if req.basket_id else None
-    if state is not None and state.basket.status != "draft":
-        # A basket whose price Aimo has signed (or that is ordered) is closed to
-        # the chat: adding to it would quietly void the signature. The message
+    if state is not None and state.basket.status not in ("draft", "quoted"):
+        # An ordered (or blocked) basket is closed to the chat: the message
         # starts the next order instead.
         state = None
+    # A basket whose price Aimo has signed stays open until it is ordered: the
+    # chef may still remember the rice. Changing it voids the signature, so the
+    # reply says the price has to be confirmed again.
+    was_signed = state is not None and state.basket.status == "quoted"
     asked_date = mentioned_date(req.message)
 
     # "make it 20", "drop the rice": a change to what is already there, not a
@@ -176,14 +179,14 @@ def chat(req: ChatRequest, x_kitchen_role: str | None = Header(default=None)) ->
                 reply=f"Did you mean {_join(exc.names)}? Say which one and I will change it.",
                 basket=state.basket)
         if change is not None:
-            return _apply_change(state, change, req.message)
+            return _resign_note(_apply_change(state, change, req.message), was_signed)
 
     try:
         needs = parse_needs(req.message)
     except ValueError as exc:
         if state is not None and asked_date is not None:
             # "Deliver on Friday instead": no product, only a new date for the basket.
-            return _redate(state, asked_date)
+            return _resign_note(_redate(state, asked_date), was_signed)
         audit.log.record("parse_need", basket_id=req.basket_id or "", actor="human",
                          inputs={"message": req.message}, reason=str(exc),
                          detail="could not read a quantity and a product from the message")
@@ -247,8 +250,16 @@ def chat(req: ChatRequest, x_kitchen_role: str | None = Header(default=None)) ->
                        + ". Ask again and I will add " + ("it" if len(failed) == 1 else "them") + ".")
     baskets[state.basket.basket_id] = state
     _save()
-    return ChatResponse(reply=" ".join(replies), basket=state.basket,
-                        steps=all_steps, parser=needs[0].parser)
+    return _resign_note(ChatResponse(reply=" ".join(replies), basket=state.basket,
+                                     steps=all_steps, parser=needs[0].parser), was_signed)
+
+
+def _resign_note(response: ChatResponse, was_signed: bool) -> ChatResponse:
+    """Say so when a change took back a price Aimo had already signed."""
+    if was_signed and response.basket is not None and response.basket.status == "draft":
+        response.reply = (response.reply.rstrip() + " The price Aimo signed no longer "
+                          "applies to the changed basket: confirm it again.").strip()
+    return response
 
 
 def _join(names: list[str]) -> str:

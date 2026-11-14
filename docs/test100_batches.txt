@@ -1,0 +1,11 @@
+BATCH 1 (sets the delivery date)
+20 kg butter, 30 L whipping cream, 40 L lactose-free milk, 15 L cooking cream, 10 kg emmental cheese, 8 kg edam cheese, 5 kg feta cheese, 6 kg mozzarella, 4 kg parmesan, 10 kg cream cheese, 15 kg natural yoghurt, 10 kg quark, 6 kg sour cream, 12 L buttermilk, 10 L oat drink, 5 kg blue cheese, 5 kg halloumi, 8 L creme fraiche, 3 kg cottage cheese, 6 L vanilla sauce, 4 kg goat cheese, 10 L skimmed milk, 5 kg grated cheese, 4 L coffee cream, 6 kg greek yoghurt by Friday
+
+BATCH 2
+25 kg chicken breast, 15 kg minced beef, 10 kg pork loin, 8 kg bacon, 6 kg ham, 10 kg salmon fillet, 5 kg cod fillet, 4 kg shrimps, 5 kg smoked salmon, 10 kg meatballs, 6 kg chicken thighs, 5 kg sausages, 4 kg beef sirloin, 3 kg turkey breast, 5 kg pulled pork, 4 kg rainbow trout, 3 kg tuna, 5 kg herring, 3 kg lamb, 4 kg chorizo, 5 kg falafel, 6 kg tofu, 5 kg vegetarian mince, 3 kg salami, 4 kg liver pate
+
+BATCH 3
+50 kg potatoes, 15 kg onions, 10 kg carrots, 8 kg tomatoes, 6 kg cucumbers, 5 kg lettuce, 4 kg red onions, 3 kg garlic, 5 kg peppers, 4 kg mushrooms, 6 kg broccoli, 5 kg cauliflower, 4 kg zucchini, 10 kg frozen peas, 8 kg frozen corn, 6 kg frozen spinach, 5 kg frozen berries, 4 kg lemons, 6 kg apples, 5 kg bananas, 3 kg fresh dill, 2 kg parsley, 4 kg cabbage, 5 kg beetroot, 6 kg frozen french fries
+
+BATCH 4
+25 kg wheat flour, 20 kg rice, 15 kg pasta, 10 kg sugar, 5 kg salt, 10 L rapeseed oil, 5 L olive oil, 10 kg oat flakes, 8 kg crushed tomatoes, 5 kg tomato paste, 4 L soy sauce, 3 L vinegar, 5 kg dried yeast, 6 kg breadcrumbs, 4 L ketchup, 4 L mustard, 5 L mayonnaise, 3 kg black pepper, 4 kg vegetable stock, 4 kg chicken stock, 5 kg chocolate, 6 kg rye bread, 5 kg eggs, 10 L orange juice, 6 kg coffee

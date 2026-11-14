@@ -51,9 +51,10 @@ export function useBasketActions(basketId: string | null, onBasket?: (basket: Ba
   });
   const confirm = useMutation({
     mutationFn: () => api.confirm(basketId!),
-    // The signed basket goes on to approval; the conversation for it is over,
-    // so the chat starts clean and the next message begins a new order.
-    onSuccess: (r) => { accept(r.basket, r.steps); clearChat(); void client.invalidateQueries({ queryKey: ["baskets"] }); },
+    // The conversation goes on: until the order is placed the chef can still add
+    // to this basket (which voids the signed price). The chat is cleared only
+    // once the order is placed, in OrderPage.
+    onSuccess: (r) => { accept(r.basket, r.steps); void client.invalidateQueries({ queryKey: ["baskets"] }); },
   });
   const remove = useMutation({
     mutationFn: () => api.deleteBasket(basketId!),

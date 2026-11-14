@@ -7,6 +7,23 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Sunday 15 November
 
+### 01:10 - the chat stays with the order until it is placed
+
+Before: "Confirm price with Aimo" cleared the chat and closed the basket to it, so
+remembering the cream afterwards meant starting a second order. Now:
+
+- `POST /api/chat` with the `basket_id` of a **quoted** basket adds to that same
+  basket. The change voids the signed price (the basket is a draft again, as any
+  edit already did) and the reply ends "The price Aimo signed no longer applies
+  to the changed basket: confirm it again." Only **ordered** or blocked baskets
+  start a new basket.
+- Frontend: Confirm no longer clears the chat; it is cleared only when the order
+  is placed. `useBasket.ts`, `OrderPage.tsx` (`chatTarget` includes `quoted`).
+- If someone else was about to approve that basket, it leaves their Approvals
+  list until it is confirmed again: they would otherwise approve a price for a
+  basket that no longer exists.
+- Test in `tests/test_roles.py`. 268 passing.
+
 ### 00:55 - merging the roles branch
 
 Roles and the agent's own permission met in `chat()`. Both belong, and the
