@@ -214,7 +214,12 @@ def find_candidates(need: ParsedNeed, gateway: GatewayClient, steps: list[AgentS
         if c.rejected:
             reasons[c.rejected] = reasons.get(c.rejected, 0) + 1
     ok = sorted((c for c in candidates if not c.rejected), key=lambda c: _rank_key(c, kind))
-    _step(steps, "rank", f"{len(ok)} orderable, {len(candidates) - len(ok)} dropped {reasons or ''}".strip())
+    # `reasons` is a dict, and f-stringing it put "{past_cutoff: 18, ...}" into
+    # a line meant for a chef. Written out instead, commonest first.
+    why = ", ".join(f"{count} {code}" for code, count in
+                    sorted(reasons.items(), key=lambda kv: -kv[1]))
+    dropped = len(candidates) - len(ok)
+    _step(steps, "rank", f"{len(ok)} orderable" + (f", {dropped} dropped: {why}" if dropped else ""))
     return ok, reasons
 
 

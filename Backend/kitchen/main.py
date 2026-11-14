@@ -169,10 +169,9 @@ def chat(req: ChatRequest) -> ChatResponse:
         return ChatResponse(reply=str(exc), basket=state.basket if state else None)
 
     audit.log.record("parse_need", basket_id=req.basket_id or "", actor="human",
-                     parser=needs[0].parser, inputs={"message": req.message},
+                     inputs={"message": req.message},
                      result={"items": [n.model_dump(mode="json") for n in needs]},
-                     detail=narrate.sentence("parse_need", "; ".join(
-                         f"{n.quantity:g} {n.unit} of {n.product_text}" for n in needs)))
+                     detail=narrate.sentence("message", req.message.strip()))
 
     replies: list[str] = []
     all_steps: list = []

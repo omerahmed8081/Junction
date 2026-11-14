@@ -248,7 +248,8 @@
     "security": "Security event",
     "clear": "Clear steps",
     "lines": "Lines",
-    "documents": "Signed confirmation"
+    "documents": "Signed confirmation",
+    "everything": "From the kitchen's own log. A demo reset clears it."
   },
   "demo": {
     "title": "Demo controls",

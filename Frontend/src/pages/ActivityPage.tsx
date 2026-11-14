@@ -1,7 +1,7 @@
-// What happened: placed orders, and the agent's steps from this browser. The
-// toggle filters the steps to what crossed over to Aimo. Opening an order
-// loads its own audit from the backend - both sides, and it survives a refresh,
-// which the browser's copy of the steps does not.
+// What happened: placed orders on the left, the kitchen's own log on the right,
+// both from the backend. The toggle narrows the log to what actually crossed
+// over to Aimo, which is the smaller half and the point of showing it.
+// Expanding an order gives that order's own story, with Aimo's rows merged in.
 import { useQuery } from "@tanstack/react-query";
 import { clsx } from "clsx";
 import { ShieldAlert } from "lucide-react";
@@ -9,10 +9,10 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
-import { Banner, Button, Card, EmptyState, ErrorNote, PageTitle, Skeleton } from "../components/ui";
+import { Banner, Card, EmptyState, ErrorNote, PageTitle, Skeleton } from "../components/ui";
 import { amount, day, dayTime, money, time } from "../lib/format";
 import { OrderAudit } from "../features/activity/OrderAudit";
-import { clearSteps, useSteps } from "../lib/session";
+
 
 export function ActivityPage() {
   const { t } = useTranslation();
@@ -20,8 +20,10 @@ export function ActivityPage() {
   const aimoOnly = params.get("view") === "aimo";
   const openOrder = params.get("order");
   const orders = useQuery({ queryKey: ["orders"], queryFn: api.orders });
-  const steps = useSteps();
-  const shown = [...(aimoOnly ? steps.filter((s) => s.crossed_gateway) : steps)].reverse();
+  // From the kitchen's own log, not this browser: it survives a reload, it is
+  // the same on any machine, and a demo reset clears it along with the orders.
+  const log = useQuery({ queryKey: ["audit", aimoOnly], queryFn: () => api.audit(aimoOnly) });
+  const shown = log.data?.records ?? [];
   useEffect(() => { document.title = `${t("nav.activity")} · ${t("app.name")}`; }, [t]);
 
   const setView = (view: "all" | "aimo") => { const next = new URLSearchParams(params); if (view === "aimo") next.set("view", "aimo"); else next.delete("view"); setParams(next, { replace: true }); };
@@ -86,9 +88,10 @@ export function ActivityPage() {
         <Card className="p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-xl font-extrabold tracking-tight">{t("activity.steps")}</h2>
-            {steps.length > 0 && <Button size="sm" variant="ghost" onClick={clearSteps}>{t("activity.clear")}</Button>}
           </div>
-          <p className="text-xs text-ink-soft">{t("activity.session")}</p>
+          <p className="text-xs text-ink-soft">{t("activity.everything")}</p>
+          {log.isError && <div className="mt-3"><ErrorNote error={log.error} onRetry={() => void log.refetch()} /></div>}
+          {log.data?.degraded && <Banner tone="warn" className="mt-3">{log.data.note}</Banner>}
           {shown.length === 0 ? <div className="mt-3"><EmptyState title={t("activity.noSteps")} /></div> : (
             <div className="mt-3 overflow-x-auto">
               <table className="w-full min-w-[30rem] text-sm">
@@ -98,12 +101,12 @@ export function ActivityPage() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {shown.map((s, i) => {
-                    const security = s.security || /REFUSED|security/i.test(s.detail ?? "");
+                    const security = s.security_event === true;
                     return (
-                      <tr key={i} className={security ? "bg-danger-soft" : undefined}>
+                      <tr key={s.id ?? i} className={security ? "bg-danger-soft" : undefined}>
                         <td className="tabular py-2 pr-3 align-top text-ink-soft">{time(s.at)}</td>
                         <td className="py-2 pr-3 align-top font-semibold">
-                          {security && <span className="mr-1 inline-flex items-center gap-1 text-danger"><ShieldAlert className="size-4" aria-hidden />{t("activity.security")}:</span>}{s.step}
+                          {security && <span className="mr-1 inline-flex items-center gap-1 text-danger"><ShieldAlert className="size-4" aria-hidden />{t("activity.security")}:</span>}{s.step ?? s.action}
                         </td>
                         <td className="py-2 pr-3 align-top" lang="en">{s.detail}</td>
                         <td className="py-2 align-top">{s.crossed_gateway ? <span className="font-semibold">→ {t("activity.yes")}</span> : <span className="text-ink-soft">{t("activity.no")}</span>}</td>

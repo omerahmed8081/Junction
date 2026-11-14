@@ -68,6 +68,13 @@ export type AuditRow = {
   quote_jti?: string | null;
 };
 
+export type AuditList = {
+  count: number;
+  degraded: boolean;
+  note: string;
+  records: AuditRow[];
+};
+
 export type OrderAuditView = {
   order_id: string;
   count: number;

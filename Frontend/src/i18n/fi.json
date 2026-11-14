@@ -248,7 +248,8 @@
     "security": "Tietoturvatapahtuma",
     "clear": "Tyhjennä vaiheet",
     "lines": "Rivit",
-    "documents": "Allekirjoitettu vahvistus"
+    "documents": "Allekirjoitettu vahvistus",
+    "everything": "Keittiön omasta lokista. Demon nollaus tyhjentää sen."
   },
   "demo": {
     "title": "Demon hallinta",

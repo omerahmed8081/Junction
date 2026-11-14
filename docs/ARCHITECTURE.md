@@ -15,7 +15,7 @@ the only part that changes. Every change to the code is one line in
 
 ## Status
 
-Last updated **Saturday 14 November, 23:20 (hour 20)**. **255 tests passing**, and both services boot, all offline:
+Last updated **Saturday 14 November, 23:40 (hour 21)**. **255 tests passing**, and both services boot, all offline:
 `cd Backend && python tests/test_units.py` and the rest.
 
 | Block | Section | State |
@@ -46,7 +46,9 @@ uvicorn kitchen.main:app --reload --port 8002
 
 **Known gaps**
 
-1. **The audit log is built, both halves.** Gateway rows in `gateway.audit_log`
+1. **The audit log is built, both halves, and the Activity tab reads it.** Gateway
+   rows in `gateway.audit_log`, kitchen rows in `kitchen.audit_log`, joined on
+   `quote_jti` and `order_id`. Expanding an order shows both sides merged.
    (`GET /gateway/audit`), kitchen rows in `kitchen.audit_log` (`GET /api/audit`),
    joining on `quote_jti` and `order_id`. Tables applied to Aiven. The Activity tab
    still reads the browser's copy; pointing it at `/api/audit` is a frontend change.

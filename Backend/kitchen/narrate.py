@@ -33,12 +33,13 @@ CLAIMS = {
 # What a chef sees without asking. The rest is there, just not in the way.
 FOR_CHEF = {
     "parse_need", "rank", "split_need", "suggest_cover", "reorder",
-    "policy_preview", "confirm", "sign_approval", "order_placed", "named_product", "change_date", "edit_basket", "respec", "rule_added", "rule_removed", "auto_order",
+    "message", "policy_preview", "confirm", "sign_approval", "order_placed", "named_product", "change_date", "edit_basket", "respec", "rule_added", "rule_removed", "auto_order",
     "order_refused", "order_adjusted", "reprice",
 }
 
 TEMPLATES = {
     # what was asked for
+    "message": "You typed: {}.",
     "parse_need": "You asked for {}.",
     "split_need": "No single product could cover that on its own, so it was split across more than one: {}.",
 
@@ -87,6 +88,7 @@ REASONS = {
     "size_in_KG_but_need_in_L": "sold by weight, not volume",
     "size_in_L_but_need_in_KG": "sold by volume, not weight",
     "past_closing_time": "today's cut-off had passed",
+    "past_cutoff": "the cut-off for that day had passed",
     "sales_block": "not available to order",
     "no_price": "no price from Aimo",
     "partial_only": "not enough in stock",
@@ -136,7 +138,9 @@ def humanise(text: str) -> str:
     out = re.sub(r"\bEUR\s*([\d,]+\.?\d*)", r"€\1", out)
     # The list and quote marks around what was searched for help nobody.
     out = out.replace("[", "").replace("]", "").replace("'", "")
-    out = re.sub(r"\s*,\s*", ", ", out)
+    # Tidy the spacing around commas, but never inside a number: this used to
+    # turn "1,000 L" into "1, 000 L".
+    out = re.sub(r"(?<!\d)\s*,\s*(?!\d)", ", ", out)
     out = re.sub(r"\s{2,}", " ", out).strip()
     for fragment, said in PHRASES.items():
         out = out.replace(fragment, said)

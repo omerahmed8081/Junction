@@ -7,6 +7,31 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Saturday 14 November
 
+### 23:40 - the Activity tab reads the backend, not the browser
+
+The steps panel kept its rows in the browser, which is why they survived a
+backend restart, why it needed a "Clear steps" button, why the demo had to run
+in one session - and, once an order could be expanded, why the same rows
+appeared twice.
+
+It now reads `GET /api/audit`. The "What Aimo sees" toggle maps to
+`crossed_only`, the rows survive a reload, they are the same on any machine,
+and a demo reset clears them along with the orders they belong to.
+
+Checked in a real browser rather than assumed, which turned up two things the
+code review would not have:
+
+- **The rank step printed a Python dict.** `f"{reasons}"` put
+  `{past_cutoff: 18, sold by weight, not volume: 1}` into a line meant for a
+  chef. Written out in words now, commonest first.
+- **`parse_need` appeared twice**, once from the chat and once from the agent.
+  The chat's row is now `message` and carries what was actually typed, which is
+  the thing an audit log should have and the agent's row does not.
+- And the text tidier turned **"1,000 L" into "1, 000 L"** while normalising
+  commas. It leaves commas inside numbers alone now.
+
+255 passing.
+
 ### 23:20 - "with lactose"
 
 A chef looking at a basket of lactose-free milk typed *"with lactose"* and got
