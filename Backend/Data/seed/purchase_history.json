@@ -1,0 +1,1063 @@
+[
+  {
+    "order_id": "po_001",
+    "ordered_on": "2026-10-18",
+    "delivery_date": "2026-10-19",
+    "status": "delivered",
+    "lines": [
+      {
+        "product_id": "461490",
+        "quantity_sales_units": 5.0,
+        "sales_unit": "KI",
+        "delivered_amount": 16.5,
+        "unit": "L"
+      },
+      {
+        "product_id": "464306",
+        "quantity_sales_units": 35.0,
+        "sales_unit": "ST",
+        "delivered_amount": 35.0,
+        "unit": "L"
+      },
+      {
+        "product_id": "463254",
+        "quantity_sales_units": 13.0,
+        "sales_unit": "ST",
+        "delivered_amount": 13.0,
+        "unit": "L"
+      },
+      {
+        "product_id": "462421",
+        "quantity_sales_units": 15.0,
+        "sales_unit": "ST",
+        "delivered_amount": 3.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "475214",
+        "quantity_sales_units": 5.0,
+        "sales_unit": "ST",
+        "delivered_amount": 50.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470572",
+        "quantity_sales_units": 7.0,
+        "sales_unit": "ST",
+        "delivered_amount": 7.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470139",
+        "quantity_sales_units": 3.0,
+        "sales_unit": "ST",
+        "delivered_amount": 3.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460437",
+        "quantity_sales_units": 3.0,
+        "sales_unit": "ST",
+        "delivered_amount": 0.3,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462150",
+        "quantity_sales_units": 20.0,
+        "sales_unit": "KG",
+        "delivered_amount": 20.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "463544",
+        "quantity_sales_units": 5.0,
+        "sales_unit": "KI",
+        "delivered_amount": 25.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "468016",
+        "quantity_sales_units": 8.0,
+        "sales_unit": "ST",
+        "delivered_amount": 12.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462452",
+        "quantity_sales_units": 7.0,
+        "sales_unit": "ST",
+        "delivered_amount": 14.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "466511",
+        "quantity_sales_units": 6.0,
+        "sales_unit": "KI",
+        "delivered_amount": 18.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "463883",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "KI",
+        "delivered_amount": 5.2,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460791",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "BAG",
+        "delivered_amount": 4.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460325",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "BAG",
+        "delivered_amount": 1.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462171",
+        "quantity_sales_units": 3.0,
+        "sales_unit": "PRK",
+        "delivered_amount": 3.0,
+        "unit": "KG"
+      }
+    ],
+    "synthetic": true
+  },
+  {
+    "order_id": "po_002",
+    "ordered_on": "2026-10-21",
+    "delivery_date": "2026-10-22",
+    "status": "delivered",
+    "lines": [
+      {
+        "product_id": "461490",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "KI",
+        "delivered_amount": 3.3,
+        "unit": "L"
+      },
+      {
+        "product_id": "464306",
+        "quantity_sales_units": 9.0,
+        "sales_unit": "ST",
+        "delivered_amount": 9.0,
+        "unit": "L"
+      },
+      {
+        "product_id": "463254",
+        "quantity_sales_units": 3.0,
+        "sales_unit": "ST",
+        "delivered_amount": 3.0,
+        "unit": "L"
+      },
+      {
+        "product_id": "462421",
+        "quantity_sales_units": 4.0,
+        "sales_unit": "ST",
+        "delivered_amount": 0.8,
+        "unit": "KG"
+      },
+      {
+        "product_id": "475214",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "ST",
+        "delivered_amount": 10.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470572",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "ST",
+        "delivered_amount": 2.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470139",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "ST",
+        "delivered_amount": 1.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460437",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "ST",
+        "delivered_amount": 0.1,
+        "unit": "KG"
+      },
+      {
+        "product_id": "463544",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "KI",
+        "delivered_amount": 5.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "468016",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "ST",
+        "delivered_amount": 1.5,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462452",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "ST",
+        "delivered_amount": 4.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "466511",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "KI",
+        "delivered_amount": 6.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "463883",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "KI",
+        "delivered_amount": 5.2,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460791",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "BAG",
+        "delivered_amount": 2.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460325",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "BAG",
+        "delivered_amount": 1.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462171",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "PRK",
+        "delivered_amount": 1.0,
+        "unit": "KG"
+      }
+    ],
+    "synthetic": true
+  },
+  {
+    "order_id": "po_003",
+    "ordered_on": "2026-10-25",
+    "delivery_date": "2026-10-26",
+    "status": "delivered",
+    "lines": [
+      {
+        "product_id": "461490",
+        "quantity_sales_units": 6.0,
+        "sales_unit": "KI",
+        "delivered_amount": 19.8,
+        "unit": "L"
+      },
+      {
+        "product_id": "464306",
+        "quantity_sales_units": 40.0,
+        "sales_unit": "ST",
+        "delivered_amount": 40.0,
+        "unit": "L"
+      },
+      {
+        "product_id": "463254",
+        "quantity_sales_units": 15.0,
+        "sales_unit": "ST",
+        "delivered_amount": 15.0,
+        "unit": "L"
+      },
+      {
+        "product_id": "462421",
+        "quantity_sales_units": 18.0,
+        "sales_unit": "ST",
+        "delivered_amount": 3.6,
+        "unit": "KG"
+      },
+      {
+        "product_id": "475214",
+        "quantity_sales_units": 5.0,
+        "sales_unit": "ST",
+        "delivered_amount": 50.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470572",
+        "quantity_sales_units": 8.0,
+        "sales_unit": "ST",
+        "delivered_amount": 8.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470139",
+        "quantity_sales_units": 3.0,
+        "sales_unit": "ST",
+        "delivered_amount": 3.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460437",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "ST",
+        "delivered_amount": 0.2,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462150",
+        "quantity_sales_units": 20.0,
+        "sales_unit": "KG",
+        "delivered_amount": 20.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "463544",
+        "quantity_sales_units": 5.0,
+        "sales_unit": "KI",
+        "delivered_amount": 25.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "468016",
+        "quantity_sales_units": 9.0,
+        "sales_unit": "ST",
+        "delivered_amount": 13.5,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462452",
+        "quantity_sales_units": 8.0,
+        "sales_unit": "ST",
+        "delivered_amount": 16.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "466511",
+        "quantity_sales_units": 6.0,
+        "sales_unit": "KI",
+        "delivered_amount": 18.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "463883",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "KI",
+        "delivered_amount": 5.2,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460791",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "BAG",
+        "delivered_amount": 4.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460325",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "BAG",
+        "delivered_amount": 1.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462171",
+        "quantity_sales_units": 3.0,
+        "sales_unit": "PRK",
+        "delivered_amount": 3.0,
+        "unit": "KG"
+      }
+    ],
+    "synthetic": true
+  },
+  {
+    "order_id": "po_004",
+    "ordered_on": "2026-10-28",
+    "delivery_date": "2026-10-29",
+    "status": "delivered",
+    "lines": [
+      {
+        "product_id": "461490",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "KI",
+        "delivered_amount": 3.3,
+        "unit": "L"
+      },
+      {
+        "product_id": "464306",
+        "quantity_sales_units": 9.0,
+        "sales_unit": "ST",
+        "delivered_amount": 9.0,
+        "unit": "L"
+      },
+      {
+        "product_id": "463254",
+        "quantity_sales_units": 3.0,
+        "sales_unit": "ST",
+        "delivered_amount": 3.0,
+        "unit": "L"
+      },
+      {
+        "product_id": "462421",
+        "quantity_sales_units": 4.0,
+        "sales_unit": "ST",
+        "delivered_amount": 0.8,
+        "unit": "KG"
+      },
+      {
+        "product_id": "475214",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "ST",
+        "delivered_amount": 10.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470572",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "ST",
+        "delivered_amount": 1.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460437",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "ST",
+        "delivered_amount": 0.1,
+        "unit": "KG"
+      },
+      {
+        "product_id": "463544",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "KI",
+        "delivered_amount": 5.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "468016",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "ST",
+        "delivered_amount": 3.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462452",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "ST",
+        "delivered_amount": 4.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "466511",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "KI",
+        "delivered_amount": 6.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460791",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "BAG",
+        "delivered_amount": 2.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462171",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "PRK",
+        "delivered_amount": 1.0,
+        "unit": "KG"
+      }
+    ],
+    "synthetic": true
+  },
+  {
+    "order_id": "po_005",
+    "ordered_on": "2026-11-01",
+    "delivery_date": "2026-11-02",
+    "status": "delivered",
+    "lines": [
+      {
+        "product_id": "461490",
+        "quantity_sales_units": 6.0,
+        "sales_unit": "KI",
+        "delivered_amount": 19.8,
+        "unit": "L"
+      },
+      {
+        "product_id": "464306",
+        "quantity_sales_units": 42.0,
+        "sales_unit": "ST",
+        "delivered_amount": 42.0,
+        "unit": "L"
+      },
+      {
+        "product_id": "463254",
+        "quantity_sales_units": 14.0,
+        "sales_unit": "ST",
+        "delivered_amount": 14.0,
+        "unit": "L"
+      },
+      {
+        "product_id": "462421",
+        "quantity_sales_units": 18.0,
+        "sales_unit": "ST",
+        "delivered_amount": 3.6,
+        "unit": "KG"
+      },
+      {
+        "product_id": "475214",
+        "quantity_sales_units": 5.0,
+        "sales_unit": "ST",
+        "delivered_amount": 50.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470572",
+        "quantity_sales_units": 8.0,
+        "sales_unit": "ST",
+        "delivered_amount": 8.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470139",
+        "quantity_sales_units": 3.0,
+        "sales_unit": "ST",
+        "delivered_amount": 3.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460437",
+        "quantity_sales_units": 3.0,
+        "sales_unit": "ST",
+        "delivered_amount": 0.3,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462150",
+        "quantity_sales_units": 10.0,
+        "sales_unit": "KG",
+        "delivered_amount": 10.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "463544",
+        "quantity_sales_units": 5.0,
+        "sales_unit": "KI",
+        "delivered_amount": 25.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "468016",
+        "quantity_sales_units": 9.0,
+        "sales_unit": "ST",
+        "delivered_amount": 13.5,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462452",
+        "quantity_sales_units": 7.0,
+        "sales_unit": "ST",
+        "delivered_amount": 14.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "466511",
+        "quantity_sales_units": 6.0,
+        "sales_unit": "KI",
+        "delivered_amount": 18.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "463883",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "KI",
+        "delivered_amount": 5.2,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460791",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "BAG",
+        "delivered_amount": 4.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460325",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "BAG",
+        "delivered_amount": 1.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462171",
+        "quantity_sales_units": 4.0,
+        "sales_unit": "PRK",
+        "delivered_amount": 4.0,
+        "unit": "KG"
+      }
+    ],
+    "synthetic": true
+  },
+  {
+    "order_id": "po_006",
+    "ordered_on": "2026-11-04",
+    "delivery_date": "2026-11-05",
+    "status": "delivered",
+    "lines": [
+      {
+        "product_id": "461490",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "KI",
+        "delivered_amount": 3.3,
+        "unit": "L"
+      },
+      {
+        "product_id": "464306",
+        "quantity_sales_units": 9.0,
+        "sales_unit": "ST",
+        "delivered_amount": 9.0,
+        "unit": "L"
+      },
+      {
+        "product_id": "463254",
+        "quantity_sales_units": 3.0,
+        "sales_unit": "ST",
+        "delivered_amount": 3.0,
+        "unit": "L"
+      },
+      {
+        "product_id": "462421",
+        "quantity_sales_units": 3.0,
+        "sales_unit": "ST",
+        "delivered_amount": 0.6,
+        "unit": "KG"
+      },
+      {
+        "product_id": "475214",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "ST",
+        "delivered_amount": 10.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470572",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "ST",
+        "delivered_amount": 2.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470139",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "ST",
+        "delivered_amount": 1.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462150",
+        "quantity_sales_units": 10.0,
+        "sales_unit": "KG",
+        "delivered_amount": 10.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "463544",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "KI",
+        "delivered_amount": 5.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "468016",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "ST",
+        "delivered_amount": 3.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462452",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "ST",
+        "delivered_amount": 4.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "466511",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "KI",
+        "delivered_amount": 6.0,
+        "unit": "KG"
+      }
+    ],
+    "synthetic": true
+  },
+  {
+    "order_id": "po_007",
+    "ordered_on": "2026-11-08",
+    "delivery_date": "2026-11-09",
+    "status": "delivered",
+    "lines": [
+      {
+        "product_id": "461490",
+        "quantity_sales_units": 6.0,
+        "sales_unit": "KI",
+        "delivered_amount": 19.8,
+        "unit": "L"
+      },
+      {
+        "product_id": "464306",
+        "quantity_sales_units": 42.0,
+        "sales_unit": "ST",
+        "delivered_amount": 42.0,
+        "unit": "L"
+      },
+      {
+        "product_id": "463254",
+        "quantity_sales_units": 15.0,
+        "sales_unit": "ST",
+        "delivered_amount": 15.0,
+        "unit": "L"
+      },
+      {
+        "product_id": "462421",
+        "quantity_sales_units": 19.0,
+        "sales_unit": "ST",
+        "delivered_amount": 3.8,
+        "unit": "KG"
+      },
+      {
+        "product_id": "475214",
+        "quantity_sales_units": 5.0,
+        "sales_unit": "ST",
+        "delivered_amount": 50.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470572",
+        "quantity_sales_units": 8.0,
+        "sales_unit": "ST",
+        "delivered_amount": 8.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470139",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "ST",
+        "delivered_amount": 2.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460437",
+        "quantity_sales_units": 3.0,
+        "sales_unit": "ST",
+        "delivered_amount": 0.3,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462150",
+        "quantity_sales_units": 10.0,
+        "sales_unit": "KG",
+        "delivered_amount": 10.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "463544",
+        "quantity_sales_units": 5.0,
+        "sales_unit": "KI",
+        "delivered_amount": 25.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "468016",
+        "quantity_sales_units": 9.0,
+        "sales_unit": "ST",
+        "delivered_amount": 13.5,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462452",
+        "quantity_sales_units": 8.0,
+        "sales_unit": "ST",
+        "delivered_amount": 16.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "466511",
+        "quantity_sales_units": 6.0,
+        "sales_unit": "KI",
+        "delivered_amount": 18.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "463883",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "KI",
+        "delivered_amount": 5.2,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460791",
+        "quantity_sales_units": 3.0,
+        "sales_unit": "BAG",
+        "delivered_amount": 6.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460325",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "BAG",
+        "delivered_amount": 2.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462171",
+        "quantity_sales_units": 4.0,
+        "sales_unit": "PRK",
+        "delivered_amount": 4.0,
+        "unit": "KG"
+      }
+    ],
+    "synthetic": true
+  },
+  {
+    "order_id": "po_008",
+    "ordered_on": "2026-11-11",
+    "delivery_date": "2026-11-12",
+    "status": "delivered",
+    "lines": [
+      {
+        "product_id": "461490",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "KI",
+        "delivered_amount": 3.3,
+        "unit": "L"
+      },
+      {
+        "product_id": "464306",
+        "quantity_sales_units": 9.0,
+        "sales_unit": "ST",
+        "delivered_amount": 9.0,
+        "unit": "L"
+      },
+      {
+        "product_id": "463254",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "ST",
+        "delivered_amount": 2.0,
+        "unit": "L"
+      },
+      {
+        "product_id": "462421",
+        "quantity_sales_units": 4.0,
+        "sales_unit": "ST",
+        "delivered_amount": 0.8,
+        "unit": "KG"
+      },
+      {
+        "product_id": "475214",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "ST",
+        "delivered_amount": 10.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470572",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "ST",
+        "delivered_amount": 2.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470139",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "ST",
+        "delivered_amount": 1.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460437",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "ST",
+        "delivered_amount": 0.1,
+        "unit": "KG"
+      },
+      {
+        "product_id": "463544",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "KI",
+        "delivered_amount": 5.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "468016",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "ST",
+        "delivered_amount": 3.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462452",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "ST",
+        "delivered_amount": 2.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "466511",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "KI",
+        "delivered_amount": 3.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "463883",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "KI",
+        "delivered_amount": 5.2,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462171",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "PRK",
+        "delivered_amount": 1.0,
+        "unit": "KG"
+      }
+    ],
+    "synthetic": true
+  },
+  {
+    "order_id": "po_009",
+    "ordered_on": "2026-11-13",
+    "delivery_date": "2026-11-16",
+    "status": "open",
+    "lines": [
+      {
+        "product_id": "461490",
+        "quantity_sales_units": 3.0,
+        "sales_unit": "KI",
+        "delivered_amount": 9.9,
+        "unit": "L"
+      },
+      {
+        "product_id": "464306",
+        "quantity_sales_units": 43.0,
+        "sales_unit": "ST",
+        "delivered_amount": 43.0,
+        "unit": "L"
+      },
+      {
+        "product_id": "463254",
+        "quantity_sales_units": 15.0,
+        "sales_unit": "ST",
+        "delivered_amount": 15.0,
+        "unit": "L"
+      },
+      {
+        "product_id": "462421",
+        "quantity_sales_units": 18.0,
+        "sales_unit": "ST",
+        "delivered_amount": 3.6,
+        "unit": "KG"
+      },
+      {
+        "product_id": "475214",
+        "quantity_sales_units": 5.0,
+        "sales_unit": "ST",
+        "delivered_amount": 50.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470572",
+        "quantity_sales_units": 8.0,
+        "sales_unit": "ST",
+        "delivered_amount": 8.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470139",
+        "quantity_sales_units": 3.0,
+        "sales_unit": "ST",
+        "delivered_amount": 3.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460437",
+        "quantity_sales_units": 3.0,
+        "sales_unit": "ST",
+        "delivered_amount": 0.3,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462150",
+        "quantity_sales_units": 20.0,
+        "sales_unit": "KG",
+        "delivered_amount": 20.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "463544",
+        "quantity_sales_units": 5.0,
+        "sales_unit": "KI",
+        "delivered_amount": 25.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "468016",
+        "quantity_sales_units": 10.0,
+        "sales_unit": "ST",
+        "delivered_amount": 15.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462452",
+        "quantity_sales_units": 9.0,
+        "sales_unit": "ST",
+        "delivered_amount": 18.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "466511",
+        "quantity_sales_units": 7.0,
+        "sales_unit": "KI",
+        "delivered_amount": 21.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "463883",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "KI",
+        "delivered_amount": 5.2,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460791",
+        "quantity_sales_units": 2.0,
+        "sales_unit": "BAG",
+        "delivered_amount": 4.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460325",
+        "quantity_sales_units": 1.0,
+        "sales_unit": "BAG",
+        "delivered_amount": 1.0,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462171",
+        "quantity_sales_units": 3.0,
+        "sales_unit": "PRK",
+        "delivered_amount": 3.0,
+        "unit": "KG"
+      }
+    ],
+    "synthetic": true
+  }
+]

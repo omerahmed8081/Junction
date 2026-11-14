@@ -130,6 +130,10 @@ def pack_size(
 ) -> tuple[float | None, float | None, str, str]:
     """(size per base unit, size per sales unit, "L"/"KG", source)."""
     per_sales = base_units_per_sales_unit(product)
+    if product.get("baseUnit") == "KG":
+        # Sold by weight: one base unit is one kilogram. Any weight in the data or
+        # the name is a box or piece weight (salmon "...10KG"), never the unit size.
+        return 1.0, per_sales, "KG", "not_needed"
     entries = product["synkkaData"].get("unitConversions") or []
 
     for entry in entries:

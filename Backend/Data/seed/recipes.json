@@ -1,0 +1,187 @@
+[
+  {
+    "dish_id": "d1",
+    "name": "Creamy salmon soup (lohikeitto)",
+    "ingredients": [
+      {
+        "product_id": "462150",
+        "quantity_per_portion": 0.1,
+        "unit": "KG"
+      },
+      {
+        "product_id": "475214",
+        "quantity_per_portion": 0.12,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470572",
+        "quantity_per_portion": 0.02,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470139",
+        "quantity_per_portion": 0.02,
+        "unit": "KG"
+      },
+      {
+        "product_id": "461490",
+        "quantity_per_portion": 0.05,
+        "unit": "L"
+      },
+      {
+        "product_id": "464306",
+        "quantity_per_portion": 0.08,
+        "unit": "L"
+      },
+      {
+        "product_id": "462421",
+        "quantity_per_portion": 0.005,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460437",
+        "quantity_per_portion": 0.002,
+        "unit": "KG"
+      }
+    ]
+  },
+  {
+    "dish_id": "d2",
+    "name": "Meatballs in cream sauce with mashed potatoes",
+    "ingredients": [
+      {
+        "product_id": "463544",
+        "quantity_per_portion": 0.15,
+        "unit": "KG"
+      },
+      {
+        "product_id": "475214",
+        "quantity_per_portion": 0.2,
+        "unit": "KG"
+      },
+      {
+        "product_id": "464306",
+        "quantity_per_portion": 0.05,
+        "unit": "L"
+      },
+      {
+        "product_id": "462421",
+        "quantity_per_portion": 0.01,
+        "unit": "KG"
+      },
+      {
+        "product_id": "463254",
+        "quantity_per_portion": 0.04,
+        "unit": "L"
+      },
+      {
+        "product_id": "461490",
+        "quantity_per_portion": 0.02,
+        "unit": "L"
+      }
+    ]
+  },
+  {
+    "dish_id": "d3",
+    "name": "Creamy chicken tagliatelle",
+    "ingredients": [
+      {
+        "product_id": "462452",
+        "quantity_per_portion": 0.12,
+        "unit": "KG"
+      },
+      {
+        "product_id": "466511",
+        "quantity_per_portion": 0.15,
+        "unit": "KG"
+      },
+      {
+        "product_id": "463254",
+        "quantity_per_portion": 0.06,
+        "unit": "L"
+      },
+      {
+        "product_id": "468016",
+        "quantity_per_portion": 0.04,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470572",
+        "quantity_per_portion": 0.02,
+        "unit": "KG"
+      }
+    ]
+  },
+  {
+    "dish_id": "d4",
+    "name": "Creamy mushroom soup",
+    "ingredients": [
+      {
+        "product_id": "468016",
+        "quantity_per_portion": 0.1,
+        "unit": "KG"
+      },
+      {
+        "product_id": "470572",
+        "quantity_per_portion": 0.03,
+        "unit": "KG"
+      },
+      {
+        "product_id": "461490",
+        "quantity_per_portion": 0.06,
+        "unit": "L"
+      },
+      {
+        "product_id": "464306",
+        "quantity_per_portion": 0.1,
+        "unit": "L"
+      },
+      {
+        "product_id": "462421",
+        "quantity_per_portion": 0.008,
+        "unit": "KG"
+      }
+    ]
+  },
+  {
+    "dish_id": "d5",
+    "name": "Oven pancake with strawberry jam and whipped cream (pannukakku)",
+    "ingredients": [
+      {
+        "product_id": "464306",
+        "quantity_per_portion": 0.12,
+        "unit": "L"
+      },
+      {
+        "product_id": "463883",
+        "quantity_per_portion": 0.05,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460791",
+        "quantity_per_portion": 0.04,
+        "unit": "KG"
+      },
+      {
+        "product_id": "460325",
+        "quantity_per_portion": 0.01,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462421",
+        "quantity_per_portion": 0.005,
+        "unit": "KG"
+      },
+      {
+        "product_id": "462171",
+        "quantity_per_portion": 0.03,
+        "unit": "KG"
+      },
+      {
+        "product_id": "461490",
+        "quantity_per_portion": 0.03,
+        "unit": "L"
+      }
+    ]
+  }
+]
