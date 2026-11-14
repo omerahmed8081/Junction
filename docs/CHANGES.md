@@ -7,6 +7,32 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Saturday 14 November
 
+### 23:20 - "with lactose"
+
+A chef looking at a basket of lactose-free milk typed *"with lactose"* and got
+back "I could not find a quantity and unit". It is a perfectly ordinary thing
+to say and it parses as no request at all, so it fell through to the new-item
+path and failed there.
+
+That is a third kind of edit: changing what the product on a line **is**, as
+opposed to how much of it. `agent.respec()` re-runs the line's original need
+with the requirement changed and swaps the line to whatever now ranks first, so
+the quantity, the delivery date and the unit conversion all stay where they
+were.
+
+- *"with lactose"*, *"normal gluten"* drop a claim; *"lactose free"*,
+  *"make it gluten free"*, *"vegan"* add one.
+- *"something cheaper"*, *"a different one"* re-rank and exclude the product
+  already in the basket, because "something else" means something else.
+- An amount in the message makes it a new request instead: *"1,000 L
+  lactose-free milk"* asks for something, *"lactose free"* changes what is
+  already there. The amount is the whole difference, and a test pins both.
+
+Found on the way: the amount check was not case-insensitive, so "1,000 L" did
+not read as an amount and a new request was being treated as an edit.
+
+4 more tests, 255 passing.
+
 ### 23:00 - the agent can finish the job
 
 A standing rule used to mark a basket `auto_ok` and then leave it sitting there

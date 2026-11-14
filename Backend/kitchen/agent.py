@@ -726,6 +726,48 @@ def _reorder_text(name: str) -> str:
     return " ".join(words[:3])
 
 
+def respec(state: BasketState, line: BasketLine, gateway: GatewayClient,
+           add_claims: list[str] | None = None, drop_claims: list[str] | None = None,
+           want_another: bool = False) -> tuple[str, list[AgentStep]]:
+    """Change what a line *is*, keeping how much of it was asked for.
+
+    "with lactose", "make it gluten free", "something cheaper". The need is
+    re-run with the requirement changed and the line swapped to whatever now
+    ranks first, so the quantity, the date and the conversion all stay put.
+    """
+    steps: list[AgentStep] = []
+    need = state.needs.get(line.product_id)
+    if need is None:
+        return "I do not know what that line was asked for, so I cannot change it.", steps
+
+    wanted = need.model_copy(deep=True)
+    wanted.claims = [c for c in wanted.claims if c not in (drop_claims or [])]
+    for claim in add_claims or []:
+        if claim not in wanted.claims:
+            wanted.claims.append(claim)
+
+    ranked, reasons = find_candidates(wanted, gateway, steps)
+    if want_another:
+        # "something else" means something else: the one already in the basket
+        # is not an answer to it.
+        ranked = [c for c in ranked if c.summary.product_id != line.product_id]
+    if not ranked:
+        return _explain_empty(wanted, reasons), steps
+
+    target = ranked[0]
+    if target.summary.product_id == line.product_id:
+        return f"{line.name} already matches that.", steps
+
+    state.candidates.update({c.summary.product_id: c for c in ranked})
+    state.needs[target.summary.product_id] = wanted
+    reply, more = apply_edits(
+        state, [LineEdit(product_id=line.product_id,
+                         swap_to_product_id=target.summary.product_id)], gateway)
+    steps.extend(more)
+    _step(steps, "respec", f"{line.product_id} -> {target.summary.product_id}")
+    return reply, steps
+
+
 def apply_edits(state: BasketState, edits: list[LineEdit], gateway: GatewayClient) -> tuple[str, list[AgentStep]]:
     """Quantity change, swap to an alternative, or remove. Always ends as an unsigned draft."""
     steps: list[AgentStep] = []

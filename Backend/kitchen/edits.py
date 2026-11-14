@@ -46,12 +46,33 @@ UNIT_WORDS = {
 }
 
 # Words that never identify a product, so they are not matched against names.
+# A number followed by a unit: enough to tell "lactose free milk, 40 L" (a new
+# request) from "lactose free" (a change to the line already there).
+_AMOUNT_HEAD = r"\d[\d\s.,]*\s*(?:l|dl|cl|ml|kg|g|ki|st|litres?|kilos?|cases?|units?)\b"
+
 NOISE = {
     "the", "a", "an", "of", "to", "it", "that", "this", "them", "these", "those",
     "make", "change", "set", "update", "remove", "delete", "drop", "cancel",
     "only", "just", "please", "and", "my", "order", "basket", "line", "i", "we",
     "want", "need", "to", "from", "down", "up", "instead", "rather", "all",
 }
+
+
+# Changing *what the product is*, rather than how much of it. "with lactose"
+# is a perfectly ordinary thing for a chef to say and parses as no request at
+# all, which is how it used to fall through to "I could not find a quantity".
+DROP_CLAIM = re.compile(
+    r"\b(with|contains?|normal|ordinary|regular|tavallinen|normaali)\s+"
+    r"(lactose|laktoosi|gluten|gluteeni)\b|\bwith\s+lactose\b", re.I)
+ADD_CLAIM = {
+    "FREE_FROM_LACTOSE": re.compile(r"lactose[\s-]*free|without\s+lactose|laktoositon|laktosfri", re.I),
+    "FREE_FROM_GLUTEN": re.compile(r"gluten[\s-]*free|without\s+gluten|gluteeniton|glutenfri", re.I),
+    "VEGAN": re.compile(r"\bvegan\b|vegaani", re.I),
+}
+CLAIM_WORD = {"lactose": "FREE_FROM_LACTOSE", "laktoosi": "FREE_FROM_LACTOSE",
+              "gluten": "FREE_FROM_GLUTEN", "gluteeni": "FREE_FROM_GLUTEN"}
+# "something cheaper", "a different one"
+ANOTHER = re.compile(r"\b(cheaper|different|another|something\s+else|alternative|halvempi)\b", re.I)
 
 
 class Ambiguous(Exception):
@@ -66,9 +87,12 @@ class Ambiguous(Exception):
 class Change:
     """What a message asked to do to the basket."""
 
-    action: str                                  # "remove" | "quantity"
+    action: str                                  # "remove" | "quantity" | "respec"
     line: BasketLine
     quantity_sales_units: float | None = None
+    add_claims: list[str] = field(default_factory=list)
+    drop_claims: list[str] = field(default_factory=list)
+    want_another: bool = False
     said: str = ""                               # what the chef typed, for the reply
     flags: list[str] = field(default_factory=list)
 
@@ -161,6 +185,23 @@ def read(basket: Basket, message: str) -> Change | None:
     if REMOVE.search(text):
         line = match_line(basket, text)
         return Change("remove", line, said=text.strip()) if line else None
+
+    # What the product should be, rather than how much of it.
+    dropped = DROP_CLAIM.search(text)
+    added = [claim for claim, pattern in ADD_CLAIM.items() if pattern.search(text)]
+    if dropped and not added and not re.search(_AMOUNT_HEAD, text, re.I):
+        word = next((w for w in CLAIM_WORD if w in dropped.group(0).lower()), "lactose")
+        line = match_line(basket, text) or (basket.lines[0] if len(basket.lines) == 1 else None)
+        if line is not None:
+            return Change("respec", line, drop_claims=[CLAIM_WORD[word]], said=text.strip())
+    if added and not re.search(_AMOUNT_HEAD, text, re.I):
+        line = match_line(basket, text) or (basket.lines[0] if len(basket.lines) == 1 else None)
+        if line is not None:
+            return Change("respec", line, add_claims=added, said=text.strip())
+    if ANOTHER.search(text) and not CHANGE.search(text):
+        line = match_line(basket, text) or (basket.lines[0] if len(basket.lines) == 1 else None)
+        if line is not None:
+            return Change("respec", line, want_another=True, said=text.strip())
 
     if not CHANGE.search(text):
         return None

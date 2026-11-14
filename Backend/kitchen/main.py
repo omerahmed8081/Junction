@@ -303,6 +303,20 @@ def _sentence_for(result) -> str:
 def _apply_change(state: agent.BasketState, change, message: str) -> ChatResponse:
     """One spoken change, through the same path the basket's buttons use."""
     before = change.line.quantity_sales_units
+    if change.action == "respec":
+        try:
+            said, steps = agent.respec(state, change.line, gateway,
+                                       add_claims=change.add_claims,
+                                       drop_claims=change.drop_claims,
+                                       want_another=change.want_another)
+        except GatewayError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+        audit.log.record("respec", basket_id=state.basket.basket_id, actor="human",
+                         inputs={"message": message, "product_id": change.line.product_id},
+                         detail=narrate.sentence("respec", said))
+        audit.log.record_steps(steps, state.basket.basket_id)
+        _save()
+        return ChatResponse(reply=said, basket=state.basket, steps=steps)
     try:
         reply, steps = agent.apply_edits(state, [change.as_edit()], gateway)
     except GatewayError as exc:

@@ -82,6 +82,38 @@ def test_an_amount_in_the_lines_own_unit_is_taken_as_it_is():
     assert edits.read(basket, "make it 12 units").quantity_sales_units == 12.0
 
 
+# ---- changing what the product is --------------------------------------
+
+def test_with_lactose_drops_the_claim():
+    """The message that started this: it parses as no request at all, and used
+    to fall through to "I could not find a quantity and unit"."""
+    change = edits.read(a_basket(), "with lactose")
+    assert change and change.action == "respec"
+    assert change.drop_claims == ["FREE_FROM_LACTOSE"] and not change.add_claims
+
+
+def test_asking_for_a_claim_adds_it():
+    for message, claim in [("lactose free", "FREE_FROM_LACTOSE"),
+                           ("make it gluten free", "FREE_FROM_GLUTEN"),
+                           ("without lactose", "FREE_FROM_LACTOSE")]:
+        change = edits.read(a_basket(), message)
+        assert change and change.action == "respec", message
+        assert change.add_claims == [claim], message
+
+
+def test_asking_for_something_else():
+    for message in ["something cheaper", "a different one", "another one"]:
+        change = edits.read(a_basket(), message)
+        assert change and change.action == "respec" and change.want_another, message
+
+
+def test_a_claim_with_an_amount_is_a_new_request_not_a_change():
+    """"1,000 L lactose-free milk" asks for something; "lactose free" changes
+    what is already there. The amount is what tells them apart."""
+    for message in ["1,000 L lactose-free milk by Tuesday", "40 L lactose free milk"]:
+        assert edits.read(a_basket(), message) is None, message
+
+
 # ---- what must NOT be read as a change ---------------------------------
 
 def test_a_new_request_is_not_a_change():
