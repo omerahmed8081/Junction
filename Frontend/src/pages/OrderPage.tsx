@@ -4,7 +4,7 @@
 // The basket id lives in the URL (?basket=…), so refresh, Back and shared links work.
 import * as Dialog from "@radix-ui/react-dialog";
 import { MessageSquare, Plus, Trash2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 import { ApiError } from "../api/client";
@@ -43,7 +43,13 @@ export function OrderPage() {
                                    chatTarget, () => { setConfirmDelete(false); setParams({}); });
 
   useEffect(() => { document.title = `${basket ? t(`status.${basket.status}`) + " · " : ""}${t("basket.title")} · ${t("app.name")}`; }, [basket?.status, t, basket]);
-  useEffect(() => { setOutcome(null); }, [basketId]);
+  // A new basket clears the last outcome, except right after an order is placed:
+  // the page then empties itself but keeps the "Order placed" note and its link.
+  const keepOutcome = useRef(false);
+  useEffect(() => {
+    if (keepOutcome.current) { keepOutcome.current = false; return; }
+    setOutcome(null);
+  }, [basketId]);
 
   const gone = query.error instanceof ApiError && query.error.kind === "missing";
   useEffect(() => {
@@ -60,7 +66,19 @@ export function OrderPage() {
   const send = (message: string) => { setOutcome(null); actions.chat.mutate(message); };
   const edit = (e: LineEdit) => { setOutcome(null); actions.edit.mutate({ edits: [e] }); };
   const confirm = () => { setOutcome(null); actions.confirm.mutate(); };
-  const approve = () => actions.approve.mutate(undefined, { onSuccess: setOutcome });
+  // Once the order is placed the basket is done: clear it and the chat so the next
+  // message starts a fresh order. Adjusted or refused baskets stay open to fix.
+  const approve = () => actions.approve.mutate(undefined, {
+    onSuccess: (r) => {
+      setOutcome(r);
+      if (r.outcome !== "ordered") return;
+      keepOutcome.current = true;
+      setCurrentBasket(null);
+      clearChat();
+      actions.chat.reset();
+      setParams({});
+    },
+  });
   const startNew = () => { setCurrentBasket(null); setParams({}); clearChat(); setOutcome(null); actions.chat.reset(); };
   const panelProps = basket && { basket, busy, confirming: actions.confirm.isPending, approving: actions.approve.isPending, onConfirm: confirm, onApprove: approve };
   const actionError = actions.edit.error || actions.confirm.error || actions.approve.error || actions.draftSuggestion.error || actions.remove.error;
