@@ -114,6 +114,22 @@ def test_a_claim_with_an_amount_is_a_new_request_not_a_change():
         assert edits.read(a_basket(), message) is None, message
 
 
+def test_a_new_amount_in_kilos_restates_what_was_asked_for():
+    """The fish bug: "change to 10 kg" gave the right packs against the wrong
+    question, so the line still said "5 kg -> 11.52 kg (+6.52 kg extra)"."""
+    basket = a_basket(a_line(name="Fish with almond, MSC, 160 g", sales_unit="KI",
+                             size=5.76, need_unit="KG", quantity=5))
+    change = edits.read(basket, "can you change the order to 10kg of fish")
+    assert change.quantity_sales_units == 2.0          # 10 kg in 5.76 kg cases
+    assert change.need_value == 10.0 and change.need_unit == "KG"
+
+
+def test_a_count_of_packs_leaves_the_need_alone():
+    """"12 units" is about packs, not about how much the kitchen needs."""
+    change = edits.read(a_basket(), "make it 12 units")
+    assert change.quantity_sales_units == 12.0 and change.need_value is None
+
+
 # ---- what must NOT be read as a change ---------------------------------
 
 def test_a_new_request_is_not_a_change():

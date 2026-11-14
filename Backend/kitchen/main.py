@@ -302,6 +302,15 @@ def _sentence_for(result) -> str:
 def _apply_change(state: agent.BasketState, change, message: str) -> ChatResponse:
     """One spoken change, through the same path the basket's buttons use."""
     before = change.line.quantity_sales_units
+    if change.action == "quantity" and change.need_value is not None:
+        # The question changed, not just the answer: "+6.52 kg extra" against a
+        # need of 5 kg is nonsense once the chef has asked for 10.
+        change.line.need_value = change.need_value
+        change.line.need_unit = change.need_unit or change.line.need_unit
+        stored = state.needs.get(change.line.product_id)
+        if stored is not None:
+            stored.quantity = change.need_value
+            stored.unit = change.need_unit or stored.unit
     if change.action == "respec":
         try:
             said, steps = agent.respec(state, change.line, gateway,

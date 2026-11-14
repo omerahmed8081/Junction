@@ -249,7 +249,10 @@
     "clear": "Clear steps",
     "lines": "Lines",
     "documents": "Signed confirmation",
-    "everything": "From the kitchen's own log. A demo reset clears it."
+    "everything": "From the kitchen's own log. A demo reset clears it.",
+    "forOrder": "What happened to {{id}}",
+    "showAll": "Show everything",
+    "bothSides": "This order's own story, the kitchen's rows and Aimo's together."
   },
   "demo": {
     "title": "Demo controls",

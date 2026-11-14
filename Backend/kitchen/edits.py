@@ -90,6 +90,12 @@ class Change:
     action: str                                  # "remove" | "quantity" | "respec"
     line: BasketLine
     quantity_sales_units: float | None = None
+    # What the chef actually asked for, when they said it in litres or kilos.
+    # Without this the line still claims the old need: "change to 10 kg" showed
+    # "5 kg -> 2 cases = 11.52 kg (+6.52 kg extra)", which is the right packs
+    # against the wrong question.
+    need_value: float | None = None
+    need_unit: str = ""
     add_claims: list[str] = field(default_factory=list)
     drop_claims: list[str] = field(default_factory=list)
     want_another: bool = False
@@ -230,5 +236,10 @@ def read(basket: Basket, message: str) -> Change | None:
     if line is None:
         return None
     quantity, flags = _sales_units_for(line, value, unit)
+    # Only a need-shaped unit (litres, kilos) restates the need. "12 units" is
+    # about packs and leaves the need alone.
+    in_need_units = bool(unit) and (unit in NEED_TO_LITRES or unit in NEED_TO_KILOS)
     return Change("quantity", line, quantity_sales_units=quantity,
+                  need_value=value if in_need_units else None,
+                  need_unit=unit if in_need_units else "",
                   said=text.strip(), flags=flags)

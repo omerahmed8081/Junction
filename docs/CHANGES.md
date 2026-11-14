@@ -5,6 +5,27 @@ behaviour, a file that moved. Add to the top when you push.
 
 ---
 
+## Sunday 15 November
+
+### 00:05 - the fish, and an Activity panel that follows the order
+
+**"Change the order to 10 kg" gave the right packs against the wrong question.**
+Asked for 5 kg of fish in 5.76 kg cases, the chef then asked for 10. Two cases
+is correct - 11.52 kg is the smallest whole number of cases covering 10 - but
+the line still said *"5 kg -> 2 cases x 5.76 kg = 11.52 kg (+6.52 kg extra)"*,
+because the quantity changed and the need behind it did not. It now reads 10 kg
+and +1.52 kg extra.
+
+A unit decides whether the need is restated: "10 kg" changes what the kitchen
+asked for, "12 units" only changes how many packs are bought. Both are tested.
+
+**The Activity panel follows the order you open.** Expanding an order narrows
+the right-hand panel to that order's own story with Aimo's rows merged in, and
+a "Show everything" link goes back. The copy that was nested inside the order
+card is gone, which is what made it look doubled.
+
+257 passing.
+
 ## Saturday 14 November
 
 ### 23:40 - the Activity tab reads the backend, not the browser

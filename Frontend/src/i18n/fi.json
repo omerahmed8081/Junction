@@ -249,7 +249,10 @@
     "clear": "Tyhjennä vaiheet",
     "lines": "Rivit",
     "documents": "Allekirjoitettu vahvistus",
-    "everything": "Keittiön omasta lokista. Demon nollaus tyhjentää sen."
+    "everything": "Keittiön omasta lokista. Demon nollaus tyhjentää sen.",
+    "forOrder": "Mitä tapahtui tilaukselle {{id}}",
+    "showAll": "Näytä kaikki",
+    "bothSides": "Tämän tilauksen oma tarina, keittiön ja Aimon rivit yhdessä."
   },
   "demo": {
     "title": "Demon hallinta",

@@ -9,9 +9,9 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
+import type { AuditRow } from "../api/types";
 import { Banner, Card, EmptyState, ErrorNote, PageTitle, Skeleton } from "../components/ui";
 import { amount, day, dayTime, money, time } from "../lib/format";
-import { OrderAudit } from "../features/activity/OrderAudit";
 
 
 export function ActivityPage() {
@@ -22,8 +22,17 @@ export function ActivityPage() {
   const orders = useQuery({ queryKey: ["orders"], queryFn: api.orders });
   // From the kitchen's own log, not this browser: it survives a reload, it is
   // the same on any machine, and a demo reset clears it along with the orders.
-  const log = useQuery({ queryKey: ["audit", aimoOnly], queryFn: () => api.audit(aimoOnly) });
-  const shown = log.data?.records ?? [];
+  // Opening an order narrows this panel to that order's own story, with Aimo's
+  // rows merged in. With none open it is everything the kitchen did.
+  const log = useQuery({
+    queryKey: ["audit", aimoOnly, openOrder],
+    // Both answers carry rows and a degraded flag; only the whole-log one has a
+    // note, so the shared shape makes it optional.
+    queryFn: async (): Promise<{ records: AuditRow[]; degraded: boolean; note?: string }> =>
+      openOrder ? api.orderAudit(openOrder) : api.audit(aimoOnly),
+  });
+  const all = log.data?.records ?? [];
+  const shown = openOrder && aimoOnly ? all.filter((r) => r.side === "aimo" || r.crossed_gateway) : all;
   useEffect(() => { document.title = `${t("nav.activity")} · ${t("app.name")}`; }, [t]);
 
   const setView = (view: "all" | "aimo") => { const next = new URLSearchParams(params); if (view === "aimo") next.set("view", "aimo"); else next.delete("view"); setParams(next, { replace: true }); };
@@ -76,8 +85,6 @@ export function ActivityPage() {
                         <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap break-all rounded-2xl bg-card p-3 text-xs">{o.confirmation_jws}</pre>
                       </details>
                     )}
-                    <p className="mt-4 font-semibold">{t("audit.title")}</p>
-                    <OrderAudit orderId={o.order_id} open={openOrder === o.order_id} />
                   </div>
                 </details>
               </li>
@@ -87,9 +94,19 @@ export function ActivityPage() {
 
         <Card className="p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-xl font-extrabold tracking-tight">{t("activity.steps")}</h2>
+            <h2 className="text-xl font-extrabold tracking-tight">
+              {openOrder ? t("activity.forOrder", { id: openOrder }) : t("activity.steps")}
+            </h2>
+            {openOrder && (
+              <button type="button" className="min-h-9 cursor-pointer text-sm font-semibold text-link"
+                onClick={() => { const next = new URLSearchParams(params); next.delete("order"); setParams(next, { replace: true }); }}>
+                {t("activity.showAll")}
+              </button>
+            )}
           </div>
-          <p className="text-xs text-ink-soft">{t("activity.everything")}</p>
+          <p className="text-xs text-ink-soft">
+            {openOrder ? t("activity.bothSides") : t("activity.everything")}
+          </p>
           {log.isError && <div className="mt-3"><ErrorNote error={log.error} onRetry={() => void log.refetch()} /></div>}
           {log.data?.degraded && <Banner tone="warn" className="mt-3">{log.data.note}</Banner>}
           {shown.length === 0 ? <div className="mt-3"><EmptyState title={t("activity.noSteps")} /></div> : (
@@ -109,7 +126,9 @@ export function ActivityPage() {
                           {security && <span className="mr-1 inline-flex items-center gap-1 text-danger"><ShieldAlert className="size-4" aria-hidden />{t("activity.security")}:</span>}{s.step ?? s.action}
                         </td>
                         <td className="py-2 pr-3 align-top" lang="en">{s.detail}</td>
-                        <td className="py-2 align-top">{s.crossed_gateway ? <span className="font-semibold">→ {t("activity.yes")}</span> : <span className="text-ink-soft">{t("activity.no")}</span>}</td>
+                        <td className="py-2 align-top">{(s.side === "aimo" || s.crossed_gateway)
+                          ? <span className="font-semibold">→ {t("activity.yes")}</span>
+                          : <span className="text-ink-soft">{t("activity.no")}</span>}</td>
                       </tr>
                     );
                   })}
