@@ -172,6 +172,17 @@ def test_aimo_signs_a_confirmation_the_kitchen_can_verify():
     assert payload["order_id"] == record.order_id and payload["approver_role"] == "manager"
 
 
+def test_whether_aimo_demands_an_approval_is_the_kitchens_choice():
+    """The flag says whether *Aimo* refuses an order that arrives without a
+    signed approval. A person is still in the loop either way, because the
+    kitchen's own policy sends a basket to someone unless a rule clears it."""
+    kitchen = KitchenSigner()
+    assert kitchen.issue_mandate(now=NOW).payload.approval_required is (
+        ordering.MANDATE_APPROVAL_REQUIRED)
+    assert kitchen.issue_mandate(approval_required=True, now=NOW).payload.approval_required is True
+    assert kitchen.issue_mandate(approval_required=False, now=NOW).payload.approval_required is False
+
+
 def test_the_order_carried_a_mandate_and_an_approval():
     _, _, _, _, gateway = ordered()
     sent = gateway.placed[-1]
@@ -179,7 +190,9 @@ def test_the_order_carried_a_mandate_and_an_approval():
     kitchen_verifier = Verifier([keys.kitchen_keypair().public_jwk])
     mandate = kitchen_verifier.verify(sent.mandate_jws, audience=GATEWAY_URL, now=NOW)
     approval = kitchen_verifier.verify(sent.approval_jws, audience=GATEWAY_URL, now=NOW)
-    assert mandate["sub"] == ordering.AGENT_ID and mandate["approval_required"] is True
+    assert mandate["sub"] == ordering.AGENT_ID
+    # The approval is sent and verified whether or not the mandate demanded one:
+    # the kitchen had a person approve, and the record has to say so.
     assert approval["approver_role"] == "manager"
     quote = Verifier([AIMO_KEYS.public_jwk]).verify(sent.quote_jws, now=NOW)
     assert approval["quote_jti"] == quote["jti"]         # the approval names this quote

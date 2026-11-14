@@ -7,6 +7,25 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Saturday 14 November
 
+### 22:00 - approval is the kitchen's choice, and the rules screen is simpler
+
+- **`MANDATE_APPROVAL_REQUIRED`, off by default.** A fresh mandate no longer
+  demands that Aimo be shown a signed human approval, so the box on the rules
+  screen starts unticked. A person is still in the loop either way: the
+  kitchen's own policy sends every basket to someone unless a standing rule
+  clears it. The flag only says whether *Aimo* refuses an order that arrives
+  without an approval.
+- **A sent approval is now always verified and recorded**, not only when the
+  mandate demanded one. Found by a test: with the flag off, the gateway skipped
+  verification entirely and `approver_role` fell out of the order record. The
+  kitchen usually does have a person approve, and throwing that away would lose
+  who signed off from both the record and the audit trail.
+- The "What triggers an extra check" card is gone from the rules screen. The
+  standing-rules card now carries the one thing that needed saying: what a rule
+  cannot do.
+
+243 passing.
+
 ### 21:40 - standing rules, and one order's whole story
 
 **`GET /api/orders/{id}/audit`** - one call for the Activity tab. Click an

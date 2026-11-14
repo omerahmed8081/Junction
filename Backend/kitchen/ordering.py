@@ -51,6 +51,12 @@ CHEF_LIMIT_EUR = float(os.environ.get("CHEF_LIMIT_EUR", "500"))
 MANDATE_PER_ORDER_EUR = float(os.environ.get("MANDATE_PER_ORDER_EUR", "2000"))
 MANDATE_PER_WEEK_EUR = float(os.environ.get("MANDATE_PER_WEEK_EUR", "5000"))
 MANDATE_DAYS = int(os.environ.get("MANDATE_DAYS", "7"))
+# Whether Aimo must be shown a signed human approval with every order. Off by
+# default: a person is still in the loop, because the kitchen's own policy sends
+# every basket to someone unless a standing rule clears it. This flag only says
+# whether *Aimo* refuses an order that arrives without one.
+MANDATE_APPROVAL_REQUIRED = (os.environ.get("MANDATE_APPROVAL_REQUIRED", "false").strip().lower()
+                             in {"1", "true", "yes", "on"})
 MANDATE_CATEGORIES = [c for c in (os.environ.get("MANDATE_CATEGORIES") or "").split(",") if c]
 
 # Who may approve what. The policy engine decides the level; this says which
@@ -96,7 +102,7 @@ class KitchenSigner:
         per_order: float | None = None,
         per_week: float | None = None,
         categories: list[str] | None = None,
-        approval_required: bool = True,
+        approval_required: bool | None = None,
         days: int | None = None,
         now: datetime | None = None,
     ) -> Mandate:
@@ -120,7 +126,8 @@ class KitchenSigner:
                 max_net_per_week=per_week if per_week is not None else MANDATE_PER_WEEK_EUR,
             ),
             allowed_categories=categories if categories is not None else list(MANDATE_CATEGORIES),
-            approval_required=approval_required,
+            approval_required=(MANDATE_APPROVAL_REQUIRED if approval_required is None
+                               else approval_required),
         )
         self.mandate = Mandate(jws=self.signer.sign(payload.model_dump(mode="json")),
                                payload=payload)

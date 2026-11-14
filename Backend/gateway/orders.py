@@ -250,8 +250,12 @@ def place_order(
                               kitchen_verifier, moment)
     _check_limits(quote, mandate, customer, store, moment)
 
+    # Verify whenever one is sent, not only when the mandate demands it. The
+    # kitchen often has a person approve anyway, and throwing that away would
+    # lose who signed off from the order record and from the audit trail. A
+    # missing approval is only an error when the mandate requires one.
     approval = None
-    if mandate.approval_required:
+    if mandate.approval_required or request.approval_jws:
         approval = _verify_approval(request.approval_jws, quote, gateway_url,
                                     kitchen_verifier, moment)
 

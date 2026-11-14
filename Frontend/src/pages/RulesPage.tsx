@@ -87,12 +87,6 @@ export function RulesPage() {
               </details>
             </>)}
           </Card>
-          <Card className="p-5 sm:p-6">
-            <h2 className="text-xl font-extrabold tracking-tight">{t("rules.checks")}</h2>
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-              {(["check1", "check2", "check3", "check4"] as const).map((k) => <li key={k}>{t(`rules.${k}`)}</li>)}
-            </ul>
-          </Card>
           {/* Inside the mandate, never outside: a rule only relaxes an approval
               the kitchen would ask for itself. Aimo never sees these. */}
           <StandingRules />
