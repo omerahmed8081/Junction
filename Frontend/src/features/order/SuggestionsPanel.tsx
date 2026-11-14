@@ -20,7 +20,7 @@ export function SuggestionsPanel({ draftingId, onDraft, onServiceBasket }: Props
   return (
     <section aria-labelledby="low-title" className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <h2 id="low-title" className="text-lg font-bold">{t("suggest.title")}</h2>
+        <h2 id="low-title" className="text-xl font-extrabold tracking-tight">{t("suggest.title")}</h2>
         {list.length > 0 && (
           <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-warn px-2 text-xs font-bold text-white">
             <span aria-hidden>{list.length}</span><span className="sr-only">{t("suggest.count", { count: list.length })}</span>
@@ -36,8 +36,8 @@ export function SuggestionsPanel({ draftingId, onDraft, onServiceBasket }: Props
       <ul className="space-y-3">
         {list.map((s) => (
           <li key={s.product_id}>
-            <Card className="p-3">
-              <p className="text-sm font-semibold">{productName(s.product_id, s.name)}</p>
+            <Card className="p-4">
+              <p className="text-sm font-bold tracking-tight">{productName(s.product_id, s.name)}</p>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 <Chip tone="warn">{t("suggest.short", { amount: amount(s.shortfall, s.unit, 1) })}</Chip>
                 {s.runs_out_on && <Chip>{t("suggest.runsOut", { date: day(s.runs_out_on) })}</Chip>}

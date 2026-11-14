@@ -21,10 +21,10 @@ export function InventoryPage() {
       {query.isLoading && <Skeleton lines={6} />}
       {query.isError && <ErrorNote error={query.error} onRetry={() => void query.refetch()} />}
       {query.data && (
-        <Card className="overflow-x-auto">
+        <Card className="overflow-x-auto p-2 sm:p-3">
           <table className="w-full min-w-[44rem] text-sm">
             <caption className="sr-only">{t("inventory.title")}</caption>
-            <thead className="bg-sunken text-left text-xs uppercase tracking-wide text-ink-soft">
+            <thead className="text-left text-xs uppercase tracking-wide text-ink-soft">
               <tr>
                 <th scope="col" className="px-4 py-2.5">{t("inventory.product")}</th>
                 <th scope="col" className="px-4 py-2.5 text-right">{t("inventory.stock")}</th>
@@ -37,7 +37,7 @@ export function InventoryPage() {
             <tbody className="divide-y divide-border">
               {rows.map((r) => (
                 <tr key={r.product_id}>
-                  <th scope="row" className="px-4 py-2.5 text-left font-semibold">{productName(r.product_id, r.name)}</th>
+                  <th scope="row" className="px-4 py-2.5 text-left font-bold tracking-tight">{productName(r.product_id, r.name)}</th>
                   <td className="tabular px-4 py-2.5 text-right">{amount(r.stock, r.unit, 1)}</td>
                   <td className="tabular px-4 py-2.5 text-right">{amount(r.on_order, r.unit, 1)}</td>
                   <td className="tabular px-4 py-2.5 text-right">{amount(r.expected_usage, r.unit, 1)}</td>

@@ -55,14 +55,14 @@ export function RulesPage() {
     issue.mutate();
   };
 
-  const field = "tabular mt-1 min-h-11 w-full rounded-lg border bg-surface px-3 text-base";
+  const field = "tabular mt-1 min-h-12 w-full rounded-full border bg-surface px-5 text-base";
   return (
     <>
       <PageTitle>{t("rules.title")}</PageTitle>
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="space-y-5">
-          <Card className="p-4">
-            <h2 ref={heading} tabIndex={-1} className="text-lg font-bold">{t("rules.inForce")}</h2>
+          <Card className="p-5 sm:p-6">
+            <h2 ref={heading} tabIndex={-1} className="text-xl font-extrabold tracking-tight">{t("rules.inForce")}</h2>
             {query.isLoading && <div className="mt-3"><Skeleton lines={5} /></div>}
             {query.isError && <div className="mt-3"><ErrorNote error={query.error} onRetry={() => void query.refetch()} /></div>}
             {mandate && (<>
@@ -81,21 +81,21 @@ export function RulesPage() {
               </dl>
               <p className="mt-3 text-xs text-ink-soft">{t("rules.explain")}</p>
               <details className="mt-2">
-                <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-primary">{t("rules.showSigned")}</summary>
-                <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-sunken p-3 text-xs">{mandate.mandate_jws}</pre>
+                <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-link">{t("rules.showSigned")}</summary>
+                <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-2xl bg-surface p-4 text-xs">{mandate.mandate_jws}</pre>
               </details>
             </>)}
           </Card>
-          <Card className="p-4">
-            <h2 className="text-lg font-bold">{t("rules.checks")}</h2>
+          <Card className="p-5 sm:p-6">
+            <h2 className="text-xl font-extrabold tracking-tight">{t("rules.checks")}</h2>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
               {(["check1", "check2", "check3", "check4"] as const).map((k) => <li key={k}>{t(`rules.${k}`)}</li>)}
             </ul>
           </Card>
         </div>
 
-        <Card className="p-4">
-          <h2 className="text-lg font-bold">{t("rules.issue")}</h2>
+        <Card className="p-5 sm:p-6">
+          <h2 className="text-xl font-extrabold tracking-tight">{t("rules.issue")}</h2>
           <p className="text-sm text-ink-soft">{t("rules.issueHint")}</p>
           <form onSubmit={submit} noValidate className="mt-4 space-y-4">
             <div>
@@ -116,7 +116,7 @@ export function RulesPage() {
               <legend className="text-sm font-semibold">{t("rules.validFor")}</legend>
               <div className="mt-1 flex flex-wrap gap-2">
                 {DAY_CHOICES.map((d) => (
-                  <label key={d} className={`inline-flex min-h-11 cursor-pointer items-center rounded-lg border px-4 text-sm font-semibold has-focus-visible:outline-3 has-focus-visible:outline-blue-700 ${days === d ? "border-primary bg-primary text-on-primary" : "border-border-strong bg-surface"}`}>
+                  <label key={d} className={`inline-flex min-h-11 cursor-pointer items-center rounded-full border px-5 text-sm font-semibold has-focus-visible:outline-3 has-focus-visible:outline-blue-700 ${days === d ? "border-primary bg-primary text-on-primary" : "border-border bg-surface hover:bg-sunken"}`}>
                     <input type="radio" name="days" value={d} checked={days === d} onChange={() => setDays(d)} className="sr-only" />
                     {t("rules.days", { count: d })}
                   </label>
@@ -134,7 +134,7 @@ export function RulesPage() {
             )}
             {issue.isError && <ErrorNote error={issue.error} />}
             {issue.isSuccess && <Banner tone="ok" alert>{t("rules.issued", { date: dayTime(issue.data.expires_at) })}</Banner>}
-            <div className="flex justify-end"><Button type="submit" variant="primary" size="lg" loading={issue.isPending}>{issue.isPending ? t("rules.signing") : t("rules.sign")}</Button></div>
+            <div className="flex justify-end"><Button type="submit" variant="accent" size="lg" loading={issue.isPending}>{issue.isPending ? t("rules.signing") : t("rules.sign")}</Button></div>
           </form>
         </Card>
       </div>

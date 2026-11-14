@@ -23,9 +23,9 @@ function usePrimary({ basket, busy, confirming, approving, onConfirm, onApprove 
   const expired = basket.status === "quoted" && !!basket.quote_expires && new Date(basket.quote_expires).getTime() <= now;
   if (!basket.lines?.length || basket.status === "ordered" || basket.status === "blocked") return { expired, button: null };
   if (basket.status === "quoted" && !expired) {
-    return { expired, button: <Button variant="primary" size="lg" loading={approving} disabled={busy} onClick={onApprove} className="w-full">{approving ? t("action.approving") : t("action.approve")}</Button> };
+    return { expired, button: <Button variant="accent" size="lg" loading={approving} disabled={busy} onClick={onApprove} className="w-full">{approving ? t("action.approving") : t("action.approve")}</Button> };
   }
-  return { expired, button: <Button variant="primary" size="lg" loading={confirming} disabled={busy} onClick={onConfirm} className="w-full">{confirming ? t("action.confirming") : expired ? t("action.confirmAgain") : t("action.confirm")}</Button> };
+  return { expired, button: <Button variant="accent" size="lg" loading={confirming} disabled={busy} onClick={onConfirm} className="w-full">{confirming ? t("action.confirming") : expired ? t("action.confirmAgain") : t("action.confirm")}</Button> };
 }
 
 export function ActionPanel(props: Props) {
@@ -38,11 +38,11 @@ export function ActionPanel(props: Props) {
 
   return (
     <section aria-labelledby="totals-title" className="space-y-3">
-      <h2 id="totals-title" className="text-lg font-bold">{t("basket.total")}</h2>
+      <h2 id="totals-title" className="text-xl font-extrabold tracking-tight">{t("basket.total")}</h2>
       <dl className="tabular space-y-1 text-sm">
         <div className="flex justify-between"><dt>{t("basket.net")}</dt><dd className="font-semibold">{money(basket.net_total)}</dd></div>
         <div className="flex justify-between"><dt>{t("basket.vat")}</dt><dd>{money(basket.vat_total)}</dd></div>
-        <div className="flex justify-between border-t border-border pt-1 text-base font-bold"><dt>{t("basket.total")}</dt><dd>{money(basket.gross_total)}</dd></div>
+        <div className="flex items-baseline justify-between border-t border-border pt-2 font-extrabold tracking-tight"><dt className="text-base">{t("basket.total")}</dt><dd className="text-2xl">{money(basket.gross_total)}</dd></div>
       </dl>
 
       {policy && basket.status !== "ordered" && (
@@ -67,7 +67,7 @@ export function ActionPanel(props: Props) {
       {basket.status === "quoted" && !expired && <p className="text-xs text-ink-soft">{t("action.editVoids")}</p>}
       {button}
       {basket.status === "ordered" && basket.order_id && (
-        <Link to={`/activity?order=${basket.order_id}`} className="flex min-h-12 items-center justify-center rounded-lg border border-border-strong bg-surface px-4 text-sm font-semibold hover:bg-sunken">{t("action.viewOrder")}</Link>
+        <Link to={`/activity?order=${basket.order_id}`} className="flex min-h-12 items-center justify-center rounded-full border border-border bg-surface px-5 text-sm font-semibold hover:bg-sunken">{t("action.viewOrder")}</Link>
       )}
     </section>
   );
@@ -84,7 +84,7 @@ export function MobileActionBar(props: Props) {
       "mb-[env(safe-area-inset-bottom)]")}>
       <p className="tabular min-w-0 flex-1 leading-tight">
         <span className="block text-xs text-ink-soft">{t("basket.total")}</span>
-        <span className="block text-lg font-bold">{money(props.basket.gross_total)}</span>
+        <span className="block text-lg font-extrabold tracking-tight">{money(props.basket.gross_total)}</span>
       </p>
       <div className="w-[58%] max-w-64">{button}</div>
     </div>

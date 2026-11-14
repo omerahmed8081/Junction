@@ -7,72 +7,74 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Saturday 14 November
 
-### 20:40 - the chat remembers the basket it is looking at
+### 20:00 - frontend restyle: class names only, no behaviour change
 
-"I need these by Friday not Thursday" used to be read as a brand new request,
-because every message was parsed on its own. The basket id was already going
-back and forth; it just was not being used as context.
+White page, soft grey cards with large corners, black pill buttons, one lilac
+button for the main action (confirm, approve, sign mandate), heavier headings.
 
-- `parse_chat()` is given the open basket and decides what the message meant:
-  another product to add, or a change to what is already there. The basket's
-  lines go into the model prompt, so "these", "them" and "it" refer to
-  something.
-- The first intent is **changing the delivery day for the whole basket**. The
-  rules parser handles it too: a message that names a day, asks for no amount,
-  and either points at the basket ("these", "instead", "move") or is nothing but
-  the day itself.
-- A date change is not just written down. Every line is priced and checked again
-  for the new day, because a cut-off or a price can differ between days, and a
-  quoted basket drops back to draft since the signed price was for the old date.
-- "Can that come a day later" names no day, and the date parser falls back to a
-  default lead time when it finds none. Moving the basket to that would be
-  inventing an answer, so it is refused and treated as a new request instead.
+- All colours and radii are in the `@theme` block of `Frontend/src/index.css`.
+  New tokens: `card`, `accent`, `accent-hover`, `link`. `rounded-lg` is now 1rem.
+- `Button` gained `variant="accent"`. `Card` is grey and borderless; a card
+  inside a card turns white (`.tta-card .tta-card`).
+- Not touched: `api/`, `lib/`, `i18n/`, `useBasket.ts`, `useWaitingBaskets.ts`,
+  the fixtures. No new strings, no new dependencies. `npm run build` passes.
 
-Two bugs found on the way:
+### 19:45 - the chat keeps working on one order until its price is signed
+
+Behaviour the chef asked for, with two small backend changes and one fix.
+
+**`POST /api/chat`** (`kitchen/main.py`)
+- With `basket_id` set, every message adds to that basket **while it is a draft**.
+  A basket that is `quoted` or later is closed to the chat: the message starts a new
+  basket instead of quietly voiding the signed price.
+- A follow-up that names **no date** keeps the basket's date. It used to move the whole
+  basket to the parser's default (today + 3). New `need.mentioned_date()` tells "named a
+  day" from "the parser filled one in"; it reads English and Finnish weekdays,
+  tomorrow/huomenna, ISO dates and `18.11.`, and never a decimal like `3.5 kg`.
+- A message that names a **different date** moves the basket and re-checks every line
+  for that day with `agent.reprice`. A message that is only a date ("deliver on
+  Wednesday instead", "toimitus torstaina") does just that.
+
+**`PATCH /api/basket/{id}`** with only `requested_date` now re-checks every line
+(`reprice`) instead of relabelling the date. **New `DELETE /api/basket/{id}`**: drafts
+only, `409` for anything signed or ordered, recorded in the audit log.
+
+**Fix:** `gateway/main.py` `check_delivery` audit line read `r.can_fulfil` and
+`r.price_per_sales_unit`; they are `r.delivery.can_fulfil` and
+`r.price.price_per_sales_unit`. Every price check returned 500 since the audit-log commit.
+
+**Frontend:** chat adds to the open draft; after "Confirm price" the chat clears and
+says the next message starts a new order; "Delete order" (with a confirm step) on drafts.
+
+`tests/test_chat_dates.py`, 5 tests. 200 passing.
+
+### 20:40 - the same ground, reached twice
+
+Two of us built delivery-date follow-ups at the same time, on different
+branches. What survived the merge, and why:
+
+- **`mentioned_date()` is the one date detector** and `date_only_change()` now
+  calls it. It reads English and Finnish weekdays, tomorrow/huomenna, ISO dates
+  and `18.11.`, and never mistakes `3.5 kg` for a date. The English-only version
+  written on main was dropped.
+- **What was kept from the other side** is the second half of the question:
+  whether a message points at the basket at all. "move it to monday" does;
+  "20 kg butter on friday" is a new request that happens to name a day. A
+  message that is nothing but a day counts as pointing at it.
+- **`chat()` was taken whole from the branch.** It closes a quoted basket to the
+  chat rather than quietly voiding a signed price, and keeps the basket's date
+  when a follow-up names none - both of which the version on main got wrong.
+
+Carried over from main, unchanged by the merge:
 
 - **Two weekdays in one sentence picked the wrong one.** "by friday not
-  thursday" gave Thursday, because the parser walked Monday-to-Sunday and
+  thursday" gave Thursday, because the parser walked Monday to Sunday and
   returned the first name it found in the week rather than the first one said.
-  It now takes whichever is mentioned first in the sentence. This affected
-  ordinary requests too, not only follow-ups.
-- **The date picker never re-checked anything.** `PATCH /api/basket/{id}` with a
-  new `requested_date` set the date and left the prices and delivery answers
-  from the old one. It reprices now.
+  The day said first now wins. This was in both branches and affected ordinary
+  requests, not only follow-ups.
+- **Ordering by product number**: "40 units of 464306", "#464306 x 40". A
+  product named by number is ordered, not ranked against.
 
-6 more tests, 207 passing.
-
-**Not done yet:** changing a quantity or removing a line by chat ("make it 20",
-"drop the rice"). The buttons do both already; only the words are missing.
-
-### 20:05 - ordering by product number
-
-The gateway could already look products up by id - that is how a reorder finds
-the thing it wants more of - but the chat could not, so a chef who already knew
-exactly which product they wanted still had to describe it and hope the ranking
-agreed.
-
-Now "40 units of 464306 by Tuesday", "#464306 x 40" and "5 ST id 475214 for
-friday" all work, and **a product named by number is ordered rather than ranked
-against**. The chef has already chosen; second-guessing that is not the agent's
-job. It also sidesteps the "why did it buy 10 kg when I asked for 5" question
-entirely, by letting someone name the pack they want.
-
-Details worth knowing:
-
-- The number is read **before** the quantity, so "100000 L milk" is a hundred
-  thousand litres and not product 100000, and a six-digit number followed by a
-  unit is never taken as an id.
-- A message that names a product does not need a unit word: "40 of 464306" is
-  40 sales units.
-- A number with no quantity asks "How many of 464306 do you need?" rather than
-  guessing.
-- If the named product cannot be ordered for that date, the basket still gets
-  the closest match **and the reply says so** - it never quietly swaps in
-  something else.
-- The model is told about the field too, so it works through Gemini as well as
-  the rules parser.
-
-6 more tests, 201 passing.
 
 ### 19:20 - several items in one message, and a log a chef can read
 

@@ -17,7 +17,7 @@ export function DemoPage() {
   return (
     <>
       <PageTitle>{t("demo.title")}</PageTitle>
-      <Card className="max-w-xl space-y-3 p-4">
+      <Card className="max-w-xl space-y-3 p-6">
         <p className="text-sm text-ink-soft">{t("demo.note")}</p>
         <Button variant="primary" loading={reset.isPending} icon={<RotateCcw className="size-4" aria-hidden />} onClick={() => reset.mutate()}>
           {reset.isPending ? t("demo.resetting") : t("demo.reset")}

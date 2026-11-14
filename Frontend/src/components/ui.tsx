@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { ApiError } from "../api/client";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "ghost";
+  variant?: "primary" | "accent" | "secondary" | "ghost";
   size?: "md" | "sm" | "lg";
   loading?: boolean;
   icon?: ReactNode;
@@ -21,13 +21,14 @@ export function Button({ variant = "secondary", size = "md", loading, icon, clas
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={clsx(
-        "inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-colors duration-150 cursor-pointer select-none",
+        "inline-flex items-center justify-center gap-2 rounded-full font-semibold tracking-tight transition-colors duration-150 cursor-pointer select-none",
         "disabled:cursor-not-allowed disabled:opacity-55",
-        size === "sm" && "min-h-9 px-3 text-sm",
-        size === "md" && "min-h-11 px-4 text-sm",       // 44 px: the minimum touch target
-        size === "lg" && "min-h-12 px-5 text-base",
+        size === "sm" && "min-h-9 px-4 text-sm",
+        size === "md" && "min-h-11 px-5 text-sm",       // 44 px: the minimum touch target
+        size === "lg" && "min-h-14 px-7 text-base",
         variant === "primary" && "bg-primary text-on-primary hover:bg-primary-hover",
-        variant === "secondary" && "border border-border-strong bg-surface text-ink hover:bg-sunken",
+        variant === "accent" && "bg-accent text-ink hover:bg-accent-hover",
+        variant === "secondary" && "border border-border bg-surface text-ink hover:bg-sunken",
         variant === "ghost" && "text-ink hover:bg-sunken",
         className,
       )}
@@ -44,12 +45,12 @@ export function Chip({ tone = "neutral", children, className }: { tone?: Tone; c
   return (
     <span
       className={clsx(
-        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium leading-5",
-        tone === "neutral" && "border-border bg-surface text-ink-soft",
+        "inline-flex items-center gap-1 rounded-full border px-3 py-0.5 text-xs font-semibold leading-5",
+        tone === "neutral" && "border-transparent bg-sunken text-ink",
         tone === "warn" && "border-warn-border border-dashed bg-warn-soft text-warn",     // dashed + icon + words, not colour alone
-        tone === "ok" && "border-ok/30 bg-ok-soft text-ok",
-        tone === "info" && "border-info/25 bg-info-soft text-info",
-        tone === "danger" && "border-danger/40 bg-danger-soft text-danger",
+        tone === "ok" && "border-transparent bg-ok-soft text-ok",
+        tone === "info" && "border-transparent bg-info-soft text-info",
+        tone === "danger" && "border-transparent bg-danger-soft text-danger",
         className,
       )}
     >
@@ -69,12 +70,12 @@ export function Banner({ tone = "info", title, children, actions, alert, classNa
     <div
       role={alert ? "alert" : undefined}
       className={clsx(
-        "flex gap-3 rounded-lg border border-l-4 p-3 text-sm",
-        tone === "info" && "border-info/30 border-l-info bg-info-soft",
-        tone === "neutral" && "border-border border-l-border-strong bg-surface",
-        tone === "ok" && "border-ok/30 border-l-ok bg-ok-soft",
-        tone === "warn" && "border-warn-border/60 border-l-warn-border bg-warn-soft",
-        tone === "danger" && "border-danger/40 border-l-danger bg-danger-soft",
+        "flex gap-3 rounded-2xl border p-4 text-sm",
+        tone === "info" && "border-transparent bg-info-soft",
+        tone === "neutral" && "border-border bg-surface",
+        tone === "ok" && "border-transparent bg-ok-soft",
+        tone === "warn" && "border-dashed border-warn-border bg-warn-soft",
+        tone === "danger" && "border-danger/40 bg-danger-soft",
         className,
       )}
     >
@@ -89,24 +90,24 @@ export function Banner({ tone = "info", title, children, actions, alert, classNa
 }
 
 export function Card({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
-  return <div {...rest} className={clsx("rounded-(--radius-card) border border-border bg-surface", className)} />;
+  return <div {...rest} className={clsx("tta-card rounded-(--radius-card) bg-card", className)} />;
 }
 
 export function Skeleton({ lines = 3 }: { lines?: number }) {
   const widths = ["w-2/3", "w-11/12", "w-1/2", "w-3/4"];
   return (
     <div className="space-y-2.5" aria-hidden>
-      {Array.from({ length: lines }, (_, i) => <div key={i} className={clsx("h-3 animate-pulse rounded bg-sunken", widths[i % widths.length])} />)}
+      {Array.from({ length: lines }, (_, i) => <div key={i} className={clsx("h-3 animate-pulse rounded-full bg-sunken", widths[i % widths.length])} />)}
     </div>
   );
 }
 
 export function EmptyState({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
   return (
-    <div className="rounded-(--radius-card) border border-dashed border-border-strong p-6 text-center">
-      <p className="font-semibold">{title}</p>
-      {hint && <p className="mt-1 text-sm text-ink-soft">{hint}</p>}
-      {action && <div className="mt-3 flex justify-center">{action}</div>}
+    <div className="tta-card rounded-(--radius-card) bg-card px-6 py-12 text-center">
+      <p className="text-2xl font-extrabold leading-tight tracking-[-0.03em] text-balance sm:text-3xl">{title}</p>
+      {hint && <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">{hint}</p>}
+      {action && <div className="mt-5 flex justify-center">{action}</div>}
     </div>
   );
 }
@@ -137,8 +138,8 @@ export function ErrorNote({ error, onRetry }: { error: unknown; onRetry?: () => 
 
 export function PageTitle({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
   return (
-    <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-      <h1 className="text-2xl font-bold tracking-tight">{children}</h1>
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+      <h1 className="text-3xl font-extrabold leading-none tracking-[-0.04em] sm:text-4xl">{children}</h1>
       {aside}
     </div>
   );

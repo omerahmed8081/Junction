@@ -27,10 +27,10 @@ export function ActivityPage() {
   return (
     <>
       <PageTitle aside={
-        <div role="group" aria-label={t("activity.show")} className="inline-flex overflow-hidden rounded-lg border border-border-strong">
+        <div role="group" aria-label={t("activity.show")} className="inline-flex gap-0.5 rounded-full bg-card p-1">
           {(["all", "aimo"] as const).map((v) => (
             <button key={v} type="button" aria-pressed={aimoOnly === (v === "aimo")} onClick={() => setView(v)}
-              className={clsx("min-h-11 cursor-pointer px-3 text-sm font-semibold", aimoOnly === (v === "aimo") ? "bg-primary text-on-primary" : "bg-surface hover:bg-sunken")}>
+              className={clsx("min-h-11 cursor-pointer rounded-full px-4 text-sm font-semibold transition-colors", aimoOnly === (v === "aimo") ? "bg-primary text-on-primary" : "hover:bg-sunken")}>
               {t(`activity.${v}`)}
             </button>
           ))}
@@ -40,20 +40,20 @@ export function ActivityPage() {
       {aimoOnly && <Banner tone="info" className="mb-4">{t("activity.aimoNote")}</Banner>}
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <Card className="p-4">
-          <h2 className="text-lg font-bold">{t("activity.orders")}</h2>
+        <Card className="p-5 sm:p-6">
+          <h2 className="text-xl font-extrabold tracking-tight">{t("activity.orders")}</h2>
           {orders.isLoading && <div className="mt-3"><Skeleton /></div>}
           {orders.isError && <div className="mt-3"><ErrorNote error={orders.error} onRetry={() => void orders.refetch()} /></div>}
           {orders.data?.length === 0 && <p className="mt-3 text-sm text-ink-soft">{t("activity.noOrders")}</p>}
           <ul className="mt-3 space-y-2">
             {(orders.data ?? []).map((o) => (
               <li key={o.order_id}>
-                <details open={openOrder === o.order_id} className="rounded-lg border border-border">
-                  <summary className="flex min-h-11 cursor-pointer flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 py-2 text-sm">
+                <details open={openOrder === o.order_id} className="rounded-2xl bg-surface">
+                  <summary className="flex min-h-11 cursor-pointer flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
                     <span><span className="font-semibold">{o.order_id}</span> <span className="text-ink-soft">· {dayTime(o.placed_at)}</span></span>
                     <span className="tabular">{t("basket.delivery")} {day(o.delivery_date)} · <span className="font-semibold">{money(o.net_total)}</span> {t("basket.net").toLowerCase()}</span>
                   </summary>
-                  <div className="border-t border-border p-3 text-sm">
+                  <div className="border-t border-border p-4 text-sm">
                     <p className="font-semibold">{t("activity.lines")}</p>
                     <ul className="mt-1 space-y-1">
                       {(o.lines ?? []).map((l) => <li key={l.product_id} className="tabular"><span lang="en">{l.name}</span> · {amount(l.quantity_sales_units, l.sales_unit)} · {money(l.line_net)}</li>)}
@@ -61,8 +61,8 @@ export function ActivityPage() {
                     <p className="tabular mt-2 text-ink-soft">{t("basket.vat")} {money(o.vat_total)} · {t("basket.total")} {money(o.gross_total)} · {t("quote.id", { id: o.quote_id })}</p>
                     {o.confirmation_jws && (
                       <details className="mt-1">
-                        <summary className="inline-flex min-h-9 cursor-pointer items-center font-semibold text-primary">{t("activity.documents")}</summary>
-                        <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-sunken p-2 text-xs">{o.confirmation_jws}</pre>
+                        <summary className="inline-flex min-h-9 cursor-pointer items-center font-semibold text-link">{t("activity.documents")}</summary>
+                        <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap break-all rounded-2xl bg-card p-3 text-xs">{o.confirmation_jws}</pre>
                       </details>
                     )}
                   </div>
@@ -72,9 +72,9 @@ export function ActivityPage() {
           </ul>
         </Card>
 
-        <Card className="p-4">
+        <Card className="p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-bold">{t("activity.steps")}</h2>
+            <h2 className="text-xl font-extrabold tracking-tight">{t("activity.steps")}</h2>
             {steps.length > 0 && <Button size="sm" variant="ghost" onClick={clearSteps}>{t("activity.clear")}</Button>}
           </div>
           <p className="text-xs text-ink-soft">{t("activity.session")}</p>

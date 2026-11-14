@@ -20,12 +20,12 @@ export function ApprovalsPage() {
       {loading && <Skeleton lines={4} />}
       {!!error && <ErrorNote error={error} />}
       {!loading && sorted.length === 0 && <EmptyState title={t("approvals.empty")} hint={t("approvals.emptyHint")} />}
-      <ul className="grid gap-3 lg:grid-cols-2">
+      <ul className="grid gap-4 lg:grid-cols-2">
         {sorted.map((b) => (
           <li key={b.basket_id}>
-            <Card className="p-4">
+            <Card className="p-5 sm:p-6">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="tabular text-xl font-bold">{money(b.net_total)} <span className="text-sm font-normal text-ink-soft">{t("basket.net")}</span></p>
+                <p className="tabular text-3xl font-extrabold tracking-[-0.03em]">{money(b.net_total)} <span className="text-sm font-normal text-ink-soft">{t("basket.net")}</span></p>
                 <p className="tabular text-sm text-ink-soft">{t("basket.total")} {money(b.gross_total)}</p>
               </div>
               <p className="mt-1 text-sm">{t("approvals.lines", { count: b.lines?.length ?? 0 })} · {t("basket.delivery")} {day(b.lines?.[0]?.delivery?.delivery_date)}</p>
@@ -34,7 +34,7 @@ export function ApprovalsPage() {
                 {(b.policy?.reasons ?? []).map((r) => <Chip key={r} tone="warn"><span lang="en">{r}</span></Chip>)}
                 {b.quote_expires && <Chip>{t("approvals.expires", { time: time(b.quote_expires) })}</Chip>}
               </div>
-              <Link to={`/?basket=${b.basket_id}`} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary hover:bg-primary-hover">
+              <Link to={`/?basket=${b.basket_id}`} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-on-primary hover:bg-primary-hover">
                 {t("approvals.open")} <ArrowRight className="size-4" aria-hidden />
               </Link>
             </Card>

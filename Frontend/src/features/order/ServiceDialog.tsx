@@ -48,10 +48,10 @@ export function ServiceDialog({ open, onOpenChange, onBasket }: Props) {
     <Dialog.Root open={open} onOpenChange={close}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/45" />
-        <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] overflow-y-auto rounded-t-2xl bg-surface p-5 shadow-xl sm:inset-auto sm:left-1/2 sm:top-1/2 sm:w-[min(36rem,92vw)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl">
+        <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] overflow-y-auto rounded-t-[1.75rem] bg-surface p-6 shadow-2xl sm:inset-auto sm:left-1/2 sm:top-1/2 sm:w-[min(36rem,92vw)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[1.75rem]">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <Dialog.Title className="text-xl font-bold">{t("service.title")}</Dialog.Title>
+              <Dialog.Title className="text-2xl font-extrabold tracking-[-0.03em]">{t("service.title")}</Dialog.Title>
               <Dialog.Description className="mt-1 text-sm text-ink-soft">{t("service.hint")}</Dialog.Description>
             </div>
             <Dialog.Close asChild><Button variant="ghost" aria-label={t("service.cancel")} className="min-w-11 px-0"><X className="size-5" aria-hidden /></Button></Dialog.Close>
@@ -77,7 +77,7 @@ export function ServiceDialog({ open, onOpenChange, onBasket }: Props) {
                         <input id={`dish-${d.id}`} ref={(el) => { refs.current[d.id] = el; }} inputMode="numeric" placeholder="0"
                           value={values[d.id] ?? ""} onChange={(e) => setValues((v) => ({ ...v, [d.id]: e.target.value }))}
                           aria-label={t("service.portionsFor", { dish: d.name })} aria-invalid={bad || undefined} aria-describedby={bad ? `dish-${d.id}-err` : undefined}
-                          className={`tabular min-h-11 w-24 rounded-lg border bg-surface px-2 text-center text-base ${bad ? "border-2 border-danger" : "border-border-strong"}`} />
+                          className={`tabular min-h-11 w-24 rounded-full border bg-surface px-2 text-center text-base ${bad ? "border-2 border-danger" : "border-border-strong"}`} />
                         {bad && <p id={`dish-${d.id}-err`} className="mt-1 text-xs font-semibold text-danger">{t("service.invalid")}</p>}
                       </div>
                     </li>

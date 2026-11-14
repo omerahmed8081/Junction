@@ -27,12 +27,22 @@ function store<T>(storage: () => Storage, key: string, fallback: T) {
 const baskets = store<string[]>(() => localStorage, "tta.baskets", []);
 const steps = store<LoggedStep[]>(() => sessionStorage, "tta.steps", []);
 
+// The basket the Order page was showing, so leaving the page and coming back
+// (or opening the app again) returns to it instead of an empty screen.
+const CURRENT = "tta.currentBasket";
+export function getCurrentBasket(): string | null {
+  try { return localStorage.getItem(CURRENT); } catch { return null; }
+}
+export function setCurrentBasket(id: string | null) {
+  try { if (id) localStorage.setItem(CURRENT, id); else localStorage.removeItem(CURRENT); } catch { /* ignore */ }
+}
+
 export function rememberBasket(id: string) {
   const known = baskets.read();
   if (!known.includes(id)) baskets.write([id, ...known].slice(0, 30));
 }
 export function forgetBasket(id: string) { baskets.write(baskets.read().filter((b) => b !== id)); }
-export function forgetAllBaskets() { baskets.write([]); }
+export function forgetAllBaskets() { baskets.write([]); setCurrentBasket(null); }
 export function useKnownBaskets(): string[] { return useSyncExternalStore(baskets.subscribe, baskets.read); }
 
 export function logSteps(received: AgentStep[] | undefined, basketId?: string | null) {
