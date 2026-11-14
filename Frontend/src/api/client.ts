@@ -2,7 +2,8 @@
 // or throws an ApiError the UI can show.
 import type {
   Basket, ChatResponse, InventoryView, LineEdit, MandateRequest, MandateView,
-  OrderRecord, OrderResponse, ServiceResponse, SuggestionsResponse,
+  NewRule, OrderAuditView, OrderRecord, OrderResponse, Rule, RuleList,
+  ServiceResponse, SuggestionsResponse,
 } from "./types";
 
 export class ApiError extends Error {
@@ -74,6 +75,12 @@ export const api = {
   draftSuggestion: (productId: string) => request<ChatResponse>("POST", `/api/suggestions/${productId}/basket`),
   logService: (portions: Record<string, number>, serviceDate?: string) =>
     request<ServiceResponse>("POST", "/api/service", { portions, service_date: serviceDate ?? null }),
+  // The kitchen's standing rules: what may go through without anyone looking.
+  rules: () => request<RuleList>("GET", "/api/rules"),
+  addRule: (body: NewRule) => request<Rule>("POST", "/api/rules", body),
+  removeRule: (id: number) => request<unknown>("DELETE", `/api/rules/${id}`),
+  // Both halves of one order's story, kitchen and Aimo, in one call.
+  orderAudit: (orderId: string) => request<OrderAuditView>("GET", `/api/orders/${orderId}/audit`),
   resetKitchen: () => request<unknown>("POST", "/api/demo/reset"),
   resetGateway: () => request<unknown>("POST", "/gateway/demo/reset"),
 };

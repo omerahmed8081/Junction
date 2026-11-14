@@ -316,5 +316,50 @@
     "RAS": "box",
     "PRK": "pack",
     "BOT": "bottle"
+  },
+  "standing": {
+    "title": "Standing rules",
+    "intro": "What may go through without anyone looking. These are yours; Aimo never sees them.",
+    "none": "No standing rules",
+    "noneHint": "Every order waits for a person until you set one.",
+    "add": "Add a rule",
+    "applies": "Applies to",
+    "ceiling": "Up to (EUR, net)",
+    "ceilingHint": "Leave empty for no ceiling of its own. The signed mandate still applies.",
+    "noCeiling": "No ceiling",
+    "save": "Save rule",
+    "off": "Switch off",
+    "remove": "Switch off the rule: {{rule}}",
+    "removed": "Rule switched off.",
+    "errValue": "Say what it applies to.",
+    "errAmount": "Must be above 0.",
+    "footnote": "A rule can only relax an approval, never block one, and never clears a partial delivery, a substituted product or a pack size that disagrees with the price. A person still looks at those.",
+    "match": {
+      "any": "Any order",
+      "name": "A product name",
+      "product": "One product number",
+      "claim": "A dietary claim",
+      "category": "A product group"
+    },
+    "value": {
+      "name": "Name contains",
+      "product": "Product number",
+      "claim": "Claim",
+      "category": "Group code"
+    },
+    "placeholder": {
+      "name": "milk",
+      "product": "464306",
+      "claim": "FREE_FROM_LACTOSE",
+      "category": "e.g. 1234"
+    }
+  },
+  "audit": {
+    "title": "What happened, step by step",
+    "none": "Nothing recorded for this order yet.",
+    "kitchen": "Kitchen",
+    "aimo": "Aimo",
+    "counts": "{{kitchen}} from the kitchen, {{aimo}} from Aimo.",
+    "degraded": "The database was unreachable, so these rows are from memory and are lost on restart."
   }
 }

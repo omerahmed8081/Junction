@@ -316,5 +316,50 @@
     "RAS": "rasia",
     "PRK": "pkt",
     "BOT": "pullo"
+  },
+  "standing": {
+    "title": "Pysyvät säännöt",
+    "intro": "Mikä menee läpi ilman että kukaan katsoo. Nämä ovat sinun; Aimo ei näe niitä.",
+    "none": "Ei pysyviä sääntöjä",
+    "noneHint": "Jokainen tilaus odottaa ihmistä, kunnes asetat säännön.",
+    "add": "Lisää sääntö",
+    "applies": "Koskee",
+    "ceiling": "Enintään (EUR, veroton)",
+    "ceilingHint": "Jätä tyhjäksi, jos ei omaa kattoa. Allekirjoitettu valtuutus pätee silti.",
+    "noCeiling": "Ei kattoa",
+    "save": "Tallenna sääntö",
+    "off": "Poista käytöstä",
+    "remove": "Poista sääntö käytöstä: {{rule}}",
+    "removed": "Sääntö poistettu käytöstä.",
+    "errValue": "Kerro mitä se koskee.",
+    "errAmount": "Oltava yli 0.",
+    "footnote": "Sääntö voi vain keventää hyväksyntää, ei koskaan estää, eikä se koskaan ohita osittaista toimitusta, korvaavaa tuotetta tai pakkauskokoa, joka on ristiriidassa hinnan kanssa. Ihminen katsoo nuo silti.",
+    "match": {
+      "any": "Mikä tahansa tilaus",
+      "name": "Tuotteen nimi",
+      "product": "Yksi tuotenumero",
+      "claim": "Ruokavaliomerkintä",
+      "category": "Tuoteryhmä"
+    },
+    "value": {
+      "name": "Nimi sisältää",
+      "product": "Tuotenumero",
+      "claim": "Merkintä",
+      "category": "Ryhmäkoodi"
+    },
+    "placeholder": {
+      "name": "maito",
+      "product": "464306",
+      "claim": "FREE_FROM_LACTOSE",
+      "category": "esim. 1234"
+    }
+  },
+  "audit": {
+    "title": "Mitä tapahtui, vaihe vaiheelta",
+    "none": "Tälle tilaukselle ei ole vielä merkintöjä.",
+    "kitchen": "Keittiö",
+    "aimo": "Aimo",
+    "counts": "{{kitchen}} keittiöltä, {{aimo}} Aimolta.",
+    "degraded": "Tietokantaan ei saatu yhteyttä, joten nämä rivit ovat muistissa ja katoavat uudelleenkäynnistyksessä."
   }
 }

@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
 import { useAnnounce } from "../components/Announcer";
 import { Banner, Button, Card, ErrorNote, PageTitle, Skeleton } from "../components/ui";
+import { StandingRules } from "../features/rules/StandingRules";
 import { dayTime, money } from "../lib/format";
 
 const DAY_CHOICES = [1, 7, 30];
@@ -73,7 +74,7 @@ export function RulesPage() {
                   [t("rules.groups"), mandate.allowed_categories?.length ? mandate.allowed_categories.join(", ") : t("rules.allGroups")],
                   [t("rules.approval"), mandate.approval_required ? t("rules.yesEvery") : t("rules.no")],
                   [t("rules.validUntil"), dayTime(mandate.expires_at)],
-                  [t("rules.agent"), mandate.agent_id],
+                  [t("rules.agent"), (mandate.agent_name || mandate.agent_id)],
                   [t("rules.customer"), mandate.customer],
                 ] as const).map(([label, value]) => (
                   <div key={label} className="flex justify-between gap-4 py-2"><dt className="text-ink-soft">{label}</dt><dd className="tabular text-right font-semibold">{value}</dd></div>
@@ -92,6 +93,9 @@ export function RulesPage() {
               {(["check1", "check2", "check3", "check4"] as const).map((k) => <li key={k}>{t(`rules.${k}`)}</li>)}
             </ul>
           </Card>
+          {/* Inside the mandate, never outside: a rule only relaxes an approval
+              the kitchen would ask for itself. Aimo never sees these. */}
+          <StandingRules />
         </div>
 
         <Card className="p-5 sm:p-6">

@@ -1,6 +1,7 @@
-// What happened: placed orders (from the backend) and the agent's steps (kept
-// by this browser, because the backend does not store them yet). The toggle
-// filters the steps to what crossed over to Aimo, with a note on what never does.
+// What happened: placed orders, and the agent's steps from this browser. The
+// toggle filters the steps to what crossed over to Aimo. Opening an order
+// loads its own audit from the backend - both sides, and it survives a refresh,
+// which the browser's copy of the steps does not.
 import { useQuery } from "@tanstack/react-query";
 import { clsx } from "clsx";
 import { ShieldAlert } from "lucide-react";
@@ -10,6 +11,7 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import { Banner, Button, Card, EmptyState, ErrorNote, PageTitle, Skeleton } from "../components/ui";
 import { amount, day, dayTime, money, time } from "../lib/format";
+import { OrderAudit } from "../features/activity/OrderAudit";
 import { clearSteps, useSteps } from "../lib/session";
 
 export function ActivityPage() {
@@ -48,7 +50,14 @@ export function ActivityPage() {
           <ul className="mt-3 space-y-2">
             {(orders.data ?? []).map((o) => (
               <li key={o.order_id}>
-                <details open={openOrder === o.order_id} className="rounded-2xl bg-surface">
+                <details open={openOrder === o.order_id}
+                  onToggle={(e) => {
+                    const next = new URLSearchParams(params);
+                    if ((e.currentTarget as HTMLDetailsElement).open) next.set("order", o.order_id);
+                    else if (openOrder === o.order_id) next.delete("order");
+                    setParams(next, { replace: true });
+                  }}
+                  className="rounded-2xl bg-surface">
                   <summary className="flex min-h-11 cursor-pointer flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
                     <span><span className="font-semibold">{o.order_id}</span> <span className="text-ink-soft">· {dayTime(o.placed_at)}</span></span>
                     <span className="tabular">{t("basket.delivery")} {day(o.delivery_date)} · <span className="font-semibold">{money(o.net_total)}</span> {t("basket.net").toLowerCase()}</span>
@@ -65,6 +74,8 @@ export function ActivityPage() {
                         <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap break-all rounded-2xl bg-card p-3 text-xs">{o.confirmation_jws}</pre>
                       </details>
                     )}
+                    <p className="mt-4 font-semibold">{t("audit.title")}</p>
+                    <OrderAudit orderId={o.order_id} open={openOrder === o.order_id} />
                   </div>
                 </details>
               </li>
