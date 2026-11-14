@@ -1,0 +1,127 @@
+{
+  "basket_id": "b_b2efa355a8",
+  "source": "chat",
+  "requested_date": "2026-11-17",
+  "status": "draft",
+  "lines": [
+    {
+      "product_id": "464306",
+      "name": "Valio Hyvä suomalainen Arki® Eila® semi skimmed milk drink 1 l lactose free",
+      "need_value": 1000.0,
+      "need_unit": "L",
+      "sales_unit": "ST",
+      "base_unit": "ST",
+      "base_units_per_sales_unit": 1.0,
+      "size_per_base_unit": 1.0,
+      "size_per_sales_unit": 1.0,
+      "size_unit": "L",
+      "size_source": "structured",
+      "quantity_sales_units": 1000.0,
+      "delivered_amount": 1000.0,
+      "overshoot": 0.0,
+      "price_per_sales_unit": 1.01,
+      "price_unit": "ST",
+      "price_per_comparison_unit": 1.01,
+      "comparison_unit": "L",
+      "line_net": 1010.0,
+      "line_vat": 136.35,
+      "line_gross": 1146.35,
+      "deposit_units": 0.0,
+      "deposit_note": null,
+      "delivery": {
+        "can_fulfil": "full",
+        "fulfil_amount": 1000.0,
+        "sales_unit": "ST",
+        "delivery_date": "2026-11-16",
+        "closing_time": "2026-11-15T17:00:00+02:00",
+        "past_closing_time": false,
+        "sales_block": false,
+        "availability_known": false
+      },
+      "origin": "fi",
+      "claims": [
+        "FREE_FROM_ADDITIVES",
+        "FREE_FROM_COLOURING_AGENTS",
+        "FREE_FROM_LACTOSE",
+        "FREE_FROM_PRESERVATIVES",
+        "FREE_FROM_SWEETENERS",
+        "LOW_FAT",
+        "LOW_SODIUM_SALT",
+        "NO_ADDED_SUGARS",
+        "VEGETARIAN"
+      ],
+      "labels": [
+        "GOODS_FROM_FINLAND_BLUE_SWAN"
+      ],
+      "delivery_reliability": 1.0,
+      "carbon_kg_per_kg": 1.1,
+      "reason": "Cheapest match per litre (EUR 1.01) of 14 orderable; deliverable 2026-11-16, though Aimo does not confirm stock",
+      "flags": [
+        "availability_unknown"
+      ],
+      "alternatives": [
+        {
+          "product_id": "464401",
+          "name": "Valio Hyvä suomalainen Arki® Eila® skimmed milk drink 1 l lactose free",
+          "quantity_sales_units": 1000.0,
+          "sales_unit": "ST",
+          "line_net": 1100.0,
+          "price_per_comparison_unit": 1.1,
+          "comparison_unit": "L",
+          "delivery": {
+            "can_fulfil": "full",
+            "fulfil_amount": 1000.0,
+            "sales_unit": "ST",
+            "delivery_date": "2026-11-16",
+            "closing_time": "2026-11-15T17:00:00+02:00",
+            "past_closing_time": false,
+            "sales_block": false,
+            "availability_known": false
+          },
+          "reason": "Next best: EUR 1.10 per litre, EUR 90.00 more",
+          "flags": []
+        },
+        {
+          "product_id": "463779",
+          "name": "Valio Eila® semi skimmed milk drink 2,5 dl UHT lactose free",
+          "quantity_sales_units": 267.0,
+          "sales_unit": "KI",
+          "line_net": 2859.57,
+          "price_per_comparison_unit": 2.86,
+          "comparison_unit": "L",
+          "delivery": {
+            "can_fulfil": "full",
+            "fulfil_amount": 267.0,
+            "sales_unit": "KI",
+            "delivery_date": "2026-11-16",
+            "closing_time": "2026-11-15T17:00:00+02:00",
+            "past_closing_time": false,
+            "sales_block": false,
+            "availability_known": false
+          },
+          "reason": "Different pack size: 267 KI instead of 1000 ST, EUR 1,849.57 more",
+          "flags": [
+            "size_from_product_name"
+          ]
+        }
+      ]
+    }
+  ],
+  "net_total": 1010.0,
+  "vat_total": 136.35,
+  "gross_total": 1146.35,
+  "currency": "EUR",
+  "policy": {
+    "level": "manager",
+    "reasons": [
+      "Over the EUR 500 chef limit"
+    ],
+    "binding": false
+  },
+  "quote_id": null,
+  "quote_jws": null,
+  "quote_expires": null,
+  "quote_verified": false,
+  "order_id": null,
+  "demo_scenario": null
+}

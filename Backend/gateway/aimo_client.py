@@ -3,23 +3,36 @@
 CONTRACT - agreed hour 0. Only this module talks to junction26.valioaimo.fi, and
 only the gateway imports it. The agent never sees a raw warehouse count.
 
-Hour 0 findings baked in (docs/HOUR0_FINDINGS.md):
+Hour 0 findings and Valio's own answers baked in (docs/HOUR0_FINDINGS.md,
+docs/MENTOR_ANSWERS.md):
   * Cloudflare rejects script-looking user agents with 403 "error code: 1010",
     so BROWSER_UA is not optional.
-  * availableAmount uses several "unlimited" sentinels (999999, 9999999999,
-    666666666), so anything at or above UNLIMITED_FROM is "unlimited", not a count.
+  * availableAmount >= 999999 does NOT mean unlimited stock. Valio: "we do not
+    know the availability and our current logic allows ordering any quantity.
+    These values typically appear on terminal products that are not stocked by
+    us." So any quantity may be ordered, but nothing is confirmed: the answer
+    carries availability_known = False and the agent lowers its confidence.
+  * An empty scheduleLines list means not available at all (Valio).
+  * 429 means we are blocked for 30 seconds. Valio: "a few hundred calls per
+    minute is ok, over 10 seconds not ok", so calls are spaced and 429 is
+    waited out rather than raised.
   * netPriceFound false only means "no customer-specific price"; catalogPrice is
     still there and still usable.
   * comparisonPrice is already per litre or kilogram: rank on it, and use
     catalogPrice / comparisonPrice as a size cross-check.
+  * Every timestamp uses an offset with no colon ("+0200"), which Python 3.10
+    cannot read, so they all go through shared.timeparse.
 """
 from __future__ import annotations
 
 import os
+import time
 from datetime import date, datetime, timezone
 from typing import Any, Iterable
 
 import httpx
+
+from shared.timeparse import parse_api_date, parse_api_datetime
 
 BASE_URL = os.environ.get("AIMO_BASE_URL", "https://junction26.valioaimo.fi")
 API_KEY = os.environ.get("JUNCTION_API_KEY", "")
@@ -29,12 +42,34 @@ BROWSER_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
-UNLIMITED_FROM = 100_000.0
+# Valio: "Availability ge 999999 means that we do not know the availability".
+AVAILABILITY_UNKNOWN_FROM = 999_999.0
 MAX_PRODUCTS_PER_CALL = 1000      # the API's own limit
+
+# Valio: a few hundred calls a minute is fine, the same burst inside ten seconds
+# is not. One call every 0.25 s is about 240 a minute, comfortably inside that.
+MIN_SECONDS_BETWEEN_CALLS = 0.25
+RATE_LIMIT_WAIT_SECONDS = 30.0    # Valio: a 429 blocks us for 30 seconds
+MAX_RATE_LIMIT_RETRIES = 2
 
 
 class AimoError(RuntimeError):
     pass
+
+
+class AimoRateLimited(AimoError):
+    """Still rate-limited after waiting out every allowed retry."""
+
+
+def _retry_after_seconds(response: "httpx.Response") -> float:
+    """Honour Retry-After when the API sends one, otherwise wait the stated 30 s."""
+    header = response.headers.get("Retry-After")
+    if header:
+        try:
+            return max(1.0, float(header))
+        except ValueError:
+            pass
+    return RATE_LIMIT_WAIT_SECONDS
 
 
 def _headers() -> dict[str, str]:
@@ -51,9 +86,11 @@ def _headers() -> dict[str, str]:
 class AimoClient:
     """Thin, cached wrapper. One instance per process."""
 
-    def __init__(self, timeout: float = 20.0) -> None:
+    def __init__(self, timeout: float = 20.0, sleep: Any = time.sleep) -> None:
         self._client = httpx.Client(base_url=BASE_URL, headers=_headers(), timeout=timeout)
         self._cache: dict[tuple[str, str, str], dict[str, Any]] = {}
+        self._sleep = sleep               # injectable, so tests do not really wait
+        self._last_call_at = 0.0
 
     def close(self) -> None:
         self._client.close()
@@ -70,12 +107,37 @@ class AimoClient:
             "requestedDate": requested_date.isoformat(),
             "products": product_ids,
         }
-        response = self._client.post(path, json=body)
-        if response.status_code != 200:
-            raise AimoError(f"{path} returned {response.status_code}: {response.text[:200]}")
-        payload = response.json()
+        payload = self._post_with_backoff(path, body)
         self._cache[key] = payload
         return payload
+
+    def _space_calls(self) -> None:
+        """Keep a quarter second between calls, so a shortlist never bursts."""
+        gap = time.monotonic() - self._last_call_at
+        if self._last_call_at and gap < MIN_SECONDS_BETWEEN_CALLS:
+            self._sleep(MIN_SECONDS_BETWEEN_CALLS - gap)
+        self._last_call_at = time.monotonic()
+
+    def _post_with_backoff(self, path: str, body: dict[str, Any]) -> dict[str, Any]:
+        """One call, waiting out a 429 rather than failing the request.
+
+        A 429 blocks us for 30 seconds, so there is nothing cleverer to do than
+        wait; Retry-After is honoured when the API sends one.
+        """
+        for attempt in range(MAX_RATE_LIMIT_RETRIES + 1):
+            self._space_calls()
+            response = self._client.post(path, json=body)
+            if response.status_code == 429:
+                if attempt == MAX_RATE_LIMIT_RETRIES:
+                    raise AimoRateLimited(
+                        f"{path} still rate-limited after {attempt + 1} attempts"
+                    )
+                self._sleep(_retry_after_seconds(response))
+                continue
+            if response.status_code != 200:
+                raise AimoError(f"{path} returned {response.status_code}: {response.text[:200]}")
+            return response.json()
+        raise AimoRateLimited(path)      # unreachable, kept for the type checker
 
     def prices(self, product_ids: Iterable[str], requested_date: date) -> dict[str, dict[str, Any]]:
         ids = list(dict.fromkeys(product_ids))[:MAX_PRODUCTS_PER_CALL]
@@ -92,8 +154,16 @@ class AimoClient:
 # Pure functions, so they can be tested without the network.
 
 
-def is_unlimited(amount: float | None) -> bool:
-    return amount is not None and amount >= UNLIMITED_FROM
+def is_availability_unknown(amount: float | None) -> bool:
+    """True for Aimo's "we do not know" sentinels: 999999, 666666666, 9999999999.
+
+    Any quantity may be ordered, but nothing about stock is confirmed.
+    """
+    return amount is not None and amount >= AVAILABILITY_UNKNOWN_FROM
+
+
+# Kept so older call sites keep working; the name was wrong, not the test.
+is_unlimited = is_availability_unknown
 
 
 def read_price(raw: dict[str, Any] | None) -> dict[str, Any]:
@@ -114,7 +184,9 @@ def read_price(raw: dict[str, Any] | None) -> dict[str, Any]:
         "comparison_price": comparison.get("value"),
         "comparison_unit": raw.get("comparisonUnit") or "",
         "tax_rate": tax.get("taxRate"),
-        "valid_to": catalog.get("validTo"),
+        # Parsed here, so nothing downstream calls fromisoformat on an API
+        # string. Year 9999 means "no end date" and comes back as None.
+        "valid_to": parse_api_datetime(catalog.get("validTo")),
         # netPriceFound false is not an error: it means the catalogue price applies.
         "customer_specific": bool(raw.get("netPriceFound")),
         "unavailable_reason": None,
@@ -148,41 +220,46 @@ def answer_delivery(
     now = now or datetime.now(timezone.utc)
     if not raw:
         return {"can_fulfil": "none", "fulfil_amount": 0.0, "sales_block": False,
-                "past_closing_time": False, "reason": "no_availability_returned"}
+                "past_closing_time": False, "availability_known": True,
+                "reason": "no_availability_returned"}
 
-    closing_raw = raw.get("closingTime")
-    closing = datetime.fromisoformat(closing_raw) if closing_raw else None
+    closing = parse_api_datetime(raw.get("closingTime"))
     past_closing = bool(closing and closing < now)
 
     if raw.get("salesBlock"):
         return {"can_fulfil": "none", "fulfil_amount": 0.0, "sales_block": True,
                 "closing_time": closing, "past_closing_time": past_closing,
-                "reason": "sales_block"}
+                "availability_known": True, "reason": "sales_block"}
 
     lines = [l for l in raw.get("scheduleLines") or [] if not l.get("salesBlock")]
     usable = [l for l in lines if l.get("availableDate") and l["availableDate"] <= requested_date.isoformat()]
     if not usable:
         # Either nothing is deliverable at all, or not by the date asked for.
         earliest = min((l["availableDate"] for l in lines if l.get("availableDate")), default=None)
+        # Valio: an empty scheduleLines list means not available.
         return {"can_fulfil": "none", "fulfil_amount": 0.0, "sales_block": False,
-                "delivery_date": date.fromisoformat(earliest) if earliest else None,
+                "delivery_date": parse_api_date(earliest),
                 "closing_time": closing, "past_closing_time": past_closing,
-                "reason": "not_deliverable_by_requested_date" if earliest else "no_schedule_lines"}
+                "availability_known": True,
+                "reason": "not_deliverable_by_requested_date" if earliest else "not_available"}
 
     best = min(usable, key=lambda l: l["availableDate"])
     amount = best.get("availableAmount")
     unit = best.get("salesUnit") or ""
-    if is_unlimited(amount):
-        fulfil = wanted_sales_units
-    else:
+    availability_known = not is_availability_unknown(amount)
+    if availability_known:
         fulfil = min(float(amount or 0.0), wanted_sales_units)
+    else:
+        # Valio's logic allows ordering any quantity when availability is unknown.
+        fulfil = wanted_sales_units
     return {
         "can_fulfil": "full" if fulfil >= wanted_sales_units else ("partial" if fulfil > 0 else "none"),
         "fulfil_amount": fulfil,
         "sales_unit": unit,
-        "delivery_date": date.fromisoformat(best["availableDate"]),
+        "delivery_date": parse_api_date(best["availableDate"]),
         "closing_time": closing,
         "past_closing_time": past_closing,
         "sales_block": False,
-        "reason": "",
+        "availability_known": availability_known,
+        "reason": "" if availability_known else "availability_unknown",
     }

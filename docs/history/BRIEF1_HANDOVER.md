@@ -18,7 +18,21 @@ Not yet committed: three shared files changed (section 6), so read that first.
 | 4. `POST /gateway/check_delivery` | Price and full / partial / none for a shortlist | Live: `464306` x 1,000 gives full, 1.01 per ST, delivery 16 Nov, cutoff 15 Nov 17:00 |
 | 5. Agent and basket | `POST /api/chat`, `PATCH /api/basket/{id}`, `GET /api/basket/{id}` | Live: the hour 7 basket, quantity edit, swap, empty result, partial delivery |
 
-Tests, all passing: `test_units.py` 14, `test_money.py` 7, `test_delivery.py` 9, `test_agent.py` 16.
+Tests, all passing: `test_units.py` 14, `test_money.py` 7, `test_delivery.py` 9, `test_agent.py` 16,
+`test_timeparse.py` 10 (added in review, see the note below).
+
+### Reviewed at hour 10.5: one bug fixed
+
+Every timestamp the mock sends uses an offset with no colon (`"+0200"`), and
+`datetime.fromisoformat` only accepts that from **Python 3.11**. On 3.10 the delivery check
+raised `ValueError` on `closingTime`, and `delivery._when()` silently returned `None` for a
+price validity date. It passed here only because this venv is 3.12.
+
+Fixed with `shared/timeparse.py`, now used by `gateway/aimo_client.py` and
+`gateway/delivery.py`. `parse_api_datetime()` also returns `None` for the year-9999
+"no end date" sentinel, which answers the frontend note in section 7. All 56 tests pass on
+3.10 and on 3.12. **Never call `fromisoformat` on a string from the API again; go through
+`shared.timeparse`.**
 
 ---
 

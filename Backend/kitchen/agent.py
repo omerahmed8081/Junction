@@ -12,6 +12,8 @@ worked out in the unit the chef asked in.
 """
 from __future__ import annotations
 
+import math
+
 import os
 import re
 import uuid
@@ -231,11 +233,35 @@ def _alternatives(winner: Candidate, ranked: list[Candidate], kind: str) -> list
     return out
 
 
-def build_line(c: Candidate, need: ParsedNeed, ranked: list[Candidate]) -> BasketLine:
+def build_line(c: Candidate, need: ParsedNeed, ranked: list[Candidate],
+               quantity_override: float | None = None) -> BasketLine:
+    """One basket line for this candidate.
+
+    `quantity_override` is for a split line: the quantity is what this product
+    can actually deliver rather than the whole need, so the delivered amount and
+    the totals are recomputed from it.
+    """
     kind = _kind(need.unit)
     conv, s, price = c.conversion, c.summary, c.price
-    totals = line_totals(price.price_per_sales_unit, conv.quantity_sales_units, price.tax_rate_percent)
-    covers = "full amount" if c.delivery.can_fulfil == "full" else f"only {c.delivery.fulfil_amount:g} {s.sales_unit}"
+    quantity = conv.quantity_sales_units if quantity_override is None else quantity_override
+    per_unit = conv.size_per_sales_unit
+    if quantity_override is None:
+        delivered, overshoot = conv.delivered_amount, conv.overshoot
+    elif kind and per_unit:
+        delivered = round(quantity * per_unit, 6)
+        overshoot = round(delivered - need.quantity, 6)
+    else:
+        delivered, overshoot = quantity, round(quantity - need.quantity, 6)
+    totals = line_totals(price.price_per_sales_unit, quantity, price.tax_rate_percent)
+    # Valio: a sentinel amount means availability is unknown, not plentiful, so
+    # the reason says so rather than promising the full amount.
+    when = c.delivery.delivery_date
+    if not c.delivery.availability_known:
+        covers = f"deliverable {when}, though Aimo does not confirm stock"
+    elif c.delivery.can_fulfil == "full":
+        covers = f"full amount deliverable {when}"
+    else:
+        covers = f"only {c.delivery.fulfil_amount:g} {s.sales_unit} deliverable {when}"
     position = "Cheapest" if ranked and ranked[0] is c else "Chosen"
     return BasketLine(
         product_id=s.product_id, name=s.name,
@@ -244,18 +270,194 @@ def build_line(c: Candidate, need: ParsedNeed, ranked: list[Candidate]) -> Baske
         base_units_per_sales_unit=s.base_units_per_sales_unit,
         size_per_base_unit=conv.size_per_base_unit, size_per_sales_unit=conv.size_per_sales_unit,
         size_unit=conv.size_unit, size_source=conv.size_source,
-        quantity_sales_units=conv.quantity_sales_units,
-        delivered_amount=conv.delivered_amount, overshoot=conv.overshoot,
+        quantity_sales_units=quantity,
+        delivered_amount=delivered, overshoot=overshoot,
         price_per_sales_unit=price.price_per_sales_unit, price_unit=price.price_unit or s.sales_unit,
         price_per_comparison_unit=price.comparison_price, comparison_unit=price.comparison_unit,
         **totals,
         delivery=c.delivery, origin=s.origin, claims=s.claims, labels=s.labels,
         delivery_reliability=s.delivery_reliability, carbon_kg_per_kg=s.carbon_kg_per_kg,
         reason=(f"{position} match per {_per(kind)} (EUR {_unit_price(c, kind):.2f}) of {len(ranked)} orderable; "
-                f"{covers} deliverable {c.delivery.delivery_date}"
+                f"{covers}"
                 + ("; no plain match could be ordered, so this is the closest" if c.off_request else "")),
-        flags=list(conv.flags) + (["differs_from_request"] if c.off_request else []),
+        flags=(list(conv.flags)
+               + (["differs_from_request"] if c.off_request else [])
+               + ([] if c.delivery.availability_known else ["availability_unknown"])),
         alternatives=_alternatives(c, ranked, kind),
+    )
+
+
+def reprice(state: BasketState, gateway: GatewayClient,
+            steps: list[AgentStep] | None = None) -> list[str]:
+    """Bring every line back in line with what Aimo says right now.
+
+    Used when something moved under us: stock fell between confirming and
+    approving, a cut-off passed, a price changed. Rather than leaving the chef at
+    a dead end, each line is brought down to what can actually be delivered and
+    the changes are described in plain words.
+
+    Returns one note per change, for the chat. An unchanged basket returns none.
+    """
+    steps = steps if steps is not None else []
+    basket, notes = state.basket, []
+    for line in list(basket.lines):
+        answer = gateway.check_delivery(basket.requested_date, [CheckDeliveryItem(
+            product_id=line.product_id, quantity_sales_units=line.quantity_sales_units)]).results[0]
+        _step(steps, "check_delivery", f"{line.product_id} re-checked", crossed=True)
+        delivery, price = answer.delivery, answer.price
+
+        if delivery.sales_block:
+            basket.lines.remove(line)
+            notes.append(f"{line.name} is now blocked for sale, so it is out of the basket.")
+            continue
+        if delivery.past_closing_time:
+            basket.lines.remove(line)
+            notes.append(f"The order cut-off for {line.name} has passed, so it cannot arrive "
+                          f"by {basket.requested_date} and is out of the basket.")
+            continue
+        if delivery.can_fulfil == "none":
+            basket.lines.remove(line)
+            notes.append(f"{line.name} can no longer be delivered by {basket.requested_date}, "
+                          f"so it is out of the basket.")
+            continue
+
+        line.delivery = delivery
+        if price.unavailable_reason is None and price.price_per_sales_unit is not None:
+            if abs(price.price_per_sales_unit - (line.price_per_sales_unit or 0)) > 0.0049:
+                was = line.price_per_sales_unit
+                line.price_per_sales_unit = price.price_per_sales_unit
+                line.price_per_comparison_unit = price.comparison_price
+                notes.append(f"{line.name} is now EUR {price.price_per_sales_unit:.2f} per "
+                             f"{line.sales_unit}, was EUR {was:.2f}.")
+
+        deliverable = math.floor(delivery.fulfil_amount)
+        if delivery.can_fulfil == "partial" and deliverable < line.quantity_sales_units:
+            was = line.quantity_sales_units
+            if deliverable <= 0:
+                basket.lines.remove(line)
+                notes.append(f"None of {line.name} is left for {basket.requested_date}, "
+                              f"so it is out of the basket.")
+                continue
+            line.quantity_sales_units = float(deliverable)
+            line.flags = [f for f in line.flags if f != "partial_split"] + ["partial_split"]
+            notes.append(f"Only {deliverable:g} {line.sales_unit} of {line.name} is left, "
+                          f"not {was:g}, so the line is reduced.")
+
+        _retotal(line)
+
+    _refresh(basket)        # totals, policy preview, and back to an unsigned draft
+    if notes:
+        _step(steps, "reprice", "; ".join(notes)[:200])
+    return notes
+
+
+def _retotal(line: BasketLine) -> None:
+    """Recompute one line's delivered amount and money from its quantity."""
+    factor = NEED_TO_LITRES.get(line.need_unit) or NEED_TO_KILOS.get(line.need_unit)
+    if factor and line.size_per_sales_unit:
+        line.delivered_amount = round(line.quantity_sales_units * line.size_per_sales_unit / factor, 6)
+    else:
+        line.delivered_amount = line.quantity_sales_units
+    line.overshoot = round(line.delivered_amount - line.need_value, 6)
+    totals = line_totals(line.price_per_sales_unit or 0.0, line.quantity_sales_units,
+                         None if line.line_net == 0 else _tax_rate(line))
+    line.line_net, line.line_vat, line.line_gross = (
+        totals["line_net"], totals["line_vat"], totals["line_gross"])
+
+
+def _tax_rate(line: BasketLine) -> float | None:
+    """The VAT rate this line was priced at, recovered from its own figures.
+
+    The basket line does not carry the rate, so it is taken back out of the VAT
+    and net already on it rather than assumed to be 13.5%.
+    """
+    if not line.line_net:
+        return None
+    return round(line.line_vat / line.line_net * 100, 4)
+
+
+def suggest_cover(state: BasketState, gateway: GatewayClient,
+                  steps: list[AgentStep] | None = None) -> list[str]:
+    """Offer products that could cover what the basket is now short of.
+
+    Called after a line has been cut back or dropped. The agent proposes rather
+    than substitutes: a replacement is attached to the line as an alternative,
+    with the quantity that would close the gap and what it would cost, and the
+    chef decides. Silently swapping in a different product is exactly what the
+    guardrails are there to prevent.
+
+    Returns one note per suggestion, for the chat.
+    """
+    steps = steps if steps is not None else []
+    notes: list[str] = []
+    in_basket = {l.product_id for l in state.basket.lines}
+
+    # Group the lines by the need they came from, so a split need is one gap.
+    by_need: dict[int, list[BasketLine]] = {}
+    for line in state.basket.lines:
+        need = state.needs.get(line.product_id)
+        if need is not None:
+            by_need.setdefault(id(need), []).append(line)
+
+    for need in {id(n): n for n in state.needs.values()}.values():
+        lines = by_need.get(id(need), [])
+        covered = sum(l.delivered_amount for l in lines)
+        shortfall = round(need.quantity - covered, 6)
+        if shortfall <= 1e-9:
+            continue
+
+        ranked, _ = find_candidates(need, gateway, steps)
+        state.candidates.update({c.summary.product_id: c for c in ranked})
+        kind = _kind(need.unit)
+        options = [c for c in ranked if c.summary.product_id not in in_basket
+                   and c.delivery and c.delivery.can_fulfil != "none"]
+        if not options:
+            notes.append(f"Nothing else in the catalogue can cover the remaining "
+                         f"{shortfall:g} {need.unit} for {state.basket.requested_date}.")
+            continue
+
+        for candidate in options[:2]:
+            per_unit = candidate.conversion.size_per_sales_unit or 1.0
+            wanted = math.ceil(shortfall / per_unit) if kind else shortfall
+            deliverable = (wanted if candidate.delivery.can_fulfil == "full"
+                           else math.floor(candidate.delivery.fulfil_amount))
+            units = min(wanted, deliverable)
+            if units <= 0:
+                continue
+            option = _cover_option(candidate, need, units, shortfall, kind)
+            target = lines[-1] if lines else None
+            if target is not None:
+                target.alternatives = (
+                    [a for a in target.alternatives if a.product_id != option.product_id]
+                    + [option])
+            notes.append(f"{option.name} could cover "
+                         f"{'all' if units >= wanted else f'{units * per_unit:g} {need.unit}'} "
+                         f"of the remaining {shortfall:g} {need.unit}: "
+                         f"{units:g} {candidate.summary.sales_unit}, "
+                         f"EUR {option.line_net:,.2f} net.")
+    if notes:
+        _step(steps, "suggest_cover", "; ".join(notes)[:200])
+    return notes
+
+
+def _cover_option(c: Candidate, need: ParsedNeed, units: float, shortfall: float,
+                  kind: str) -> Alternative:
+    """One suggestion: this product, this many, to close the gap."""
+    totals = line_totals(c.price.price_per_sales_unit, units, c.price.tax_rate_percent)
+    per_unit = c.conversion.size_per_sales_unit or 1.0
+    covers = round(units * per_unit, 6) if kind else units
+    enough = covers >= shortfall - 1e-9
+    return Alternative(
+        product_id=c.summary.product_id, name=c.summary.name,
+        quantity_sales_units=units, sales_unit=c.summary.sales_unit,
+        line_net=totals["line_net"],
+        price_per_comparison_unit=c.price.comparison_price,
+        comparison_unit=c.price.comparison_unit,
+        delivery=c.delivery,
+        reason=(f"Covers {'the whole' if enough else 'part'} of the remaining "
+                f"{shortfall:g} {need.unit} ({covers:g} {need.unit}) at "
+                f"EUR {_unit_price(c, kind):.2f} per {_per(kind)}"),
+        flags=list(c.conversion.flags) + ["covers_shortfall"],
     )
 
 
@@ -272,6 +474,10 @@ def preview_policy(basket: Basket) -> PolicyDecision | None:
         reasons.append("Product differs from what was asked for")
     if any("size_disagrees_with_price" in l.flags for l in basket.lines):
         reasons.append("Pack size disagrees with the price data")
+    # Unknown availability is deliberately NOT an approval reason. Valio's own
+    # logic allows ordering any quantity against a sentinel, and 10 of the 14
+    # orderable milks carry one, so requiring a manager would send almost every
+    # basket to approval. It stays on the line as the flag availability_unknown.
     return PolicyDecision(level="manager" if reasons else "chef", reasons=reasons, binding=False)
 
 
@@ -298,6 +504,69 @@ def _explain_empty(need: ParsedNeed, reasons: dict[str, int]) -> str:
             + ", ".join(parts) + ". Try a later date or a different pack size.")
 
 
+def cover_need(ranked: list[Candidate], need: ParsedNeed, steps: list[AgentStep]) -> list[BasketLine]:
+    """Lines that cover the need, splitting across products when one cannot.
+
+    Aimo answers full, partial or none. A partial answer used to be ordered at
+    the full quantity anyway, which would have sent 1,000 litres to a product
+    with 51 units of stock. Instead the line is reduced to what can actually be
+    delivered and the remainder goes to the next ranked product, which is the
+    "split across products" the exception table asks for.
+
+    A quote refuses a partial line outright (the gateway will not sign for more
+    than it can deliver), so reducing here is also what makes the line quotable.
+    """
+    kind = _kind(need.unit)
+    winner = ranked[0]
+    if _can_cover(winner):
+        return [build_line(winner, need, ranked)]
+
+    lines: list[BasketLine] = []
+    remaining = need.quantity
+    for candidate in ranked:
+        if remaining <= 1e-9:
+            break
+        if candidate.delivery is None or candidate.delivery.can_fulfil == "none":
+            continue
+        # How much of the remaining need this product can actually deliver.
+        per_unit = candidate.conversion.size_per_sales_unit or 1.0
+        wanted_units = candidate.conversion.quantity_sales_units
+        deliverable_units = (wanted_units if _can_cover(candidate)
+                             else math.floor(candidate.delivery.fulfil_amount))
+        if deliverable_units <= 0:
+            continue
+        units = min(wanted_units, deliverable_units,
+                    math.ceil(remaining / per_unit) if kind else remaining)
+        if units <= 0:
+            continue
+        line = build_line(candidate, need, ranked, quantity_override=units)
+        line.flags.append("partial_split")
+        lines.append(line)
+        remaining = round(remaining - (units * per_unit if kind else units), 6)
+
+    if not lines:
+        return [build_line(winner, need, ranked)]
+    if remaining > 1e-9:
+        # Say so on the line rather than quietly delivering less than asked for.
+        lines[-1].flags.append("short_of_need")
+        lines[-1].reason += (f"; together these cover "
+                             f"{need.quantity - remaining:g} of {need.quantity:g} {need.unit}, "
+                             f"{remaining:g} short")
+    _step(steps, "split_need",
+          f"{need.quantity:g} {need.unit} split across {len(lines)} product(s)"
+          + (f", {remaining:g} {need.unit} short" if remaining > 1e-9 else ""))
+    return lines
+
+
+def _can_cover(candidate: Candidate) -> bool:
+    """True when this product alone can deliver everything that was asked for."""
+    delivery = candidate.delivery
+    if delivery is None:
+        return False
+    return (delivery.can_fulfil == "full"
+            and delivery.fulfil_amount >= candidate.conversion.quantity_sales_units - 1e-9)
+
+
 def add_need(state: BasketState | None, need: ParsedNeed, gateway: GatewayClient) -> tuple[BasketState, str, list[AgentStep]]:
     """Add one line for this need to the basket (a new basket when state is None)."""
     steps: list[AgentStep] = []
@@ -310,19 +579,31 @@ def add_need(state: BasketState | None, need: ParsedNeed, gateway: GatewayClient
         _refresh(state.basket)
         return state, _explain_empty(need, reasons), steps
 
-    winner = ranked[0]
-    line = build_line(winner, need, ranked)
-    state.basket.lines = [l for l in state.basket.lines if l.product_id != line.product_id] + [line]
+    lines = cover_need(ranked, need, steps)
+    covered = {l.product_id for l in lines}
+    state.basket.lines = [l for l in state.basket.lines if l.product_id not in covered] + lines
     state.basket.requested_date = need.requested_date
-    state.needs[line.product_id] = need
+    for line in lines:
+        state.needs[line.product_id] = need
     state.candidates.update({c.summary.product_id: c for c in ranked})
     _refresh(state.basket)
     _step(steps, "policy_preview", f"{state.basket.policy.level}: {state.basket.policy.reasons or 'within the chef limit'}")
 
     approval = ("A manager will need to approve it." if state.basket.policy.level == "manager"
                 else "You can approve it yourself.")
-    reply = (f"Drafted {line.quantity_sales_units:g} {line.sales_unit} of {line.name}: "
-             f"EUR {line.line_net:,.2f} net, delivery {line.delivery.delivery_date}. {approval}")
+    net = sum(l.line_net for l in lines)
+    if len(lines) == 1:
+        line = lines[0]
+        reply = (f"Drafted {line.quantity_sales_units:g} {line.sales_unit} of {line.name}: "
+                 f"EUR {line.line_net:,.2f} net, delivery {line.delivery.delivery_date}. {approval}")
+    else:
+        parts = "; ".join(f"{l.quantity_sales_units:g} {l.sales_unit} of {l.name}" for l in lines)
+        reply = (f"No single product could cover {need.quantity:g} {need.unit}, so it is split "
+                 f"across {len(lines)}: {parts}. EUR {net:,.2f} net in total. {approval}")
+    shortfall = lines[-1].flags.count("short_of_need") if lines else 0
+    if shortfall:
+        reply += (f" Even together they fall short of {need.quantity:g} {need.unit}; "
+                  f"the shortfall is on the last line.")
     return state, reply, steps
 
 
@@ -343,6 +624,12 @@ def apply_edits(state: BasketState, edits: list[LineEdit], gateway: GatewayClien
 
         elif edit.swap_to_product_id:
             target, need = state.candidates.get(edit.swap_to_product_id), state.needs.get(line.product_id)
+            if not target and need:
+                # The candidates are not persisted, so after a restart the only
+                # thing we hold is the need. Search again rather than refuse.
+                ranked, _ = find_candidates(need, gateway, steps)
+                state.candidates.update({c.summary.product_id: c for c in ranked})
+                target = state.candidates.get(edit.swap_to_product_id)
             if not target or not need:
                 notes.append(f"{edit.swap_to_product_id} is not an orderable alternative for this line.")
                 continue

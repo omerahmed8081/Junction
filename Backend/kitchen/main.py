@@ -19,21 +19,53 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
-from kitchen import agent  # noqa: E402
-from kitchen.gateway_client import GatewayClient, GatewayError  # noqa: E402
+from kitchen import agent, keys, ordering, storage  # noqa: E402
+from kitchen.gateway_client import GatewayClient, GatewayError, GatewayRefused  # noqa: E402
 from kitchen.need import parse_need  # noqa: E402
-from shared.schemas import Basket, BasketEditRequest, ChatRequest, ChatResponse  # noqa: E402
+from kitchen.ordering import KitchenSigner, OrderingError  # noqa: E402
+from shared.schemas import (  # noqa: E402
+    ApproveRequest,
+    Basket,
+    BasketEditRequest,
+    ChatRequest,
+    ChatResponse,
+    MandateRequest,
+    MandateView,
+    OrderRecord,
+    OrderResponse,
+)
 
 gateway: GatewayClient | None = None
 baskets: dict[str, agent.BasketState] = {}
+orders: dict[str, OrderRecord] = {}
+kitchen = KitchenSigner()
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     global gateway
     gateway = gateway or GatewayClient()
+    # Baskets, orders and the mandate survive a restart: losing a basket on
+    # stage is the one failure worth a file on disk (see kitchen/storage.py).
+    stored_baskets, stored_orders, stored_mandate = storage.load()
+    baskets.update(stored_baskets)
+    orders.update(stored_orders)
+    if stored_mandate:
+        kitchen.mandate = stored_mandate
+    if stored_baskets or stored_orders:
+        print(f"[kitchen] restored {len(stored_baskets)} basket(s) and {len(stored_orders)} order(s)")
     yield
+    _save()
     gateway.close()
+
+
+def _save() -> None:
+    """Persist after every change. Cheap at this size, and it keeps the demo safe."""
+    try:
+        storage.save(baskets, orders, kitchen.mandate)
+    except Exception as exc:        # noqa: BLE001
+        # Never fail a request because the state file could not be written.
+        print(f"[kitchen] could not save state: {exc}")
 
 
 app = FastAPI(title="Kitchen service", version="0.1.0", lifespan=lifespan)
@@ -48,9 +80,16 @@ def _state(basket_id: str) -> agent.BasketState:
     return state
 
 
+@app.get("/.well-known/jwks.json")
+def jwks() -> dict:
+    """The kitchen's public key, so the gateway can verify its mandates and approvals."""
+    return keys.own_jwks()
+
+
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "baskets": len(baskets)}
+    return {"status": "ok", "baskets": len(baskets), "orders": len(orders),
+            "mandate": kitchen.mandate.payload.jti if kitchen.mandate else None}
 
 
 @app.post("/api/chat", response_model=ChatResponse)
@@ -66,6 +105,7 @@ def chat(req: ChatRequest) -> ChatResponse:
     except GatewayError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     baskets[state.basket.basket_id] = state
+    _save()
     return ChatResponse(reply=reply, basket=state.basket, steps=steps)
 
 
@@ -84,4 +124,109 @@ def edit_basket(basket_id: str, req: BasketEditRequest) -> ChatResponse:
         reply, steps = agent.apply_edits(state, req.edits, gateway)
     except GatewayError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+    _save()
     return ChatResponse(reply=reply, basket=state.basket, steps=steps)
+
+
+@app.post("/api/basket/{basket_id}/confirm", response_model=ChatResponse)
+def confirm_basket(basket_id: str) -> ChatResponse:
+    """Ask Aimo to sign a price confirmation for this basket.
+
+    The basket moves from draft to quoted, and its figures become the ones Aimo
+    signed. Editing it afterwards drops it back to draft and voids the quote.
+    """
+    state = _state(basket_id)
+    try:
+        reply, steps = ordering.confirm(state.basket, gateway, kitchen)
+    except OrderingError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except GatewayRefused as exc:
+        raise HTTPException(status_code=409, detail=exc.payload or {"reason": exc.reason,
+                                                                   "detail": exc.detail}) from exc
+    except GatewayError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    _save()
+    return ChatResponse(reply=reply, basket=state.basket, steps=steps)
+
+
+@app.post("/api/basket/{basket_id}/approve", response_model=OrderResponse)
+def approve_basket(basket_id: str, req: ApproveRequest) -> OrderResponse:
+    """A person approves the signed price, and the order is placed.
+
+    Always 200 with an `outcome`, because all three answers are useful:
+
+    * `ordered`  - done, with the order and Aimo's signed confirmation.
+    * `adjusted` - stock moved or a cut-off passed, so the basket now matches
+      what Aimo says, carries suggestions for the shortfall, and is a draft
+      again. `reply` explains it in words the chat can show.
+    * `refused`  - a limit the basket cannot fix itself, such as the mandate.
+
+    Only a caller mistake is an error: approving a draft, or a role that is not
+    senior enough for what the policy decided.
+    """
+    state = _state(basket_id)
+    try:
+        result = ordering.approve(state, req.approver_role, gateway, kitchen)
+    except OrderingError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except GatewayError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    if result.order is not None:
+        orders[result.order.order_id] = result.order
+    _save()
+    return result
+
+
+@app.get("/api/orders/{order_id}", response_model=OrderRecord)
+def get_order(order_id: str) -> OrderRecord:
+    record = orders.get(order_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"order {order_id} not found")
+    return record
+
+
+@app.get("/api/orders", response_model=list[OrderRecord])
+def list_orders() -> list[OrderRecord]:
+    """Newest first. The Activity tab reads this."""
+    return sorted(orders.values(), key=lambda o: o.placed_at, reverse=True)
+
+
+@app.get("/api/mandate", response_model=MandateView)
+def get_mandate() -> MandateView:
+    """What this kitchen's agent is currently allowed to order."""
+    mandate = kitchen.mandate_in_force()
+    return MandateView(mandate_id=mandate.payload.jti, agent_id=mandate.payload.sub,
+                       customer=mandate.payload.customer, expires_at=mandate.expires_at,
+                       limits=mandate.payload.limits,
+                       allowed_categories=mandate.payload.allowed_categories,
+                       approval_required=mandate.payload.approval_required,
+                       mandate_jws=mandate.jws)
+
+
+@app.post("/api/mandate", response_model=MandateView)
+def issue_mandate(req: MandateRequest) -> MandateView:
+    """Sign a new mandate. The owner does this from the Agent rules tab."""
+    mandate = kitchen.issue_mandate(
+        per_order=req.max_net_per_order, per_week=req.max_net_per_week,
+        categories=req.allowed_categories, approval_required=req.approval_required,
+        days=req.days,
+    )
+    _save()
+    return get_mandate()
+
+
+@app.post("/api/demo/reset")
+def demo_reset() -> dict:
+    """Clear this kitchen's baskets, orders and mandate. Labelled, demo only.
+
+    The gateway has its own reset for its side: the two services never reach
+    into each other's data, so a full reset calls both. Run this before the
+    video take and before the pitch, or the weekly limit creeps up on you.
+    """
+    counts = {"baskets": len(baskets), "orders": len(orders)}
+    baskets.clear()
+    orders.clear()
+    kitchen.mandate = None
+    storage.clear()
+    mandate = kitchen.mandate_in_force()        # a fresh one, so the next order works
+    return {"cleared": counts, "mandate": mandate.payload.jti}

@@ -13,6 +13,7 @@ The code version is authoritative and already compiles:
 | `Backend/gateway/aimo_client.py` | the only module that calls Aimo's API |
 | `Backend/tests/test_units.py` | 14 tests on real products, all passing |
 | `Backend/tests/test_money.py` | 7 tests on the hour 0 figures, all passing |
+| `Backend/shared/timeparse.py` | the only place an API timestamp is parsed |
 
 ## Repo layout: two services from the start
 
@@ -233,6 +234,15 @@ quantity in cases" and the policy engine blocks ordering it automatically.
 
 Dates are ISO (`2026-11-17`), timestamps are ISO with an offset, money is a number, and the
 currency is `EUR` in one place on the basket.
+
+**Never call `datetime.fromisoformat` on a value from Aimo's API.** Its offsets have no colon
+(`"+0200"`), which Python 3.10 refuses, so use `shared.timeparse.parse_api_datetime()` and
+`parse_api_date()`. They also turn the year-9999 "no end date" sentinel into `None`, so a
+`valid_to` of `null` means open-ended rather than missing, and the frontend never renders
+`9999-12-31`.
+
+**Python 3.11 or newer** for everyone and on the deployment host; the gap above was only
+found because one machine was on 3.10.
 
 ## 7. Setup
 

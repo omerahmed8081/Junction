@@ -14,6 +14,7 @@ from datetime import date, datetime, timezone
 from typing import Any
 
 from gateway.aimo_client import answer_delivery, read_price
+from shared.timeparse import parse_api_datetime
 from shared.schemas import (
     CheckDeliveryItem,
     CheckDeliveryResponse,
@@ -27,12 +28,13 @@ MAX_ITEMS = 100
 
 
 def _when(value: Any) -> datetime | None:
-    if isinstance(value, datetime) or value is None:
-        return value
-    try:
-        return datetime.fromisoformat(str(value))
-    except ValueError:
-        return None
+    """Aimo's timestamps, via the shared parser.
+
+    It was fromisoformat() here, which silently returned None on Python 3.10
+    because the API's offsets have no colon: a price validity date would have
+    disappeared rather than raised.
+    """
+    return parse_api_datetime(value)
 
 
 def _price(raw: dict[str, Any] | None, sales_unit: str) -> PriceAnswer:
@@ -63,6 +65,7 @@ def _delivery(raw: dict[str, Any] | None, wanted: float, requested_date: date,
         closing_time=a.get("closing_time"),
         past_closing_time=bool(a.get("past_closing_time")),
         sales_block=bool(a.get("sales_block")),
+        availability_known=bool(a.get("availability_known", True)),
     )
 
 

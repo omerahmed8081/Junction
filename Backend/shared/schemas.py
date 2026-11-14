@@ -96,6 +96,10 @@ class DeliveryAnswer(BaseModel):
     closing_time: datetime | None = None
     past_closing_time: bool = False
     sales_block: bool = False
+    # False when Aimo answered with a "we do not know" sentinel (>= 999999).
+    # Any quantity may be ordered, but no stock is confirmed, so the line is
+    # flagged and the policy does not treat it as a certainty.
+    availability_known: bool = True
 
 
 class PriceAnswer(BaseModel):
@@ -227,6 +231,151 @@ class Basket(BaseModel):
     demo_scenario: str | None = None            # set when the scenario switch is on
 
 
+# ------------------------------------------------- quotes, mandates, approvals
+# The three signed tokens. These models are the claim names both services agree
+# on; shared/signing.py does the signing and the verifying.
+
+
+class QuoteLine(BaseModel):
+    """One line inside a signed quote: what Aimo states about this product."""
+
+    product_id: str
+    name: str
+    gtin: str | None = None
+    quantity_sales_units: float
+    sales_unit: str
+    delivered_amount: float
+    delivered_unit: str                        # "L" | "KG" | the sales unit
+    size_source: SizeSource = "unknown"
+    price_per_sales_unit: Money
+    price_per_comparison_unit: Money | None = None
+    comparison_unit: str = ""
+    line_net: Money
+    line_vat: Money
+    line_gross: Money
+    tax_rate_percent: float | None = None
+    delivery: DeliveryAnswer
+    origin: str | None = None
+    claims: list[str] = Field(default_factory=list)
+    labels: list[str] = Field(default_factory=list)
+    category: str | None = None                # the mandate is checked against this
+
+
+class QuotePayload(BaseModel):
+    """What Aimo signs at confirm time. "Signed price confirmation" in the UI."""
+
+    iss: str                                   # the gateway
+    sub: str                                   # customer:123
+    aud: str                                   # agent:kitchen-demo
+    jti: str                                   # the quote id, and it is single use
+    iat: int
+    exp: int                                   # min(price validTo, cutoff, now + 2 h)
+    requested_date: date
+    lines: list[QuoteLine]
+    net_total: Money
+    vat_total: Money
+    gross_total: Money
+    currency: str = "EUR"
+    price_checked_at: datetime
+    delivery_checked_at: datetime
+
+
+class MandateLimits(BaseModel):
+    max_net_per_order: Money
+    max_net_per_week: Money
+    currency: str = "EUR"
+    basis: str = "net goods value excluding VAT and deposits"
+
+
+class MandatePayload(BaseModel):
+    """What the kitchen signs once, naming the outer limit Aimo will enforce."""
+
+    iss: str                                   # the kitchen service
+    sub: str                                   # agent:kitchen-demo
+    aud: str                                   # the gateway
+    customer: str
+    jti: str
+    iat: int
+    exp: int
+    limits: MandateLimits
+    allowed_categories: list[str] = Field(default_factory=list)
+    approval_required: bool = True
+
+
+class ApprovalPayload(BaseModel):
+    """What the kitchen signs when a human presses Approve, for one quote."""
+
+    iss: str
+    aud: str                                   # the gateway
+    jti: str
+    quote_jti: str                             # the quote being approved, and only that one
+    approver_role: str                         # "chef" | "manager"
+    approved_at: int
+    iat: int
+    exp: int
+
+
+# ------------------------------------------------------- the order endpoints
+
+
+class QuoteLineRequest(BaseModel):
+    product_id: str
+    quantity_sales_units: float
+
+
+class CreateQuoteRequest(BaseModel):
+    agent_id: str
+    requested_date: date
+    lines: list[QuoteLineRequest]
+
+
+class CreateQuoteResponse(BaseModel):
+    quote_id: str
+    quote_jws: str
+    expires_at: datetime
+    net_total: Money
+    vat_total: Money
+    gross_total: Money
+    currency: str = "EUR"
+    lines: list[QuoteLine]
+    # Set when a line could not be quoted at the quantity asked for, so the
+    # kitchen can show why rather than silently quoting something else.
+    refused: list[dict[str, str]] = Field(default_factory=list)
+
+
+class PlaceOrderRequest(BaseModel):
+    quote_jws: str
+    mandate_jws: str
+    approval_jws: str | None = None            # required when the mandate says so
+    idempotency_key: str
+
+
+class OrderRecord(BaseModel):
+    order_id: str
+    quote_id: str
+    customer: str
+    agent_id: str
+    status: Literal["placed", "rejected"]
+    placed_at: datetime
+    requested_date: date
+    delivery_date: date | None = None
+    net_total: Money
+    vat_total: Money
+    gross_total: Money
+    currency: str = "EUR"
+    lines: list[QuoteLine] = Field(default_factory=list)
+    approver_role: str | None = None
+    confirmation_jws: str | None = None        # Aimo signs the confirmation too
+
+
+class OrderRejected(BaseModel):
+    """Why an order was refused, in a form the audit log and the UI can both use."""
+
+    reason: str                                # a stable code, e.g. quote_already_used
+    detail: str
+    security_event: bool = False
+
+
 # ------------------------------------------------------------- chat and the agent
 
 class AgentStep(BaseModel):
@@ -241,6 +390,55 @@ class AgentStep(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     basket_id: str | None = None                # to keep editing an existing basket
+
+
+class ApproveRequest(BaseModel):
+    """Who is approving. The policy decides what their role is allowed to pass."""
+
+    approver_role: Literal["chef", "manager", "owner"] = "manager"
+
+
+class OrderResponse(BaseModel):
+    """What approving produced. All three outcomes are answers, not failures.
+
+    * `ordered`  - Aimo accepted it; `order` is the record and its signed confirmation.
+    * `adjusted` - something moved (stock fell, a cut-off passed), so the basket was
+      brought back in line with what Aimo says now and is a draft again. `reply`
+      says what changed, and the lines may carry suggestions to cover the gap.
+    * `refused`  - Aimo said no for a reason the basket cannot fix itself, such as
+      a mandate limit. `refusal` says which.
+    """
+
+    outcome: Literal["ordered", "adjusted", "refused"]
+    reply: str
+    basket: Basket
+    order: OrderRecord | None = None
+    refusal: OrderRejected | None = None
+    steps: list["AgentStep"] = Field(default_factory=list)
+
+
+class MandateRequest(BaseModel):
+    """What the owner sets in the Agent rules tab. Omitted fields keep the default."""
+
+    max_net_per_order: Money | None = None
+    max_net_per_week: Money | None = None
+    allowed_categories: list[str] | None = None
+    approval_required: bool = True
+    days: int | None = None
+
+
+class MandateView(BaseModel):
+    """The mandate in force, for the rules screen. The JWS is included so the
+    trace can show exactly what was signed."""
+
+    mandate_id: str
+    agent_id: str
+    customer: str
+    expires_at: datetime
+    limits: MandateLimits
+    allowed_categories: list[str] = Field(default_factory=list)
+    approval_required: bool
+    mandate_jws: str
 
 
 class LineEdit(BaseModel):

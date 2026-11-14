@@ -170,8 +170,11 @@ def pack_size(
 def _round_up_to_lot(quantity: float, allowed_lot_size: float) -> float:
     """Whole sales units, and a multiple of allowedLotSize when that is 1 or more.
 
-    allowedLotSize is 0.01 for 16,872 of 17,546 products, where it constrains
-    nothing; a few hundred products use 1.5, 2, 3 or 5.
+    allowedLotSize is 0.01 for 16,872 of 17,546 products. Valio, asked directly:
+    "You should treat 0.01 as 1. There is some technical reason for those values
+    but 0.01 crates is not possible." So a value below 1 means whole units, which
+    is what ceiling to an integer already does. A few hundred products use 1.5,
+    2, 3 or 5, and those are honoured as a step.
     """
     whole = math.ceil(quantity - 1e-9)
     if allowed_lot_size and allowed_lot_size >= 1:

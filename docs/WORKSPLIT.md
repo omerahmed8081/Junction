@@ -3,6 +3,17 @@
 Four people. Hour 0 is 03:00 Saturday; it is now about hour 1. Feature freeze at hour 15.
 Hour numbers below are from `ARCHITECTURE.md` section 13.
 
+**Updated Saturday 13:55 (hour 11).** The split changed once the gateway was done.
+
+| Person | Track | Owns now |
+|---|---|---|
+| Omer | **Backend, kitchen side** | Confirm and approve endpoints, mandate issuing, persistence, the running-low trigger |
+| Teammate 1 | **Frontend** | Both screens. Build against `Frontend/fixtures/sample_basket.json` |
+| Teammate 2 | **Backend, gateway side** | Quote and order service, signing, verification |
+| Teammate 3 | **Demo and data** | Seed recipes and sales history, demo numbers, slides, video |
+
+Original split, for reference:
+
 | Person | Track | Owns |
 |---|---|---|
 | Backend 1 | **Gateway** | Catalogue in Postgres, search, the two endpoints, OpenAPI + MCP, the Aimo client |

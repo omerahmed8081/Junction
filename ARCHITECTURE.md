@@ -8,6 +8,45 @@ This is the final version. It addresses both team reviews; section 18 maps every
 
 ---
 
+## Status
+
+**The plan below is frozen.** This section is the only part that changes: it says what is
+built. Every change to the code is logged in `docs/CHANGES.md`.
+
+Last updated **Saturday 14 November, 15:30 (hour 12.5)**.
+
+| Block | Section | State |
+|---|---|---|
+| 1. Spine: request to a priced, editable basket | 8, 12 | **Done.** Chat, search, price, units, ranking, basket, edits. Verified against the live API. |
+| 2a. Quote and order | 4, 6 | **Done.** Confirm, approve, order, both sides. A refusal repairs the basket and suggests cover rather than ending in an error. `scripts/sample_basket.py --order` runs it offline. |
+| 2b. Mandate, signed approval, single-use quotes | 6, 7 | **Done.** All ten gateway checks, the kitchen issues and signs. |
+| 3. Exceptions | 10 | **Mostly done.** Past cutoff, not deliverable, sales block, unknown size, price errors, stock changed between quote and order, expired quote, and **partial delivery split across products**. The scenario switch itself is not built, and Valio confirmed the mock data will not shift, so real product ids cover every case but `stock_changed`. |
+| 4. Trace view | 12 | Backend done: every step carries `crossed_gateway`. No screen yet. |
+| 5. Signed quotes | 6 | **Done.** Signed at confirm, Ed25519 JWS, single use, re-checked at order, tamper refused as a security event. |
+| 6. Second client | 13 | Not started. |
+| 7. Inventory and the running-low suggestion | 11 | Seed data in progress. |
+| Frontend | 12 | In progress. `Frontend/fixtures/sample_basket.json` is a real basket to build against. |
+| Deployment | 13 | **Not started, and the largest unknown:** the mock API has never been called from a cloud host. |
+
+**Decided since the freeze**, from Valio's own answers in `docs/MENTOR_ANSWERS.md`:
+
+- There is no order API and none is expected: producing orders for human approval is the
+  whole requirement, so our order step is the real thing rather than a stand-in.
+- `availableAmount` at or above 999999 means availability is **unknown**, not unlimited.
+- An empty schedule means not available; `allowedLotSize` 0.01 means 1.
+- A 429 blocks us for 30 seconds, so the client waits it out.
+
+**Known gaps worth keeping in view**
+
+1. The chat takes one item per message and cannot be used to edit a basket; the basket's own
+   buttons handle editing through `PATCH`.
+2. Nothing is deployed, and Aiven's free tier powers off when idle. Still the largest unknown.
+3. The running-low suggestion is waiting on the seed recipes and sales history.
+4. The scenario switch is not built. Real product ids cover every exception except
+   `stock_changed`, which is the one case the live data cannot show.
+
+---
+
 ## Start here (hours 0 to 7)
 
 Read sections 3, 4 and 8 before coding. Everything else can wait until the spine works.
@@ -705,3 +744,17 @@ Review 4's counts were re-checked against the product file before these changes 
 | The €500 threshold might not trigger with the real total | Hour 0 check: real total above the chef limit and below the mandate's per-order limit; limits adjusted if not | 13 |
 | "10,242 structured sizes" overcounted | Recounted: 8,038 per base unit + 1,986 per case = 10,024 usable (review 4 counted 2,027 case-only before filtering unusable units) | 3, 16 |
 | Still unverified | The mock API wasn't reachable during the reviews: real prices, deposits and the ranking winner are checked in hour 0 | 13, 17 |
+
+---
+
+## 23. Revisions 7.1 and 7.2 (small patches; no further revisions)
+
+Counts were re-checked against the product file each time.
+
+| Problem found | Change | Section |
+|---|---|---|
+| 7.1: name parsing assumed the size in a name is the size of one base unit; 1,168 multipack-style names and 238 names with two or more sizes break that | Parse a name only when it holds exactly one size and no multiplier; otherwise "size unknown" | 3, 16 |
+| 7.1: nobody has called the mock API yet | `/api/ping` is the first action in hour 0 | Start here |
+| 7.2 (review 5): "in 10 L packs" matches two products, Valio `463038` (50 KI) and Arla `464179` (100 ST) | Script beat 1 around whichever wins in hour 0, or name the brand; brand is an optional parsed field | Start here, 8, 13, 14, 16 |
+| 7.2 (review 5): section 13 and section 21 named different freeze revisions | Both now point at 7.2 | 13, 21 |
+| 7.2 (review 5): a `CASE`-level size is ambiguous when a product has both `KI` and `CS` units | Those products fall through to name parsing. Checked: 12 of the 1,986 case-only products are affected. `463335`, the review's example, has a base-level size, so it is a test that the base level wins; a separate test covers the ambiguous case | 3, 16 |

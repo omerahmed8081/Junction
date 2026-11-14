@@ -210,6 +210,43 @@ def test_summary_conversion_matches_the_units_rule():
     assert convert_summary(by_id["472492"], 1000, "L").reason == "size_in_KG_but_need_in_L"
     assert convert_summary(by_id["464306"], 30, "ST").size_source == "not_needed"
 
+def test_a_partial_answer_is_split_across_products_not_over_ordered():
+    """462775 has 51 units. Asking for 1,000 L of it must not order 1,000.
+
+    Beat 2 of the demo. The line is reduced to what Aimo can deliver and the
+    remainder goes to the next ranked product.
+    """
+    class OnlyArla(RecordedGateway):
+        """Two Arla products, 51 and 384 units, so nothing can cover 1,000 alone."""
+
+        def search_products(self, req):
+            keep = [s for s in SUMMARIES if s.product_id in {"462775", "469363"}]
+            return SearchResponse(products=keep, total_matched=len(keep))
+
+    need = parse_with_rules("1,000 L lactose-free milk by Tuesday", today=SATURDAY)
+    state, reply, steps = agent.add_need(None, need, OnlyArla())
+    quantities = {l.product_id: l.quantity_sales_units for l in state.basket.lines}
+    # 469363 ranks first on price (EUR 2.48 against 2.57) and has 384 units.
+    assert quantities == {"469363": 384.0, "462775": 51.0}, quantities
+    assert all("partial_split" in l.flags for l in state.basket.lines)
+    # 435 litres of the 1,000 asked for, and the shortfall is stated, not hidden.
+    assert sum(l.delivered_amount for l in state.basket.lines) == 435.0
+    assert "short_of_need" in state.basket.lines[-1].flags
+    assert "short" in state.basket.lines[-1].reason
+    assert "split" in reply and "short" in reply
+    assert any(s.step == "split_need" for s in steps)
+    # Totals follow the reduced quantities, not the full need.
+    assert state.basket.net_total == round(384 * 2.48 + 51 * 2.57, 2)
+    assert state.basket.policy.level == "manager"
+
+
+def test_a_product_that_can_cover_the_need_is_not_split():
+    need = parse_with_rules("1,000 L lactose-free milk by Tuesday", today=SATURDAY)
+    state, _, steps = agent.add_need(None, need, RecordedGateway())
+    assert len(state.basket.lines) == 1
+    assert not any("partial_split" in l.flags for l in state.basket.lines)
+    assert not any(s.step == "split_need" for s in steps)
+
 
 if __name__ == "__main__":
     passed = 0

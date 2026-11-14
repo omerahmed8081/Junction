@@ -149,15 +149,36 @@ def search(conn, req: SearchRequest, cutoff_filter: Callable[[list[str], date], 
         total -= len(rows) - len(kept)      # exact when the shortlist held every match
         rows = kept
 
-    products = [
-        ProductSummary(**{
-            **r,
-            "size_unit": r["size_unit"] or "",
-            "size_per_sales_unit": None if r["size_per_sales_unit"] is None else round(r["size_per_sales_unit"], 4),
-        })
-        for r in rows[: req.limit]
-    ]
+    products = [_summary(r) for r in rows[: req.limit]]
     return SearchResponse(products=products, total_matched=total)
+
+
+def _summary(row: dict[str, Any]) -> ProductSummary:
+    return ProductSummary(**{
+        **row,
+        "size_unit": row["size_unit"] or "",
+        "size_per_sales_unit": (None if row["size_per_sales_unit"] is None
+                                else round(row["size_per_sales_unit"], 4)),
+    })
+
+
+def summaries(conn, product_ids: list[str]) -> list[ProductSummary]:
+    """Catalogue rows for named products, in the order they were asked for.
+
+    Quoting and ordering need the same fields search returns, looked up by id
+    rather than searched for, so the quote carries the name, GTIN, origin,
+    claims, labels and pack size that search already worked out.
+    """
+    if not product_ids:
+        return []
+    cur = conn.execute(
+        f"SELECT {COLUMNS} {FROM} WHERE p.product_id = ANY(%(ids)s)",
+        {"ids": list(dict.fromkeys(product_ids))},
+    )
+    names = [d.name for d in cur.description]
+    found = {r["product_id"]: _summary(r)
+             for r in (dict(zip(names, row)) for row in cur.fetchall())}
+    return [found[pid] for pid in dict.fromkeys(product_ids) if pid in found]
 
 
 def categories(conn) -> list[CategoryLabel]:
