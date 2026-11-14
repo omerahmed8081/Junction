@@ -249,7 +249,10 @@
     "networkHint": "Tarkista, että se on käynnissä portissa 8002. Mitään ei tilattu.",
     "rule": "Tämä ei ollut sallittua",
     "server": "Jokin meni vikaan",
-    "load": "Tätä ei voitu ladata"
+    "load": "Tätä ei voitu ladata",
+    "upstream": "Aimo ei vastannut",
+    "upstreamHint": "Yhteys Aimoon katkesi. Mitään ei tilattu eikä ostoskoria muutettu. Yritä hetken päästä uudelleen.",
+    "details": "Tekniset tiedot"
   },
   "flag": {
     "availability_unknown": "Aimo ei vahvista saatavuutta",

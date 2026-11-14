@@ -116,15 +116,21 @@ export function ErrorNote({ error, onRetry }: { error: unknown; onRetry?: () => 
   const { t } = useTranslation();
   const api = error instanceof ApiError ? error : null;
   const network = !api || api.kind === "network";
+  const upstream = api?.kind === "upstream";
   return (
     <Banner
       alert
       tone={network ? "danger" : "warn"}
-      title={network ? t("error.network") : api?.kind === "rule" ? t("error.rule") : t("error.server")}
+      title={network ? t("error.network") : upstream ? t("error.upstream") : api?.kind === "rule" ? t("error.rule") : t("error.server")}
       actions={onRetry && <Button size="sm" onClick={onRetry}>{t("action.retry")}</Button>}
     >
-      {/* Backend sentences are English; mark them so a Finnish screen reader switches voice. */}
-      {network ? t("error.networkHint") : <span lang="en">{api?.message}</span>}
+      {network ? t("error.networkHint") : upstream ? (
+        <>
+          {t("error.upstreamHint")}
+          {/* The backend's own words, kept for whoever is debugging. */}
+          {api?.message && <details className="mt-1 text-xs text-ink-soft"><summary className="cursor-pointer">{t("error.details")}</summary><span lang="en" className="break-all">{api.message}</span></details>}
+        </>
+      ) : <span lang="en">{api?.message}</span>}
     </Banner>
   );
 }
