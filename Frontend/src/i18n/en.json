@@ -338,7 +338,12 @@
     "approval_missing": "The approval is missing",
     "approval_invalid": "The approval did not verify",
     "over_order_limit": "Over the per-order limit",
-    "over_weekly_limit": "Over this week's limit"
+    "over_weekly_limit": "Over this week's limit",
+    "over_daily_limit": "Over the daily limit",
+    "idempotency_key_reused": "This request key was already used for a different order",
+    "mandate_wrong_agent": "The mandate was issued to another agent",
+    "mandate_wrong_customer": "The mandate is for another customer",
+    "approval_for_another_quote": "The approval is for a different price"
   },
   "unitOne": {
     "ST": "unit",
@@ -406,5 +411,33 @@
     "gen_chef": "a chef's",
     "gen_manager": "a manager's",
     "gen_owner": "the owner's"
+  },
+  "step": {
+    "parse_need": "Read the request",
+    "policy_preview": "Checked the rules",
+    "policy_binding": "Rules check on signed price",
+    "rank": "Picked the best match",
+    "create_quote": "Asked Aimo to lock the price",
+    "verify_quote": "Checked Aimo's signature",
+    "search_products": "Searched Aimo's catalogue",
+    "check_delivery": "Checked price and delivery",
+    "named_product": "Used the product number given",
+    "split_need": "Split across products",
+    "suggest_cover": "Suggested cover for the shortfall",
+    "sign_approval": "Signed the approval",
+    "place_order": "Sent the order to Aimo",
+    "order_placed": "Order placed",
+    "order_refused": "Order refused",
+    "reprice": "Checked the lines again",
+    "reorder": "Drafted a reorder",
+    "respec": "Changed the product",
+    "approve": "Approved",
+    "auto_order": "Placed automatically by a rule",
+    "confirm": "Confirmed the price",
+    "delete_basket": "Deleted the draft",
+    "edit_basket": "Changed the basket",
+    "rule_added": "Added a standing rule",
+    "rule_removed": "Switched a rule off",
+    "security_event": "Security event"
   }
 }
