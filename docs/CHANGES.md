@@ -7,6 +7,73 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Saturday 14 November
 
+### 20:40 - the chat remembers the basket it is looking at
+
+"I need these by Friday not Thursday" used to be read as a brand new request,
+because every message was parsed on its own. The basket id was already going
+back and forth; it just was not being used as context.
+
+- `parse_chat()` is given the open basket and decides what the message meant:
+  another product to add, or a change to what is already there. The basket's
+  lines go into the model prompt, so "these", "them" and "it" refer to
+  something.
+- The first intent is **changing the delivery day for the whole basket**. The
+  rules parser handles it too: a message that names a day, asks for no amount,
+  and either points at the basket ("these", "instead", "move") or is nothing but
+  the day itself.
+- A date change is not just written down. Every line is priced and checked again
+  for the new day, because a cut-off or a price can differ between days, and a
+  quoted basket drops back to draft since the signed price was for the old date.
+- "Can that come a day later" names no day, and the date parser falls back to a
+  default lead time when it finds none. Moving the basket to that would be
+  inventing an answer, so it is refused and treated as a new request instead.
+
+Two bugs found on the way:
+
+- **Two weekdays in one sentence picked the wrong one.** "by friday not
+  thursday" gave Thursday, because the parser walked Monday-to-Sunday and
+  returned the first name it found in the week rather than the first one said.
+  It now takes whichever is mentioned first in the sentence. This affected
+  ordinary requests too, not only follow-ups.
+- **The date picker never re-checked anything.** `PATCH /api/basket/{id}` with a
+  new `requested_date` set the date and left the prices and delivery answers
+  from the old one. It reprices now.
+
+6 more tests, 207 passing.
+
+**Not done yet:** changing a quantity or removing a line by chat ("make it 20",
+"drop the rice"). The buttons do both already; only the words are missing.
+
+### 20:05 - ordering by product number
+
+The gateway could already look products up by id - that is how a reorder finds
+the thing it wants more of - but the chat could not, so a chef who already knew
+exactly which product they wanted still had to describe it and hope the ranking
+agreed.
+
+Now "40 units of 464306 by Tuesday", "#464306 x 40" and "5 ST id 475214 for
+friday" all work, and **a product named by number is ordered rather than ranked
+against**. The chef has already chosen; second-guessing that is not the agent's
+job. It also sidesteps the "why did it buy 10 kg when I asked for 5" question
+entirely, by letting someone name the pack they want.
+
+Details worth knowing:
+
+- The number is read **before** the quantity, so "100000 L milk" is a hundred
+  thousand litres and not product 100000, and a six-digit number followed by a
+  unit is never taken as an id.
+- A message that names a product does not need a unit word: "40 of 464306" is
+  40 sales units.
+- A number with no quantity asks "How many of 464306 do you need?" rather than
+  guessing.
+- If the named product cannot be ordered for that date, the basket still gets
+  the closest match **and the reply says so** - it never quietly swaps in
+  something else.
+- The model is told about the field too, so it works through Gemini as well as
+  the rules parser.
+
+6 more tests, 201 passing.
+
 ### 19:20 - several items in one message, and a log a chef can read
 
 Two things the screen made obvious.

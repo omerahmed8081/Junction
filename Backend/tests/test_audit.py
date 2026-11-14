@@ -129,6 +129,32 @@ def test_the_log_never_breaks_the_request_when_the_database_is_gone():
     assert log.recent("123")[0]["detail"] == "still recorded"
 
 
+def test_every_field_the_audit_lines_read_actually_exists():
+    """A guard for the whole class of bug that took the gateway down.
+
+    The audit line for check_delivery read `r.can_fulfil` and
+    `r.price_per_sales_unit`, which live on `r.delivery` and `r.price`. The
+    dict is built before the row is written, so the AttributeError escaped the
+    endpoint and every price check returned 500 - in a code path no offline
+    test touched. These are the attributes those lines read.
+    """
+    from shared import schemas
+    reads = {
+        "CreateQuoteResponse": ["quote_jws", "net_total", "expires_at"],
+        "OrderRecord": ["order_id", "net_total", "status", "customer"],
+        "SearchResponse": ["total_matched", "products"],
+        "ProductSummary": ["product_id"],
+        "CheckDeliveryResult": ["product_id", "price", "delivery"],
+        "PriceAnswer": ["price_per_sales_unit", "tax_rate_percent"],
+        "DeliveryAnswer": ["can_fulfil"],
+        "SearchRequest": ["text", "claims", "category", "product_ids", "deliverable_by"],
+    }
+    for name, fields in reads.items():
+        model = getattr(schemas, name)
+        missing = [f for f in fields if f not in model.model_fields]
+        assert not missing, f"{name} has no {missing}"
+
+
 # ---- the kitchen's half ------------------------------------------------
 
 def test_the_kitchen_records_why_not_only_what():

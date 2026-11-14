@@ -597,10 +597,26 @@ def add_need(state: BasketState | None, need: ParsedNeed, gateway: GatewayClient
           f"by {need.requested_date} ({need.parser})".replace("  ", " "))
     state = state or BasketState(Basket(basket_id=f"b_{uuid.uuid4().hex[:10]}", requested_date=need.requested_date))
 
-    ranked, reasons = find_candidates(need, gateway, steps)
+    # A product named by number is ordered, not ranked against: the chef has
+    # already chosen, and second-guessing that is not the agent's job.
+    ranked, reasons = find_candidates(
+        need, gateway, steps, extra_ids=[need.product_id] if need.product_id else None)
     if not ranked:
         _refresh(state.basket)
         return state, _explain_empty(need, reasons), steps
+
+    missed_named = ""
+    if need.product_id:
+        exact = [c for c in ranked if c.summary.product_id == need.product_id]
+        if exact:
+            ranked = exact + [c for c in ranked if c.summary.product_id != need.product_id]
+            _step(steps, "named_product", f"{need.product_id} asked for by number")
+        else:
+            # Say so rather than quietly buying something else.
+            missed_named = (f" {need.product_id} itself cannot be ordered for "
+                            f"{need.requested_date}, so this is the closest match.")
+            _step(steps, "named_product",
+                  f"{need.product_id} asked for by number but not orderable")
 
     lines = cover_need(ranked, need, steps)
     covered = {l.product_id for l in lines}
@@ -623,6 +639,7 @@ def add_need(state: BasketState | None, need: ParsedNeed, gateway: GatewayClient
         parts = "; ".join(f"{l.quantity_sales_units:g} {l.sales_unit} of {l.name}" for l in lines)
         reply = (f"No single product could cover {need.quantity:g} {need.unit}, so it is split "
                  f"across {len(lines)}: {parts}. EUR {net:,.2f} net in total. {approval}")
+    reply += missed_named
     shortfall = lines[-1].flags.count("short_of_need") if lines else 0
     if shortfall:
         reply += (f" Even together they fall short of {need.quantity:g} {need.unit}; "

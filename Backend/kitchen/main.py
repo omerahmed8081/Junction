@@ -26,7 +26,7 @@ from kitchen import agent, audit, keys, ordering, storage, suggestions  # noqa: 
 from kitchen.inventory import Inventory  # noqa: E402
 from kitchen.gateway_client import GatewayClient, GatewayError, GatewayRefused  # noqa: E402
 from kitchen import narrate  # noqa: E402
-from kitchen.need import parse_need, parse_needs  # noqa: E402
+from kitchen.need import parse_chat, parse_need, parse_needs  # noqa: E402
 from kitchen.ordering import KitchenSigner, OrderingError  # noqa: E402
 from shared.schemas import (  # noqa: E402
     ApproveRequest,
@@ -135,16 +135,22 @@ def chat(req: ChatRequest) -> ChatResponse:
     With `basket_id` set they are added to that basket instead of a new one.
     """
     state = _state(req.basket_id) if req.basket_id else None
+    open_basket = state.basket if state else None
     try:
-        needs = parse_needs(req.message)
+        asked = parse_chat(req.message, basket=open_basket)
     except ValueError as exc:
         audit.log.record("parse_need", basket_id=req.basket_id or "", actor="human",
                          inputs={"message": req.message}, reason=str(exc),
                          detail="could not read a quantity and a product from the message")
         return ChatResponse(reply=str(exc), basket=state.basket if state else None)
 
+    # A message about the basket already on screen, rather than a new product.
+    if asked.intent == "change_date" and state is not None and asked.requested_date:
+        return _change_date(state, asked, req.message)
+
+    needs = asked.items
     audit.log.record("parse_need", basket_id=req.basket_id or "", actor="human",
-                     parser=needs[0].parser, inputs={"message": req.message},
+                     parser=asked.parser, inputs={"message": req.message},
                      result={"items": [n.model_dump(mode="json") for n in needs]},
                      detail=narrate.sentence("parse_need", "; ".join(
                          f"{n.quantity:g} {n.unit} of {n.product_text}" for n in needs)))
@@ -175,7 +181,39 @@ def chat(req: ChatRequest) -> ChatResponse:
     baskets[state.basket.basket_id] = state
     _save()
     return ChatResponse(reply=" ".join(replies), basket=state.basket,
-                        steps=all_steps, parser=needs[0].parser)
+                        steps=all_steps, parser=asked.parser)
+
+
+def _change_date(state, asked, message: str) -> ChatResponse:
+    """Move the whole basket to another delivery day, and re-check it.
+
+    The date is not just written down: every line is priced and checked again
+    for the new day, because a cut-off or a price can differ between days. A
+    quoted basket drops back to draft, since the signed price was for the old
+    date.
+    """
+    was = state.basket.requested_date
+    steps: list = []
+    state.basket.requested_date = asked.requested_date
+    try:
+        notes = agent.reprice(state, gateway, steps)
+    except GatewayError as exc:
+        state.basket.requested_date = was           # leave the basket as it was
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    audit.log.record("change_date", basket_id=state.basket.basket_id, actor="human",
+                     parser=asked.parser, inputs={"message": message},
+                     result={"from": str(was), "to": str(asked.requested_date)},
+                     detail=narrate.sentence("change_date",
+                                             f"moved from {was} to {asked.requested_date}"))
+    audit.log.record_steps(steps, state.basket.basket_id)
+    _save()
+    reply = f"Moved the whole basket to {asked.requested_date}."
+    if notes:
+        reply += " " + " ".join(notes)
+    else:
+        reply += " Everything still works out the same."
+    return ChatResponse(reply=reply, basket=state.basket, steps=steps, parser=asked.parser)
 
 
 def _join(names: list[str]) -> str:
@@ -194,10 +232,16 @@ def get_basket(basket_id: str) -> Basket:
 def edit_basket(basket_id: str, req: BasketEditRequest) -> ChatResponse:
     """Change a quantity, swap to an alternative, or remove a line."""
     state = _state(basket_id)
+    moved = bool(req.requested_date and req.requested_date != state.basket.requested_date)
     if req.requested_date:
         state.basket.requested_date = req.requested_date
     try:
         reply, steps = agent.apply_edits(state, req.edits, gateway)
+        if moved:
+            # A new day can mean a different price or a passed cut-off, so the
+            # basket is checked again rather than just relabelled.
+            notes = agent.reprice(state, gateway, steps)
+            reply = " ".join([f"Moved the basket to {req.requested_date}."] + notes + [reply]).strip()
     except GatewayError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     _save()

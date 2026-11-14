@@ -44,6 +44,9 @@ class ParsedNeed(BaseModel):
     pack_size: float | None = None              # "in 10 L packs" -> 10
     pack_size_unit: str = ""
     brand: str | None = None
+    # A product number typed straight into the chat ("40 units of 464306").
+    # When it is set the agent orders that product and does not pick for you.
+    product_id: str | None = None
     requested_date: date
     parser: str = "rules"                       # which parser produced this, for the trace
 
@@ -62,10 +65,15 @@ def _date(text: str, today: date) -> tuple[date, str]:
         return date.fromisoformat(iso.group(1)), text.replace(iso.group(0), " ")
     if re.search(r"\btomorrow\b", text):
         return today + timedelta(days=1), re.sub(r"\b(by|for|on)?\s*tomorrow\b", " ", text)
-    for index, name in enumerate(WEEKDAYS):
-        if re.search(rf"\b{name}\b", text):
-            ahead = (index - today.weekday()) % 7 or 7          # the next one, never today
-            return today + timedelta(days=ahead), re.sub(rf"\b(by|for|on|next)?\s*{name}\b", " ", text)
+    # When a message names two days - "by friday not thursday" - the one meant
+    # is the one said first, not the one that happens to come first in the week.
+    said = [(m.start(), index, name)
+            for index, name in enumerate(WEEKDAYS)
+            for m in [re.search(rf"\b{name}\b", text)] if m]
+    if said:
+        _, index, name = min(said)
+        ahead = (index - today.weekday()) % 7 or 7              # the next one, never today
+        return today + timedelta(days=ahead), re.sub(rf"\b(by|for|on|next)?\s*{name}\b", " ", text)
     return today + timedelta(days=DEFAULT_LEAD_DAYS), text
 
 
@@ -75,6 +83,15 @@ def parse_with_rules(message: str, today: date | None = None) -> ParsedNeed:
     text = " " + message.lower().strip() + " "
     requested, text = _date(text, today)
 
+    # A product number, read before the quantity so neither can be mistaken for
+    # the other. Written plainly, or as "#464306" / "id 464306". Six digits, and
+    # not immediately followed by a unit, which would make it an amount.
+    product_id = None
+    found_id = re.search(rf"(?:\bid\s*|\bproduct\s*|#)?\b(\d{{6}})\b(?!\s*(?:{_UNITS})\b)", text)
+    if found_id:
+        product_id = found_id.group(1)
+        text = text.replace(found_id.group(0), " ", 1)
+
     pack_size, pack_unit = None, ""
     pack = re.search(rf"\bin\s+({_NUMBER})\s*({_UNITS})\s*(?:packs?|boxes|box|cartons?|bags?)\b", text)
     if pack:
@@ -82,10 +99,18 @@ def parse_with_rules(message: str, today: date | None = None) -> ParsedNeed:
         text = text.replace(pack.group(0), " ")
 
     amount = re.search(rf"({_NUMBER})\s*({_UNITS})\b", text)
-    if not amount:
+    if amount:
+        quantity, unit = _number(amount.group(1)), UNIT_WORDS[amount.group(2)]
+        text = text.replace(amount.group(0), " ", 1)
+    elif product_id:
+        # The product is named outright, so a bare number is how many of it.
+        bare = re.search(rf"({_NUMBER})", text)
+        if not bare:
+            raise ValueError(f"How many of {product_id} do you need?")
+        quantity, unit = _number(bare.group(1)), "ST"
+        text = text.replace(bare.group(0), " ", 1)
+    else:
         raise ValueError("I could not find a quantity and unit, for example '1,000 L' or '20 kg'.")
-    quantity, unit = _number(amount.group(1)), UNIT_WORDS[amount.group(2)]
-    text = text.replace(amount.group(0), " ", 1)
 
     claims = []
     for claim, pattern in KNOWN_CLAIMS.items():
@@ -106,19 +131,24 @@ def parse_with_rules(message: str, today: date | None = None) -> ParsedNeed:
               # how people actually ask: "we're low on cream", "running out of butter"
               r"|low|lower|run|runs|running|out|short|more|another|again|on|and|but|so|then|just)\b")
     product = " ".join(re.sub(filler, " ", re.sub(r"[^a-zà-ÿ0-9 ]", " ", text)).split())
+    if product_id:
+        # The number is the request; whatever words are left are noise.
+        product = product_id
     if not product:
         raise ValueError("I could not tell which product you need.")
     return ParsedNeed(
         product_text=product, quantity=quantity, unit=unit, claims=claims,
         pack_size=pack_size, pack_size_unit=pack_unit if pack_size else "",
-        brand=brand.title() if brand else None, requested_date=requested, parser="rules",
+        brand=brand.title() if brand else None, product_id=product_id,
+        requested_date=requested, parser="rules",
     )
 
 
 PROMPT = """You turn a kitchen's purchase request into JSON. Today is {today} ({weekday}).
 
 A message often asks for more than one thing ("40 L milk and 5 kg rice by Tuesday").
-Reply with one JSON object and nothing else, shaped {{"items": [ ... ]}}, holding one
+Reply with one JSON object and nothing else, shaped
+{{"intent": "add", "items": [ ... ]}}, holding one
 entry per product asked for, in the order they were asked for. One product, one entry.
 A date or a dietary word that applies to the whole message applies to every entry.
 
@@ -130,9 +160,23 @@ Each entry has exactly these keys:
 - "pack_size": number or null, only if a pack size was asked for ("in 10 L packs" is 10)
 - "pack_size_unit": L or KG, or "" when pack_size is null
 - "brand": brand name or null
+- "product_id": the six-digit product number if the message names one, otherwise null
 - "requested_date": the delivery date asked for as YYYY-MM-DD; a weekday means the next one after today; if none is given use {default}
 
+{basket}
 Request: {message}"""
+
+# Added to the prompt only when a basket is already open. Without it the model
+# has no idea what "these" or "them" refers to.
+BASKET_CONTEXT = """
+The kitchen already has this basket open, for delivery on {requested_date}:
+{lines}
+
+If the message changes THAT basket rather than asking for something new, reply
+{{"intent": "change_date", "requested_date": "YYYY-MM-DD"}} - for example "I need
+these by Friday not Thursday", "move it to Monday", "can that come a day later".
+Otherwise reply {{"intent": "add", "items": [ ... ]}} as described above.
+"""
 
 
 def parse_with_gemini(message: str, today: date | None = None) -> ParsedNeed:
@@ -140,7 +184,27 @@ def parse_with_gemini(message: str, today: date | None = None) -> ParsedNeed:
     return parse_many_with_gemini(message, today)[0]
 
 
-def parse_many_with_gemini(message: str, today: date | None = None) -> list[ParsedNeed]:
+class ChatIntent(BaseModel):
+    """What a message was asking for, once there is a basket to refer to."""
+
+    intent: str = "add"                         # "add" | "change_date"
+    items: list[ParsedNeed] = Field(default_factory=list)
+    requested_date: date | None = None
+    parser: str = "rules"
+
+
+def basket_context(basket) -> str:
+    """The open basket, written out so "these" and "them" mean something."""
+    if basket is None or not getattr(basket, "lines", None):
+        return ""
+    lines = "\n".join(
+        f"- {l.quantity_sales_units:g} {l.sales_unit} of {l.name} (product {l.product_id})"
+        for l in basket.lines)
+    return BASKET_CONTEXT.format(requested_date=basket.requested_date, lines=lines)
+
+
+def parse_many_with_gemini(message: str, today: date | None = None,
+                           basket=None) -> list[ParsedNeed]:
     """Every need in one message. One model call. No temperature or top_p: the
     3.5 models ignore them and later ones reject them."""
     from google import genai
@@ -151,7 +215,7 @@ def parse_many_with_gemini(message: str, today: date | None = None) -> list[Pars
     prompt = PROMPT.format(
         today=today.isoformat(), weekday=WEEKDAYS[today.weekday()].title(),
         claims=sorted(KNOWN_CLAIMS), default=(today + timedelta(days=DEFAULT_LEAD_DAYS)).isoformat(),
-        message=message.strip(),
+        basket=basket_context(basket), message=message.strip(),
     )
     if hasattr(client, "interactions"):
         try:
@@ -162,6 +226,42 @@ def parse_many_with_gemini(message: str, today: date | None = None) -> list[Pars
         text = client.models.generate_content(model=model, contents=prompt).text
 
     return needs_from_reply(text)
+
+
+def _gemini_text(message: str, today: date | None, basket) -> str:
+    """The raw model reply, with the open basket in the prompt."""
+    from google import genai
+
+    today = today or date.today()
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    model = os.environ.get("GEMINI_MODEL") or "gemini-3.5-flash-lite"
+    prompt = PROMPT.format(
+        today=today.isoformat(), weekday=WEEKDAYS[today.weekday()].title(),
+        claims=sorted(KNOWN_CLAIMS), default=(today + timedelta(days=DEFAULT_LEAD_DAYS)).isoformat(),
+        basket=basket_context(basket), message=message.strip(),
+    )
+    if hasattr(client, "interactions"):
+        try:
+            return client.interactions.create(model=model, input=prompt).output_text
+        except Exception:  # noqa: BLE001 - older call style below
+            return client.models.generate_content(model=model, contents=prompt).text
+    return client.models.generate_content(model=model, contents=prompt).text
+
+
+def intent_from_reply(text: str | None, basket=None) -> ChatIntent:
+    """What the model made of the message: a change to the open basket, or needs."""
+    match = re.search(r"\{.*\}", text or "", flags=re.S)
+    if not match:
+        raise ValueError("model reply held no JSON object")
+    payload = json.loads(match.group(0))
+    if isinstance(payload, dict) and payload.get("intent") == "change_date":
+        when = payload.get("requested_date")
+        if when and basket is not None:
+            return ChatIntent(intent="change_date", requested_date=date.fromisoformat(str(when)),
+                              parser="gemini")
+        # A date change with nothing to change is not an answer.
+        raise ValueError("the model asked to change a date with no basket open")
+    return ChatIntent(intent="add", items=needs_from_reply(text), parser="gemini")
 
 
 def needs_from_reply(text: str | None) -> list[ParsedNeed]:
@@ -200,6 +300,56 @@ def needs_from_reply(text: str | None) -> list[ParsedNeed]:
 
 
 MAX_ITEMS_PER_MESSAGE = 10
+
+
+def date_only_change(message: str, today: date | None = None) -> date | None:
+    """A follow-up that only moves the delivery date.
+
+    The rules parser cannot hold a conversation, but it can tell that a message
+    names a day and asks for no quantity, which is what "make it Friday" is.
+    """
+    today = today or date.today()
+    text = " " + message.lower().strip() + " "
+    if re.search(rf"({_NUMBER})\s*({_UNITS})\b", text):
+        return None                              # it asks for an amount: a new need
+
+    # A day has to be named outright. _date falls back to a default lead time
+    # when it finds nothing, and "a day later" must not silently become that.
+    named_day = (re.search(r"\b\d{4}-\d{2}-\d{2}\b", text)
+                 or re.search(r"\btomorrow\b", text)
+                 or re.search(rf"\b({'|'.join(WEEKDAYS)})\b", text))
+    if not named_day:
+        return None
+
+    # Either it points at the basket ("these", "instead"), or the whole message
+    # is just the day, which after a basket is open means the same thing.
+    points_at_basket = re.search(
+        r"\b(these|them|those|it|that|this|they|basket|order|delivery|deliver|"
+        r"instead|rather|not|change|move|make)\b", text)
+    if not points_at_basket and len(text.split()) > 3:
+        return None
+    return _date(text, today)[0]
+
+
+def parse_chat(message: str, today: date | None = None, basket=None) -> ChatIntent:
+    """What this message means, given whatever basket is already open."""
+    if os.environ.get("GEMINI_API_KEY") and os.environ.get("KITCHEN_PARSER", "gemini") != "rules":
+        try:
+            return _gemini_intent(message, today, basket)
+        except Exception as exc:  # noqa: BLE001
+            print(f"[kitchen] Gemini unavailable, using the rules parser: "
+                  f"{type(exc).__name__}: {exc}"[:300], file=sys.stderr)
+    if basket is not None and getattr(basket, "lines", None):
+        moved = date_only_change(message, today)
+        if moved:
+            return ChatIntent(intent="change_date", requested_date=moved, parser="rules")
+    return ChatIntent(intent="add", items=[parse_with_rules(message, today)], parser="rules")
+
+
+def _gemini_intent(message: str, today: date | None, basket) -> ChatIntent:
+    """One model call that may answer with a change instead of a list of needs."""
+    text = _gemini_text(message, today, basket)
+    return intent_from_reply(text, basket)
 
 
 def parse_needs(message: str, today: date | None = None) -> list[ParsedNeed]:
