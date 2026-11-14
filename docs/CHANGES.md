@@ -7,6 +7,33 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Sunday 15 November
 
+### 06:45 - the same standing rule cannot be added twice
+
+Adding a rule that already exists made a second one, and the list showed both.
+They did the same work, so the second never decided anything - but the owner
+had no way to tell that from looking.
+
+Two rules are the same rule when the match, the value and the ceiling are the
+same. The label is not part of it: "milk weekdays" and "milk weekends" with
+the same match and ceiling do identical work. The value is compared the way
+`_line_matches` compares it, and `_identity` sits directly beneath it so the
+two cannot drift - name and claim ignore case, product and category are exact,
+and `any` ignores the value altogether.
+
+Only active rules count. `remove` deactivates rather than deletes, so that an
+order made under a rule stays readable afterwards, and a rule the owner
+switched off has to be addable again.
+
+The second attempt is refused with 409 and the rule it clashes with, in the
+rule's own sentence: *you already have a rule that does this: Approve anything
+called 'milk' up to EUR 200.00 net without asking.* The frontend already turns
+a 409 into a banner carrying the backend's words, so nothing changed there.
+
+Seven tests: the plain duplicate, a different label, different case and
+spacing, a switched-off rule being re-added, two `any` rules with one ceiling,
+and the two that must still be allowed - a different ceiling and a different
+product.
+
 ### 06:20 - what the kitchen orders shows up in its own ledger
 
 `Inventory.add_on_order` and `Inventory.receive` have been there since the

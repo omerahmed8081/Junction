@@ -893,6 +893,14 @@ def add_rule(req: RuleRequest, x_kitchen_role: str | None = Header(default=None)
     if req.max_net_per_order is not None and req.max_net_per_order <= 0:
         raise HTTPException(status_code=422, detail="the ceiling must be above 0")
 
+    already = rules.duplicate_of(rules.store.all(), rules.Rule(
+        match=req.match, value=req.value.strip(),
+        max_net_per_order=req.max_net_per_order))
+    if already is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=f"you already have a rule that does this: {already.said()}")
+
     rule = rules.store.add(rules.Rule(
         name=req.name.strip(), match=req.match, value=req.value.strip(),
         max_net_per_order=req.max_net_per_order))

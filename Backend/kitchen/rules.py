@@ -81,6 +81,40 @@ def _line_matches(rule: Rule, line: Any) -> bool:
     return False
 
 
+def _identity(rule: Rule) -> tuple:
+    """What makes two rules the same rule.
+
+    The label is not part of it. Two rules with different names but the same
+    match, value and ceiling do exactly the same thing, and a list holding both
+    is one the owner cannot reason about - which is the whole complaint.
+
+    The value is compared the way `_line_matches` above compares it, and the
+    two sit next to each other so they cannot drift: name and claim ignore
+    case, product and category are exact, and `any` ignores the value
+    altogether, because the matcher does.
+    """
+    value = rule.value.strip()
+    if rule.match == "any":
+        value = ""
+    elif rule.match in ("name", "claim"):
+        value = value.lower()
+    return (rule.match, value, rule.max_net_per_order)
+
+
+def duplicate_of(existing: Iterable[Rule], rule: Rule) -> Rule | None:
+    """An active rule that already does what this one would do, or None.
+
+    Active ones only. A rule that was switched off has to be addable again,
+    and the store deactivates rather than deletes, so that an order made under
+    a rule stays readable afterwards.
+    """
+    wanted = _identity(rule)
+    for other in existing:
+        if other.active and _identity(other) == wanted:
+            return other
+    return None
+
+
 def covers(rule: Rule, basket: Any) -> bool:
     """Whether this rule covers the whole basket.
 

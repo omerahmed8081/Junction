@@ -315,3 +315,84 @@ def test_a_signed_basket_can_still_be_edited(app):
         response = _edit(client, "b_quote")
 
     assert response.status_code != 409, "editing after seeing the price was refused"
+
+
+# ------------------------------------------------- the same rule, twice (B)
+
+
+def test_the_same_rule_twice_is_refused(app):
+    client, _ = app
+    with client:
+        assert client.post("/api/rules", json=A_RULE, headers=OWNER).status_code == 200
+        second = client.post("/api/rules", json=A_RULE, headers=OWNER)
+        assert second.status_code == 409, second.status_code
+        assert "already have" in second.json()["detail"]
+        assert len(client.get("/api/rules").json()["rules"]) == 1
+
+
+def test_the_label_is_not_what_makes_a_rule_different(app):
+    """Two rules named differently that match the same thing with the same
+    ceiling do exactly the same work; a list holding both cannot be reasoned
+    about."""
+    client, _ = app
+    with client:
+        client.post("/api/rules", json={**A_RULE, "name": "milk weekdays"},
+                    headers=OWNER).raise_for_status()
+        second = client.post("/api/rules", json={**A_RULE, "name": "milk weekends"},
+                             headers=OWNER)
+        assert second.status_code == 409
+
+
+def test_case_and_spacing_do_not_make_a_new_rule(app):
+    """The name matcher lowercases, so 'Milk' and 'milk ' are one rule."""
+    client, _ = app
+    with client:
+        client.post("/api/rules", json=A_RULE, headers=OWNER).raise_for_status()
+        second = client.post("/api/rules", json={**A_RULE, "value": "  Milk "},
+                             headers=OWNER)
+        assert second.status_code == 409
+
+
+def test_a_different_ceiling_is_a_different_rule(app):
+    """Not a duplicate: the owner is saying something new about how much."""
+    client, _ = app
+    with client:
+        client.post("/api/rules", json=A_RULE, headers=OWNER).raise_for_status()
+        other = client.post("/api/rules", json={**A_RULE, "max_net_per_order": 500.0},
+                            headers=OWNER)
+        assert other.status_code == 200
+        assert len(client.get("/api/rules").json()["rules"]) == 2
+
+
+def test_a_different_product_is_a_different_rule(app):
+    client, _ = app
+    with client:
+        client.post("/api/rules", json=A_RULE, headers=OWNER).raise_for_status()
+        other = client.post("/api/rules", json={**A_RULE, "value": "cream"}, headers=OWNER)
+        assert other.status_code == 200
+
+
+def test_a_rule_switched_off_can_be_added_again(app):
+    """Rules are deactivated rather than deleted, so an order made under one
+    stays readable. The owner must still be able to turn it back on."""
+    client, _ = app
+    with client:
+        made = client.post("/api/rules", json=A_RULE, headers=OWNER)
+        made.raise_for_status()
+        client.delete(f"/api/rules/{made.json()['rule_id']}", headers=OWNER).raise_for_status()
+
+        again = client.post("/api/rules", json=A_RULE, headers=OWNER)
+        assert again.status_code == 200, "a switched-off rule could not be re-added"
+        assert len(client.get("/api/rules").json()["rules"]) == 1
+
+
+def test_two_any_rules_with_one_ceiling_are_the_same_rule(app):
+    """`any` ignores the value, so the value must not make them look different."""
+    client, _ = app
+    with client:
+        blanket = {"name": "small orders", "match": "any", "value": "",
+                   "max_net_per_order": 50.0}
+        client.post("/api/rules", json=blanket, headers=OWNER).raise_for_status()
+        second = client.post("/api/rules", json={**blanket, "name": "petty cash"},
+                             headers=OWNER)
+        assert second.status_code == 409
