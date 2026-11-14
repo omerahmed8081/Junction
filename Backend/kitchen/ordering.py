@@ -49,8 +49,8 @@ CHEF_LIMIT_EUR = float(os.environ.get("CHEF_LIMIT_EUR", "500"))
 # Mandate defaults. The Agent rules tab edits these; they are the outer limit
 # Aimo enforces, so they sit above the chef and manager limits, not beside them.
 MANDATE_PER_ORDER_EUR = float(os.environ.get("MANDATE_PER_ORDER_EUR", "2000"))
-MANDATE_PER_DAY_EUR = float(os.environ.get("MANDATE_PER_DAY_EUR", "2000"))
-MANDATE_PER_WEEK_EUR = float(os.environ.get("MANDATE_PER_WEEK_EUR", "5000"))
+MANDATE_PER_DAY_EUR = float(os.environ.get("MANDATE_PER_DAY_EUR", "3000"))
+MANDATE_PER_WEEK_EUR = float(os.environ.get("MANDATE_PER_WEEK_EUR", "10000"))
 MANDATE_DAYS = int(os.environ.get("MANDATE_DAYS", "7"))
 # Whether Aimo must be shown a signed human approval with every order. Off by
 # default: a person is still in the loop, because the kitchen's own policy sends
