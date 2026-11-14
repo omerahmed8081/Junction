@@ -140,3 +140,98 @@ if __name__ == "__main__":
         if name.startswith("test_") and callable(fn):
             fn(); print("ok  ", name); passed += 1
     print(passed)
+
+
+# ------------------------------- what a rule change may do to other baskets
+
+
+def _app():
+    """The kitchen app with its own empty baskets, no database, no gateway."""
+    os.environ["TTA_SKIP_DOTENV"] = "1"
+    from fastapi.testclient import TestClient
+    import kitchen.main as main
+
+    main.baskets.clear()
+    rules.store._rules.clear() if hasattr(rules.store, "_rules") else None
+    return TestClient(main.app), main
+
+
+def _put(main, basket_id: str, status: str, quote: str | None = "a.signed.quote"):
+    """A basket sitting in memory at a given point in its life."""
+    from kitchen.agent import BasketState
+
+    basket = a_basket()
+    basket.basket_id = basket_id
+    basket.status = status
+    basket.quote_id, basket.quote_jws = ("q_1", quote) if quote else (None, None)
+    basket.quote_verified = quote is not None
+    main.baskets[basket_id] = BasketState(basket)
+    return basket
+
+
+OWNER = {"X-Kitchen-Role": "owner"}
+A_RULE = {"name": "milk", "match": "name", "value": "milk", "max_net_per_order": 200.0}
+
+
+def test_adding_a_rule_leaves_a_signed_basket_signed():
+    """It used to run the full refresh over every basket, which sets the status
+    back to "draft" and throws the quote away - so a basket waiting in
+    Approvals dropped out of the list, unsigned, mid-demo."""
+    client, main = _app()
+    with client:
+        waiting = _put(main, "b_wait", "pending_approval")
+        client.post("/api/rules", json=A_RULE, headers=OWNER).raise_for_status()
+
+    assert waiting.status == "pending_approval", "the basket fell out of Approvals"
+    assert waiting.quote_jws == "a.signed.quote", "Aimo's signed price was discarded"
+    assert waiting.quote_verified is True
+
+
+def test_adding_a_rule_leaves_an_order_ordered():
+    """The worse half: an order Aimo had already accepted came back as an
+    editable draft, which could be confirmed and ordered a second time."""
+    client, main = _app()
+    with client:
+        placed = _put(main, "b_done", "ordered")
+        client.post("/api/rules", json=A_RULE, headers=OWNER).raise_for_status()
+
+    assert placed.status == "ordered", "a placed order became an editable draft again"
+    assert placed.quote_jws == "a.signed.quote"
+
+
+def test_removing_a_rule_leaves_them_alone_too():
+    client, main = _app()
+    with client:
+        made = client.post("/api/rules", json=A_RULE, headers=OWNER)
+        made.raise_for_status()
+        rule_id = made.json()["rule_id"]
+        waiting = _put(main, "b_wait", "quoted")
+        placed = _put(main, "b_done", "ordered")
+        client.delete(f"/api/rules/{rule_id}", headers=OWNER).raise_for_status()
+
+    assert (waiting.status, placed.status) == ("quoted", "ordered")
+    assert waiting.quote_jws == "a.signed.quote"
+
+
+def test_a_draft_does_follow_the_new_rule():
+    """The point of the loop in the first place: a draft on screen should show
+    that a rule now covers it, without the chef reloading."""
+    client, main = _app()
+    with client:
+        draft = _put(main, "b_draft", "draft", quote=None)
+        before = draft.policy.level if draft.policy else None
+        client.post("/api/rules", json=A_RULE, headers=OWNER).raise_for_status()
+
+    assert draft.policy is not None
+    assert draft.policy.level == "auto_ok", f"the draft was not re-judged (was {before})"
+
+
+def test_a_blocked_basket_is_not_quietly_unblocked():
+    """Blocked is a decision, not a preview. A rule can only relax an approval,
+    and must never reopen something stopped on purpose."""
+    client, main = _app()
+    with client:
+        stopped = _put(main, "b_stop", "blocked")
+        client.post("/api/rules", json=A_RULE, headers=OWNER).raise_for_status()
+
+    assert stopped.status == "blocked"

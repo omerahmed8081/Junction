@@ -541,8 +541,23 @@ def approval_sentence(level: str, role: str | None = None) -> str:
             }.get(level, "It is within the chef limit, so it can be placed straight away.")
 
 
+def repreview(basket: Basket) -> None:
+    """Re-run the approval preview alone, after the standing rules changed.
+
+    Deliberately not `_refresh`: nothing about the basket itself has changed,
+    so the totals stand and a quote, if there is one, must not be thrown away.
+    A rule only decides who has to approve.
+    """
+    basket.policy = preview_policy(basket)
+
+
 def _refresh(basket: Basket) -> None:
-    """Totals, policy preview, and back to an unsigned draft. Run after every change."""
+    """Totals, policy preview, and back to an unsigned draft. Run after every change.
+
+    Note the reset to an unsigned draft: that is right after an edit, because
+    changed lines no longer match the price Aimo signed. It is wrong after a
+    rule change, which touches no line - use `repreview` for that.
+    """
     totals = basket_totals([{"line_net": l.line_net, "line_vat": l.line_vat} for l in basket.lines])
     basket.net_total, basket.vat_total, basket.gross_total = (
         totals["net_total"], totals["vat_total"], totals["gross_total"])

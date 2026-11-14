@@ -799,6 +799,29 @@ def list_rules(include_inactive: bool = False) -> dict:
             "rules": [r.as_json() for r in found]}
 
 
+def _repreview_drafts() -> int:
+    """Re-judge the baskets a rule change can still affect. Drafts, and only drafts.
+
+    This used to run the full refresh over every basket in memory, whatever its
+    status - and that refresh sets the status back to "draft" and discards the
+    signed quote. So switching a rule on or off took a basket waiting in
+    Approvals and dropped it out of the list unsigned, and took an order
+    already accepted by Aimo and turned it back into an editable draft that
+    could be confirmed and ordered a second time.
+
+    A quoted, approved or pending basket carries a price Aimo signed and a
+    policy already decided against that price; an ordered or rejected one is
+    history; a blocked one was stopped on purpose. None of them are a rule's
+    business. A draft has no quote to lose, so re-judging it is free.
+    """
+    touched = 0
+    for state in baskets.values():
+        if state.basket.status == "draft":
+            agent.repreview(state.basket)
+            touched += 1
+    return touched
+
+
 @app.post("/api/rules")
 def add_rule(req: RuleRequest, x_kitchen_role: str | None = Header(default=None)) -> dict:
     """Set a standing rule: what may go through without anyone looking.
@@ -819,10 +842,10 @@ def add_rule(req: RuleRequest, x_kitchen_role: str | None = Header(default=None)
     rule = rules.store.add(rules.Rule(
         name=req.name.strip(), match=req.match, value=req.value.strip(),
         max_net_per_order=req.max_net_per_order))
-    audit.log.record("rule_added", actor="human", result=rule.as_json(),
+    touched = _repreview_drafts()
+    audit.log.record("rule_added", actor="human",
+                     result={**rule.as_json(), "drafts_rejudged": touched},
                      detail=narrate.sentence("rule_added", rule.said()))
-    for state in baskets.values():                  # the drafts on screen follow the new rule
-        agent._refresh(state.basket)
     _save()
     return rule.as_json()
 
@@ -834,10 +857,10 @@ def remove_rule(rule_id: int, x_kitchen_role: str | None = Header(default=None))
     _owner_only(x_kitchen_role, "switch standing rules off")
     if not rules.store.remove(rule_id):
         raise HTTPException(status_code=404, detail=f"no rule {rule_id}")
-    audit.log.record("rule_removed", actor="human", result={"rule_id": rule_id},
+    touched = _repreview_drafts()
+    audit.log.record("rule_removed", actor="human",
+                     result={"rule_id": rule_id, "drafts_rejudged": touched},
                      detail=narrate.sentence("rule_removed", f"rule {rule_id} switched off"))
-    for state in baskets.values():
-        agent._refresh(state.basket)
     _save()
     return {"rule_id": rule_id, "active": False}
 
