@@ -245,3 +245,39 @@ if __name__ == "__main__":
         if name.startswith("test_") and callable(fn):
             fn(); print("ok  ", name); passed += 1
     print(f"\n{passed} passed")
+
+
+# ----------------------------------------- what the public endpoint may serve
+
+
+# The private scalar of an Ed25519 JWK is "d" (RFC 8037). The RSA ones are here
+# too so this still holds if the algorithm ever changes.
+PRIVATE_JWK_FIELDS = {"d", "p", "q", "dp", "dq", "qi", "k", "private_jwk"}
+
+
+def test_neither_side_ever_serves_private_key_material():
+    """A JWKS document is meant to be public - that is the point of publishing
+    it - but only the public half. Serving "d" would let anyone forge that
+    party's signatures, which would end the trust story the whole project
+    rests on, so this is worth a test of its own.
+    """
+    from gateway import keys as gateway_keys
+    from kitchen import keys as kitchen_keys
+
+    for side, module in (("gateway", gateway_keys), ("kitchen", kitchen_keys)):
+        document = module.own_jwks()
+        assert document.get("keys"), f"{side} served no keys at all"
+        for key in document["keys"]:
+            leaked = sorted(set(key) & PRIVATE_JWK_FIELDS)
+            assert not leaked, f"{side} serves private key material: {leaked}"
+            assert key.get("kty") and key.get("x"), f"{side} served an unusable key"
+
+
+def test_the_private_half_exists_and_stays_off_the_wire():
+    """The pair really is a pair - otherwise the test above would pass on a
+    keypair that had no private half at all, which proves nothing."""
+    from gateway import keys as gateway_keys
+
+    pair = gateway_keys.gateway_keypair()
+    assert "d" in pair.private_jwk, "there is no private half to protect"
+    assert "d" not in pair.public_jwk
