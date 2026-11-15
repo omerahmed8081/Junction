@@ -2,7 +2,7 @@
 
 CONTRACT - agreed hour 0. Field names are what the frontend binds to and what the
 agent fills in, so a rename here is a team decision, not a local one.
-See docs/CONTRACTS.md for the prose version and a worked example.
+This module is the definition: both services import it, and it imports neither.
 """
 from __future__ import annotations
 

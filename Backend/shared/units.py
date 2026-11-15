@@ -5,7 +5,7 @@ CONTRACT - agreed hour 0, do not change the signature without telling the team.
     convert(product, need_value, need_unit, derived_size_per_sales_unit=None) -> Conversion
 
 One function, used by the agent, the basket and the quote, so every quantity in
-the product comes from the same code. See docs/CONTRACTS.md.
+the product comes from the same code.
 
 Size of one pack is found in this order (first hit wins):
   1. structured      synkkaData.unitConversions[BASE_UNIT_OR_EACH], unit checked

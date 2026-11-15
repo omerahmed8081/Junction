@@ -7,9 +7,9 @@ kitchen agent uses it to turn what a kitchen needs into a correct, verified bask
 nothing is ordered without a human's OK.
 
 **The plan below is frozen** and was agreed before building started. The **Status** section is
-the only part that changes. Every change to the code is one line in
-[`CHANGES.md`](CHANGES.md); the shapes the services pass each other are in
-[`CONTRACTS.md`](CONTRACTS.md).
+the only part that changes. Why each change was made is in the commit log; the shapes the
+services pass each other are in `Backend/shared/schemas.py`, which is the one definition both
+services import.
 
 ---
 

@@ -3,14 +3,13 @@
 Valio Aimo challenge, Junction 2026. An open, guarded interface that lets a kitchen's
 purchasing agent find, price and order from Aimo, with a human approving every order.
 
-## Four documents, and that is all
+## Two documents, and the commit log
 
 | | |
 |---|---|
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | The plan, frozen, with a **Status** section saying what is built, and section 18 on what the live API actually does |
-| [`docs/CHANGES.md`](docs/CHANGES.md) | What changed, newest first. Add a line when you push |
-| [`docs/CONTRACTS.md`](docs/CONTRACTS.md) | The shapes the services pass each other. Field names are agreed; raise a change in the group |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | The plan, agreed before building started, with a **Status** section saying what is built and section 18 on what the live API actually does |
 | this file | Where things are and how to run them |
+| `git log` | Why every change was made. The messages carry the reasoning, attached to the diff |
 
 ## Layout
 
