@@ -57,10 +57,17 @@ def main() -> int:
     args = ap.parse_args()
 
     products = [p for p in (args.product, args.also) if p]
-    client = httpx.Client(base_url=args.gateway.rstrip("/"), timeout=60.0,
+    # The gateway's own routes already begin with /gateway, and behind Caddy
+    # the public address does too. Both spellings are natural to type, so one
+    # is turned into the other rather than 404ing on
+    # .../gateway/gateway/check_delivery.
+    base = args.gateway.rstrip("/")
+    if base.endswith("/gateway"):
+        base = base[: -len("/gateway")]
+    client = httpx.Client(base_url=base, timeout=60.0,
                           headers={"X-API-Key": args.key})
     now = datetime.now(timezone.utc)
-    print(f"Asking {args.gateway} about {', '.join(products)}")
+    print(f"Asking {base}/gateway/check_delivery about {', '.join(products)}")
     print(f"Now is {when(now.isoformat())} UTC. A cut-off before that is past.\n")
 
     seen: dict[str, set[str]] = {p: set() for p in products}

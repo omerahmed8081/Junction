@@ -19,7 +19,7 @@ Backend/
   shared/     units, money, schemas, timeparse, signing   both services import it, it imports neither
   gateway/    Aimo's side: catalogue, price and availability, quotes, orders
   kitchen/    the kitchen's side: agent, policy, ordering, inventory, suggestions, trace
-  tests/      161 tests, all offline
+  tests/      automated backend tests, all offline
   scripts/    tools, below
   Data/       the product catalogue (gitignored, 84 MB) and the seeded restaurant
   sql/        audit.sql: the audit tables, run once against Aiven
@@ -41,16 +41,10 @@ pip install -r requirements.txt
 copy .env.example .env                                   # then fill it in
 ```
 
-Everything offline, with no database, model or network:
+Run the complete offline backend suite, with no database, model or network:
 
 ```
-python tests/test_units.py && python tests/test_money.py && python tests/test_timeparse.py
-python tests/test_signing.py && python tests/test_agents.py && python tests/test_audit.py && python tests/test_need.py
-python tests/test_edits.py && python tests/test_chat_dates.py
-python tests/test_aimo_client.py
-python tests/test_delivery.py
-python tests/test_agent.py && python tests/test_inventory.py && python tests/test_orders.py
-python tests/test_ordering.py
+python -m pytest -q
 
 python scripts/sample_basket.py --order                  # a sentence to a placed order
 python scripts/sample_basket.py --order --stock-moves 400 # the basket repairing itself
