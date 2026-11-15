@@ -46,6 +46,7 @@ Run the complete offline backend suite, with no database, model or network:
 ```
 python -m pytest -q
 
+python scripts/end_to_end.py                          # chat through order and inventory, offline
 python scripts/sample_basket.py --order                  # a sentence to a placed order
 python scripts/sample_basket.py --order --stock-moves 400 # the basket repairing itself
 ```
@@ -55,6 +56,9 @@ Both services, each in its own terminal with `.env` filled in:
 ```
 uvicorn gateway.main:app --reload --port 8001     # docs at /docs
 uvicorn kitchen.main:app --reload --port 8002     # what the frontend calls
+
+# and the frontend, which proxies /api and /gateway to those two
+cd ../Frontend && npm run dev                     # http://localhost:5173
 ```
 
 ## Hosting it
@@ -111,7 +115,9 @@ sentence to placed order works. Add `--reset` to clear the demo state first.
 | Script | For |
 |---|---|
 | `scripts/hour0_check.py` | Call the live API and print prices, cut-offs and totals |
+| `scripts/cutoff_check.py` | Compare live delivery cut-offs across several dates; read-only |
 | `scripts/find_products.py` | Find real product ids with their pack size; `--price` marks what is orderable |
+| `scripts/end_to_end.py` | Exercise chat, signed quote, order and inventory together, offline |
 | `scripts/sample_basket.py` | A real basket, or a whole order, offline |
 | `scripts/check_gemini.py` | Whether the model call works, and which models the key can use |
 | `scripts/apply_sql.py` | Apply `sql/audit.sql` to Aiven without needing psql; `--check` to look first |

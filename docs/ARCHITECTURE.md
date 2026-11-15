@@ -31,7 +31,7 @@ search and delivery endpoints.
 | 6. Second client | 13 | **Gateway support exists** with a separate demo identity and customer; a separate client UI/rehearsal is not part of the current demo. |
 | 7. Inventory and the running-low suggestion | 11 | **Done.** Append-only ledger, weekday forecast, shortfall trigger, reorder baskets. |
 | Frontend | 12 | **Implemented.** Order, approvals, inventory, rules, activity and demo reset screens; production build/type-check passes. No automated browser test suite yet. |
-| Deployment | 13 | Host configs are present, but no production deployment was verified in this check. The live order path still needs a rehearsal before relying on it on stage. |
+| Deployment | 13 | The demo gateway answers API checks; the full frontend-to-live-order deployment was not verified. |
 
 **Who is building what:** Omer on the backend's kitchen side, one teammate on the frontend,
 one on the gateway side, one on seed data, demo numbers and slides.
@@ -42,6 +42,7 @@ one on the gateway side, one on seed data, demo numbers and slides.
 cd Backend
 python scripts/sample_basket.py --order              # a sentence to an order, offline
 python scripts/sample_basket.py --order --stock-moves 400   # the basket repairing itself
+python scripts/end_to_end.py                        # kitchen chat through order and inventory, offline
 uvicorn gateway.main:app --reload --port 8001        # needs .env
 uvicorn kitchen.main:app --reload --port 8002
 ```

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import os
 import sys
+import tempfile
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -104,7 +105,12 @@ def fresh_kitchen():
     main.orders.clear()
     main.kitchen.mandate = None
     main.kitchen.stopped = False
-    storage.STATE_FILE = Path("/tmp") / "tta-end-to-end-never-read.json"
+    # Keep the state file isolated and writable on Windows as well as Linux.
+    # The TemporaryDirectory object stays attached to the app module until the
+    # process exits, then removes the file and directory automatically.
+    temp_dir = tempfile.TemporaryDirectory(prefix="tta-end-to-end-")
+    storage.STATE_FILE = Path(temp_dir.name) / "state.json"
+    main._end_to_end_temp_dir = temp_dir
     return main
 
 
