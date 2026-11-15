@@ -143,7 +143,7 @@ export function OrderPage() {
 
         {/* What approving produced: ordered, adjusted, refused, or a security stop. */}
         {outcome?.outcome === "ordered" && outcome.order && (
-          <Banner tone="ok" alert title={t("outcome.ordered", { id: outcome.order.order_id })}
+          <Banner tone="ok" alert title={t("outcome.ordered", { no: outcome.order.number ?? outcome.order.order_id })}
             actions={<Link className="font-semibold underline" to={`/activity?order=${outcome.order.order_id}`}>{t("action.viewOrder")}</Link>}>
             {t("outcome.orderedHint", { date: day(outcome.order.delivery_date) })}
           </Banner>
