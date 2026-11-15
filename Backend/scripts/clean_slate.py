@@ -5,8 +5,8 @@
 
 Point it at whichever services are running against this database:
 
-    python scripts/clean_slate.py --yes --kitchen http://31.22.104.193 \
-                                       --gateway http://31.22.104.193
+    python scripts/clean_slate.py --yes --kitchen http://YOUR_SERVER_IP \
+                                       --gateway http://YOUR_SERVER_IP
 
 Without that it resets the services on localhost, and a deployed kitchen that
 nobody told keeps its baskets, orders and mandate in memory and writes them

@@ -10,7 +10,7 @@ messages of 25 (dairy, meat and fish, vegetables and frozen, dry goods).
 
 ## 1. Before you start (5 minutes, not timed)
 
-1. Open http://31.22.104.193/ in Chrome and press **Ctrl+Shift+R**.
+1. Open the deployed site in Chrome and press **Ctrl+Shift+R**.
 2. **Acting as: Owner** (header). The owner places orders up to the agent's limit,
    so the test is not interrupted by approvals.
 3. **Agent rules** -> raise the agent's limit for the test, because 100 lines will

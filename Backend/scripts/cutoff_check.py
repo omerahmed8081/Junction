@@ -1,6 +1,6 @@
 """Does a product's order cut-off move when you ask for a later delivery day?
 
-    python scripts/cutoff_check.py --gateway http://31.22.104.193/gateway
+    python scripts/cutoff_check.py --gateway http://YOUR_SERVER_IP/gateway
     python scripts/cutoff_check.py --product 461490 --days 7
 
 Everything the kitchen can and cannot order turns on one comparison the gateway
