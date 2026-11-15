@@ -42,10 +42,10 @@ Run `npm run api:types` after any backend change to a request or response shape.
 | Address | Screen | Endpoints used |
 |---|---|---|
 | `/` and `/?basket=<id>` | Order: chat, basket, totals, running low | `POST /api/chat`, `GET`/`PATCH /api/basket/{id}`, `POST …/confirm`, `POST …/approve`, `GET /api/suggestions`, `POST /api/suggestions/{id}/basket`, `POST /api/service` |
-| `/approvals` | Baskets with a signed price, waiting | `GET /api/basket/{id}` for each basket this browser started |
+| `/approvals` | Baskets with a signed price, waiting | `GET /api/baskets?status=quoted` |
 | `/inventory` | Stock, on order, menu usage, runs out | `GET /api/inventory` |
 | `/rules` | Mandate in force, issue a new one | `GET`/`POST /api/mandate` |
-| `/activity` | Orders, agent steps, "What Aimo sees" | `GET /api/orders`, steps kept by the browser |
+| `/activity` | Orders, agent steps, "What Aimo sees" | `GET /api/orders`, `GET /api/audit`, `GET /api/orders/{id}/audit` |
 | `/demo` | Reset both services (not part of the product, not in the navigation) | `POST /api/demo/reset`, `POST /gateway/demo/reset` |
 
 ## Which file does what
@@ -73,7 +73,7 @@ Frontend/
 
     lib/
       format.ts           money, numbers, dates, countdowns, unit and code labels, product names
-      session.ts          what the browser remembers: started baskets, agent steps, chat
+      session.ts          current basket, selected role, chat, kitchen generation
 
     components/
       ui.tsx              Button, Chip, Banner, Card, Skeleton, EmptyState, ErrorNote, PageTitle
@@ -112,11 +112,11 @@ Frontend/
 | How money or dates look | `src/lib/format.ts` |
 | A backend address | `.env.local` (dev) |
 | A new endpoint | add a function in `src/api/client.ts`, run `npm run api:types` |
-| The role sent on approve | `approve` in `src/api/client.ts` (currently always `owner`) |
+| The role sent on approve | the role selected in the header; the backend enforces its permissions |
 
 ## How it behaves
 
-- **No roles.** One person uses the system. Approve always signs as `owner`, the most senior role the backend knows, so it is never refused for seniority. The "extra check" notice still shows the policy's reasons, as information.
+- **No sign-in yet.** The header lets the person at the screen choose chef, manager or owner; the backend enforces what that role may do. This is a demo role switch, not user authentication.
 - **The server's numbers, always.** The UI never adds up totals. After every action it shows the basket the backend returned.
 - **The basket id is in the address**, so refresh, Back and a copied link all work.
 - **Approve has three answers**, all shown as a banner above the basket: ordered, adjusted (the basket was repaired, confirm again), refused (with the reason; a failed signature is shown as a security stop and logged in Activity).
@@ -147,8 +147,6 @@ Not yet done: a pass with a real screen reader, and an automated axe run.
 
 | Screen part | Missing in the backend | What the frontend does |
 |---|---|---|
-| Approvals list | list baskets by status | remembers basket ids in `localStorage` and fetches each |
-| Agent steps in Activity | a stored trace | keeps every `steps[]` it receives in `sessionStorage`; labelled "from this browser session" |
 | "What did you cook today?" | a list of dishes | `src/fixtures/dishes.ts`, copied from `Data/seed/recipes.json` |
 | Product names in Inventory and Running low | `name` is `null` | `src/fixtures/productNames.ts` |
 | Finnish product names in baskets | no `name_fi` field | shows the English name |
@@ -156,6 +154,8 @@ Not yet done: a pass with a real screen reader, and an automated axe run.
 | Tamper and scenario switch | no endpoints | not on the demo page |
 
 Each fixture file says at the top what replaces it.
+
+The approvals list and activity trace now come from the backend, so they are shared across devices and survive a page reload. The order flow and both services have backend tests; this frontend has a production build/type-check but no automated browser test suite yet.
 
 ## Stack
 

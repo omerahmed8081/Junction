@@ -15,21 +15,22 @@ the only part that changes. Every change to the code is one line in
 
 ## Status
 
-Last updated **Sunday 15 November, 00:05 (hour 21)**. **301 tests passing**, and both services boot, all offline:
-`cd Backend && python tests/test_units.py` and the rest.
+Last checked **15 November 2026**. **350 backend tests pass** (`python -m pytest -q`), and
+`npm run build` passes. Read-only live checks from the development environment also passed:
+the catalogue database (17,546 products), Aimo ping/price/availability, and one Gemini parse.
 
 | Block | Section | State |
 |---|---|---|
 | 1. Spine: request to a priced, editable basket | 8, 12 | **Done** |
-| 2a. Quote and order | 4, 6 | **Done.** Confirm, approve, order. A refusal repairs the basket and suggests cover rather than ending in an error. |
-| 2b. Mandate, signed approval, single-use quotes | 6, 7 | **Done.** All ten gateway checks; the kitchen issues and signs. |
-| 3. Exceptions | 10 | **Done** except the scenario switch. Past cutoff, not deliverable, sales block, unknown size, price errors, stock changed between quote and order, expired quote, partial delivery split across products. |
-| 4. Trace view | 12 | **Partly.** Every step carries `crossed_gateway`, but steps are returned per call and not stored, so the Activity tab has no history to query. |
+| 2a. Quote and order | 4, 6 | **Implemented and covered by offline tests.** Confirm, approve, order. A refusal repairs the basket and suggests cover rather than ending in an error. The live Aimo order path has not been exercised in this check. |
+| 2b. Mandate, signed approval, single-use quotes | 6, 7 | **Implemented and covered by offline tests.** The kitchen issues and signs; the gateway verifies. |
+| 3. Exceptions | 10 | **Implemented** except the deterministic scenario switch. Past cutoff, not deliverable, sales block, unknown size, price errors, stock changed between quote and order, expired quote, partial delivery split across products. |
+| 4. Trace view | 12 | **Done.** Both services persist audit rows; Activity reads them, and an order view joins both sides. |
 | 5. Signed quotes | 6 | **Done.** Signed at confirm, Ed25519 JWS, single use, re-checked at order, tampering refused as a security event. |
-| 6. Second client | 13 | **Not started.** Beat 5. |
+| 6. Second client | 13 | **Gateway support exists** with a separate demo identity and customer; a separate client UI/rehearsal is not part of the current demo. |
 | 7. Inventory and the running-low suggestion | 11 | **Done.** Append-only ledger, weekday forecast, shortfall trigger, reorder baskets. |
-| Frontend | 12 | In progress. `Frontend/fixtures/sample_basket.json` is a real basket to build against. |
-| Deployment | 13 | **Not started, and the largest unknown:** the mock API has never been called from a cloud host, and Aiven's free tier powers off when idle. |
+| Frontend | 12 | **Implemented.** Order, approvals, inventory, rules, activity and demo reset screens; production build/type-check passes. No automated browser test suite yet. |
+| Deployment | 13 | Host configs are present, but no production deployment was verified in this check. The live order path still needs a rehearsal before relying on it on stage. |
 
 **Who is building what:** Omer on the backend's kitchen side, one teammate on the frontend,
 one on the gateway side, one on seed data, demo numbers and slides.
@@ -46,26 +47,17 @@ uvicorn kitchen.main:app --reload --port 8002
 
 **Known gaps**
 
-1. **The audit log is built, both halves, and the Activity tab reads it.** Gateway
-   rows in `gateway.audit_log`, kitchen rows in `kitchen.audit_log`, joined on
-   `quote_jti` and `order_id`. Expanding an order shows both sides merged.
-   (`GET /gateway/audit`), kitchen rows in `kitchen.audit_log` (`GET /api/audit`),
-   joining on `quote_jti` and `order_id`. Tables applied to Aiven. The Activity tab
-   still reads the browser's copy; pointing it at `/api/audit` is a frontend change.
-2. **Nothing is deployed, and two things have never run live.** Both services now start
-   and the whole kitchen-side HTTP path is verified (`scripts/smoke_test.py`), with one
-   origin in front of all three via `deploy/Caddyfile`. Still unverified anywhere: the
-   gateway's catalogue queries against Aiven, and a single live Gemini call. Both need a
-   machine that can reach Aiven and Google - run `scripts/smoke_test.py` there and it
-   says which of the two is wrong.
-3. The chat reads every item in a message; the basket's own buttons still handle
-   editing through `PATCH`. Needs one live Gemini run to confirm end to end.
-   buttons handle editing through `PATCH`.
-4. Sixteen of the seventeen seed products have never been priced against the live API, so
-   their cut-offs are unknown. If cream's has passed, beat 3 drafts an empty basket.
-   `python scripts/find_products.py --text cream --price 2026-11-17` settles it.
-5. The scenario switch is not built. Real product ids cover every exception except
-   `stock_changed`; `sample_basket.py --stock-moves` covers that in rehearsal but not on stage.
+1. **The full live order path and production deployment remain unverified.** Offline tests
+   cover quote, approval and order behavior. The live checks above were read-only; run
+   `scripts/smoke_test.py` on the demo host before the presentation to exercise the full
+   flow. That script places an order against the Aimo mock API.
+2. **Only one product was checked live in this pass.** Product `464306` returned a usable
+   price and availability for the requested date. Check the rest of the seed products and
+   their cut-offs before choosing the final stage request; use
+   `python scripts/find_products.py --text cream --price 2026-11-17` for cream.
+3. **The deterministic scenario switch is still missing.** Live availability can change,
+   and the `stock_changed` case currently has a rehearsal path only in
+   `sample_basket.py --stock-moves`.
 
 ## 0. Decisions locked
 

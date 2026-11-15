@@ -664,11 +664,19 @@ def _can_cover(candidate: Candidate) -> bool:
 # in the way is that day's cut-off. Three covers a weekend.
 LOOK_AHEAD_DAYS = 3
 
-# Reasons that are about the day rather than the product. One of these among
-# the dropped candidates is enough to make a later day worth asking about: the
-# others were never going to work anyway, since a product blocked for sale or
-# without a price is in the same state tomorrow.
-DAY_REASONS = {"past_cutoff", "past_closing_time"}
+# Reasons a later delivery day actually fixes.
+#
+# Only one qualifies. `not_deliverable` means Aimo has no schedule line on or
+# before the day asked for, so asking for a later day lets more lines through.
+#
+# `past_cutoff` is deliberately NOT here, though it looks like it belongs: it
+# comes from `closingTime < now`, which is a fact about when the order is being
+# placed and not about the day it is for. `scripts/cutoff_check.py` against the
+# live gateway confirms it - the same product reports the same cut-off for
+# every delivery day tried - so looking ahead on a passed cut-off would spend
+# three more calls to be told the same thing three more times. A cut-off that
+# has gone is what AIMO_CUTOFF_NOW is for (gateway/delivery.py), not this.
+DAY_REASONS = {"not_deliverable"}
 
 
 def _first_day_that_works(need: ParsedNeed, gateway: GatewayClient,

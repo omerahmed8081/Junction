@@ -128,8 +128,14 @@ def _expiry(lines: list[QuoteLine], issued_at: datetime) -> datetime:
     """The earliest of: a price validity, a cut-off, and two hours from now."""
     candidates = [issued_at + MAX_QUOTE_TTL]
     for line in lines:
-        if line.delivery and line.delivery.closing_time:
-            candidates.append(line.delivery.closing_time)
+        closing = line.delivery.closing_time if line.delivery else None
+        # A cut-off that had already passed when the quote was issued cannot
+        # bound it: taking it would mint a quote that is expired at birth, and
+        # the kitchen would refuse the very confirmation it just asked for.
+        # Reachable whenever a cut-off is judged at a stated earlier instant
+        # (gateway/delivery.py, cutoff_now), and nonsense in any case.
+        if closing and closing > issued_at:
+            candidates.append(closing)
     return min(candidates)
 
 

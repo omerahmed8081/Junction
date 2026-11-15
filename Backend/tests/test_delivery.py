@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -96,3 +96,86 @@ if __name__ == "__main__":
         if name.startswith("test_") and callable(fn):
             fn(); print("ok  ", name); passed += 1
     print(f"\n{passed} passed")
+
+
+# ------------------------------------------------- the demo clock (AIMO_CUTOFF_NOW)
+
+
+def _availability(closing: str, available: str = "2026-11-16") -> dict:
+    return {"closingTime": closing, "salesBlock": False,
+            "scheduleLines": [{"salesBlock": False, "availableAmount": 999999.0,
+                               "availableDate": available, "salesUnit": "ST"}]}
+
+
+def _price() -> dict:
+    return {"prices": [{"price": 1.01, "salesUnit": "ST"}]}
+
+
+def _one(now_env: str | None, monkeypatch) -> object:
+    """One check_delivery answer for a product whose cut-off passed on 12 Nov."""
+    from gateway import delivery
+    from shared.schemas import CheckDeliveryItem
+
+    if now_env is None:
+        monkeypatch.delenv("AIMO_CUTOFF_NOW", raising=False)
+    else:
+        monkeypatch.setenv("AIMO_CUTOFF_NOW", now_env)
+    answer = delivery.build_response(
+        [CheckDeliveryItem(product_id="461490", quantity_sales_units=1)],
+        date(2026, 11, 18),
+        {"461490": _price()},
+        {"461490": _availability("2026-11-12T15:00:00+02:00")},
+        {"461490": "ST"})
+    return answer.results[0].delivery
+
+
+def test_without_the_demo_clock_a_passed_cutoff_is_passed(monkeypatch):
+    assert _one(None, monkeypatch).past_closing_time is True
+
+
+def test_the_demo_clock_judges_the_cutoff_at_the_stated_moment(monkeypatch):
+    """This is the whole point: the cream's window closed on 12 Nov at 15:00
+    and never reopens, so a demo has to say which moment it is replaying."""
+    assert _one("2026-11-12T10:00:00+02:00", monkeypatch).past_closing_time is False
+    assert _one("2026-11-12T16:00:00+02:00", monkeypatch).past_closing_time is True
+
+
+def test_a_naive_timestamp_is_read_as_utc_and_rubbish_is_ignored(monkeypatch):
+    assert _one("2026-11-12T10:00:00", monkeypatch).past_closing_time is False
+    # Nonsense must not take the gateway down, and must not quietly pass either.
+    assert _one("the day before yesterday", monkeypatch).past_closing_time is True
+
+
+def test_an_explicit_now_still_wins_so_the_recorded_tests_hold(monkeypatch):
+    from gateway import delivery
+    from shared.schemas import CheckDeliveryItem
+
+    monkeypatch.setenv("AIMO_CUTOFF_NOW", "2026-11-12T10:00:00+02:00")
+    answer = delivery.build_response(
+        [CheckDeliveryItem(product_id="461490", quantity_sales_units=1)],
+        date(2026, 11, 18), {"461490": _price()},
+        {"461490": _availability("2026-11-12T15:00:00+02:00")}, {"461490": "ST"},
+        now=datetime(2026, 11, 14, 12, tzinfo=timezone.utc))
+    assert answer.results[0].delivery.past_closing_time is True
+
+
+def test_a_quote_is_never_born_expired_from_a_cutoff_already_past():
+    """With the demo clock on, a line carries a closing time in the real past.
+    Taking it as the quote's expiry would mint one the kitchen must refuse the
+    moment it is handed back."""
+    from datetime import timedelta
+
+    from gateway.quotes import MAX_QUOTE_TTL, _expiry
+    from shared.schemas import DeliveryAnswer
+
+    class Line:
+        def __init__(self, closing):
+            self.delivery = DeliveryAnswer(can_fulfil="full", closing_time=closing)
+
+    issued = datetime(2026, 11, 15, 3, 50, tzinfo=timezone.utc)
+    passed = datetime(2026, 11, 12, 13, 0, tzinfo=timezone.utc)
+    assert _expiry([Line(passed)], issued) == issued + MAX_QUOTE_TTL
+
+    # A cut-off still ahead does bound the quote, as it always did.
+    soon = issued + timedelta(minutes=30)
+    assert _expiry([Line(soon)], issued) == soon

@@ -7,6 +7,41 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Sunday 15 November
 
+### 07:55 - a stated moment to judge cut-offs at
+
+`scripts/cutoff_check.py` asked the live gateway the question that decides all
+of this, and the answer is the awkward one:
+
+```
+461490 cream   2026-11-12 15:00   past, the same for every delivery day tried
+464306 milk    2026-11-15 17:00   not past yet, the same for every day tried
+```
+
+**A cut-off does not move with the delivery day.** It is `closingTime < now` -
+about when the order is placed, not the day it is for. So no amount of asking
+for a later day helps, and after 17:00 on 15 November *nothing in the
+catalogue can be ordered at all*, milk included.
+
+`AIMO_CUTOFF_NOW` says which moment to judge cut-offs at, and nothing else.
+Prices, stock, quantities and every signature keep the real clock, so no answer
+from Aimo is invented and no token is backdated - a quote still expires two
+hours after it was really issued. Unset, there is no demo clock. The gateway
+prints a banner while it is on, because a demo clock nobody remembers is a trap
+that lets through an order the real Aimo would refuse.
+
+One trap found while building it: `quotes._expiry` took each line's cut-off as
+a candidate expiry, so a cut-off in the real past would mint a quote expired at
+birth and the kitchen would refuse the confirmation it had just asked for.
+A cut-off earlier than the moment of issue is now ignored - nonsense in any
+case, not only here.
+
+**And a correction.** The look-ahead added at 03:30 had `DAY_REASONS` exactly
+backwards: it chased `past_cutoff`, which a later day never fixes, and ignored
+`not_deliverable`, which it does - that is Aimo having no schedule line on or
+before the day asked for. Corrected, with a test that a passed cut-off is not
+chased across later days. The feature now fires on the case it can actually
+solve, and spends nothing on the case it cannot.
+
 ### 06:45 - the same standing rule cannot be added twice
 
 Adding a rule that already exists made a second one, and the list showed both.

@@ -10,6 +10,8 @@ is decided in aimo_client.answer_delivery(); nothing here reads availableAmount.
 """
 from __future__ import annotations
 
+import os
+
 from datetime import date, datetime, timezone
 from typing import Any
 
@@ -69,6 +71,36 @@ def _delivery(raw: dict[str, Any] | None, wanted: float, requested_date: date,
     )
 
 
+def cutoff_now() -> datetime | None:
+    """A stated instant to judge order cut-offs against, or None for the real one.
+
+    Valio's recorded data carries a fixed closing time per product. None of
+    them move when a later delivery day is asked for - `scripts/cutoff_check.py`
+    asks, and answers - and by the morning of the demo they are all in the
+    past, so judged against the real clock nothing in the catalogue can be
+    ordered at all.
+
+    `AIMO_CUTOFF_NOW` says which moment to judge them at, and nothing else.
+    Prices, availability, quantities and every signature keep the real clock:
+    no answer from Aimo is invented, no token is backdated, and a quote still
+    expires two hours after it was really issued. It only decides whether a
+    recorded cut-off counts as passed.
+
+    Unset, there is no demo clock and this returns None. Say so in the pitch
+    when it is on: it is replaying Aimo's recorded availability at a stated
+    time, which is true, and that is the whole reason it is acceptable.
+    """
+    raw = os.environ.get("AIMO_CUTOFF_NOW", "").strip()
+    if not raw:
+        return None
+    try:
+        stated = datetime.fromisoformat(raw)
+    except ValueError:
+        print(f"[gateway] AIMO_CUTOFF_NOW={raw!r} is not a timestamp, so it is ignored")
+        return None
+    return stated if stated.tzinfo else stated.replace(tzinfo=timezone.utc)
+
+
 def build_response(
     items: list[CheckDeliveryItem],
     requested_date: date,
@@ -82,7 +114,8 @@ def build_response(
     `sales_units` maps every product id that exists in our catalogue to its sales
     unit. An id that is not in it gets `unknown_product` and is never sent to Aimo.
     """
-    now = now or datetime.now(timezone.utc)
+    # An explicit `now` wins, so the recorded tests still pin their own moment.
+    now = now or cutoff_now() or datetime.now(timezone.utc)
     results = []
     for item in items:
         pid = item.product_id

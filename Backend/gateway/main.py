@@ -64,6 +64,16 @@ _kitchen_verifier = None
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     global pool
+    stated = delivery.cutoff_now()
+    if stated is not None:
+        # Loud on purpose. A demo clock nobody remembers is on is a trap: it
+        # would let an order through that the real Aimo would refuse.
+        print("=" * 72)
+        print(f"[gateway] DEMO CLOCK: order cut-offs are judged at {stated.isoformat()},")
+        print("[gateway] not the real time. Prices, stock and every signature still use")
+        print("[gateway] the real clock. Unset AIMO_CUTOFF_NOW to turn this off.")
+        print("=" * 72)
+
     url = os.environ.get("DATABASE_URL")
     if not url:
         raise RuntimeError("DATABASE_URL is not set (see Backend/.env.example)")

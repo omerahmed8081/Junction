@@ -262,11 +262,11 @@ if __name__ == "__main__":
 # --------------------------------- a day whose cut-off has gone is not a dead end
 
 
-class CutoffGateway(RecordedGateway):
-    """Everything is past its cut-off until `open_from`, then normal.
+class LateGateway(RecordedGateway):
+    """Nothing can be delivered until `open_from`, then normal.
 
-    This is the shape of the real failure: the chef asks for a day, that day's
-    cut-off has gone, and every candidate is dropped for the same reason.
+    This is `not_deliverable`: Aimo has no schedule line on or before the day
+    asked for, which a later day genuinely fixes.
     """
 
     def __init__(self, open_from: date):
@@ -280,16 +280,31 @@ class CutoffGateway(RecordedGateway):
             return answer
         for row in answer.results:
             row.delivery.can_fulfil = "none"
+        return answer
+
+
+class CutoffGateway(RecordedGateway):
+    """Every cut-off has passed, on every day. The shape of the live data:
+    `closingTime < now` does not change when a later day is asked for."""
+
+    def __init__(self):
+        self.asked: list[date] = []
+
+    def check_delivery(self, requested_date, items):
+        self.asked.append(requested_date)
+        answer = super().check_delivery(requested_date, items)
+        for row in answer.results:
+            row.delivery.can_fulfil = "none"
             row.delivery.past_closing_time = True
         return answer
 
 
 def test_the_agent_moves_to_the_first_day_that_works():
     """It used to say "try a later date" and leave an empty basket, while
-    holding every cut-off time needed to work out which date."""
+    holding the delivery answer that said which date would work."""
     need = parse_with_rules("10 L lactose-free milk by Tuesday", today=SATURDAY)
     wanted = need.requested_date
-    gateway = CutoffGateway(open_from=wanted + timedelta(days=1))
+    gateway = LateGateway(open_from=wanted + timedelta(days=1))
 
     state, reply, steps = agent.add_need(None, need, gateway)
 
@@ -301,7 +316,7 @@ def test_the_agent_moves_to_the_first_day_that_works():
 
 def test_it_gives_up_rather_than_wandering_forward_for_ever():
     need = parse_with_rules("10 L lactose-free milk by Tuesday", today=SATURDAY)
-    gateway = CutoffGateway(open_from=need.requested_date + timedelta(days=60))
+    gateway = LateGateway(open_from=need.requested_date + timedelta(days=60))
 
     state, reply, _ = agent.add_need(None, need, gateway)
 
@@ -318,7 +333,7 @@ def test_a_basket_that_already_has_lines_is_never_moved_underneath_the_chef():
     assert state.basket.lines
 
     need = parse_with_rules("10 L lactose-free milk by Tuesday", today=SATURDAY)
-    gateway = CutoffGateway(open_from=need.requested_date + timedelta(days=1))
+    gateway = LateGateway(open_from=need.requested_date + timedelta(days=1))
     agent.add_need(state, need, gateway)
 
     assert state.basket.requested_date == priced_on, "the day moved under priced lines"
@@ -344,3 +359,18 @@ def test_a_product_that_is_blocked_is_not_retried_on_another_day():
     state, _, _ = agent.add_need(None, need, gateway)
     assert not state.basket.lines
     assert gateway.asked == [need.requested_date], "it looked at other days for a blocked product"
+
+
+def test_a_passed_cutoff_is_not_chased_across_later_days():
+    """`past_cutoff` is `closingTime < now`, a fact about when the order is
+    placed rather than the day it is for. scripts/cutoff_check.py against the
+    live gateway shows the same product reporting the same cut-off for every
+    delivery day, so looking ahead would buy three more identical refusals.
+    """
+    need = parse_with_rules("10 L lactose-free milk by Tuesday", today=SATURDAY)
+    gateway = CutoffGateway()
+
+    state, reply, _ = agent.add_need(None, need, gateway)
+
+    assert not state.basket.lines
+    assert gateway.asked == [need.requested_date], f"it looked ahead anyway: {gateway.asked}"
