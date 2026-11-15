@@ -374,3 +374,57 @@ def test_a_passed_cutoff_is_not_chased_across_later_days():
 
     assert not state.basket.lines
     assert gateway.asked == [need.requested_date], f"it looked ahead anyway: {gateway.asked}"
+
+
+class ByIdGateway(RecordedGateway):
+    """RecordedGateway, honouring a lookup by product id.
+
+    The real gateway does; this stub's `search_products` only filters on text,
+    so a reorder looked up the wrong product and every check built on it was
+    meaningless.
+    """
+
+    undeliverable: set[str] = set()
+
+    def search_products(self, req):
+        ids = getattr(req, "product_ids", None)
+        if ids:
+            out = [s for s in SUMMARIES if s.product_id in set(ids)]
+            return SearchResponse(products=out[: req.limit], total_matched=len(out))
+        return super().search_products(req)
+
+    def check_delivery(self, requested_date, items):
+        answer = super().check_delivery(requested_date, items)
+        for row in answer.results:
+            if row.product_id in self.undeliverable:
+                row.delivery.can_fulfil = "none"
+        return answer
+
+
+def test_a_substitute_records_the_product_it_stands_in_for():
+    """The running-low panel asks for one product; when Aimo cannot deliver it
+    the agent offers the closest. Without this the ledger books the substitute,
+    the shortage stays open, and the panel asks for what was just bought."""
+    wanted = "464306"
+    gateway = ByIdGateway()
+    gateway.undeliverable = {wanted}
+
+    state, reply, _ = agent.add_reorder(None, wanted, 40.0, "L", date(2026, 11, 16),
+                                        gateway, reason="running low")
+
+    assert state.basket.lines, f"no substitute was offered: {reply}"
+    line = state.basket.lines[0]
+    assert line.product_id != wanted, "it ordered the one Aimo cannot deliver"
+    assert line.replaces_product_id == wanted
+    assert "differs_from_request" in line.flags, "a swap the chef did not ask for is not flagged"
+
+
+def test_the_product_asked_for_records_no_substitution():
+    gateway = ByIdGateway()
+    gateway.undeliverable = set()
+
+    state, _, _ = agent.add_reorder(None, "464306", 40.0, "L", date(2026, 11, 16),
+                                    gateway, reason="running low")
+
+    assert state.basket.lines[0].product_id == "464306"
+    assert state.basket.lines[0].replaces_product_id is None

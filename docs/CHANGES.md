@@ -7,6 +7,32 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Sunday 15 November
 
+### 09:05 - a substitute answers the shortage it was bought for
+
+Order the cream the Running low panel is asking for, and it kept asking. The
+ledger was right and looked broken: the 3,3 dl cream could not be ordered that
+day, the agent offered the 2 dl UHT and said so, and the on-order went to the
+product that was actually coming. The shortage is tracked per product id, so
+the one nobody had bought stayed open.
+
+The line now records what it stands in for (`replaces_product_id`, set exactly
+where the agent already flags `differs_from_request`), the ledger carries it
+on the on-order entry, and `shortfalls` counts it against the shortage it was
+bought to answer.
+
+**The ledger is not told a lie.** `on_order_totals` stays literal - what is
+arriving, under the product that is arriving - so the Inventory page never
+claims cream is coming when it is not. Only `shortfalls` reads the cover, and
+a substitute in a different unit is not counted at all: two litres of cream say
+nothing about a shortage measured in kilograms, and guessing would put a wrong
+number on a screen where every number is explained.
+
+Six tests, including that the real agent path sets the marker. That one needed
+the test gateway fixed first: its `search_products` ignored `product_ids`, so a
+reorder looked up whatever matched the text and every check built on it was
+meaningless - the first version of this check "failed" for that reason and not
+because the code was wrong.
+
 ### 08:30 - one order, end to end, before deploying
 
 "The inventory does not change when I order something" is invisible to a test

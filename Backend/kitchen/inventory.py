@@ -67,6 +67,10 @@ class OnOrder:
     unit: str
     delivery_date: date
     order_id: str
+    # The product this was bought to stand in for, when the one the kitchen
+    # wanted could not be ordered. Empty for an ordinary delivery. The ledger
+    # stays literal either way: `product_id` is what is actually arriving.
+    covers_product_id: str = ""
 
 
 @dataclass
@@ -189,10 +193,40 @@ class Inventory:
         return written
 
     def add_on_order(self, order_id: str, lines: Iterable[tuple[str, float, str]],
-                     delivery_date: date) -> None:
-        """An order was placed. Not stock until it arrives."""
+                     delivery_date: date, covers: dict[str, str] | None = None) -> None:
+        """An order was placed. Not stock until it arrives.
+
+        `covers` maps a line's product to the product it was bought instead of,
+        for the substitution the agent makes when the one the kitchen wanted
+        cannot be ordered that day.
+        """
         for product_id, quantity, unit in lines:
-            self.on_order.append(OnOrder(product_id, quantity, unit, delivery_date, order_id))
+            self.on_order.append(OnOrder(product_id, quantity, unit, delivery_date,
+                                         order_id, (covers or {}).get(product_id, "")))
+
+    def covering_totals(self) -> dict[str, float]:
+        """What is on order under one product to answer another's shortfall.
+
+        Deliberately separate from `on_order_totals`, which stays literal: the
+        Inventory page should show what is actually arriving, by the product
+        that is actually arriving. This is the other question - which shortage
+        it was bought to answer - and only `shortfalls` asks it.
+
+        A substitute in a different unit is not counted. Two litres of cream
+        answer a shortage measured in litres; they say nothing about one
+        measured in kilograms, and guessing would put a wrong number on the
+        screen in a place where every number is meant to be explained.
+        """
+        totals: dict[str, float] = defaultdict(float)
+        for pending in self.on_order:
+            covered = pending.covers_product_id
+            if not covered:
+                continue
+            wanted_unit = self.units.get(covered, "")
+            if wanted_unit and pending.unit and wanted_unit != pending.unit:
+                continue
+            totals[covered] += pending.quantity
+        return {k: round(v, 6) for k, v in totals.items()}
 
     # ---------------------------------------------------------------- state
 
@@ -272,6 +306,9 @@ class Inventory:
         buffer_usage = self.expected_usage(until + timedelta(days=1),
                                            until + timedelta(days=int(BUFFER_DAYS)))
         stock, on_order = self.stock(), self.on_order_totals()
+        # A substitute bought to cover a shortage answers that shortage, or the
+        # kitchen is told to order cream it has already bought.
+        covering = self.covering_totals()
 
         out = []
         for product_id, needed in usage.items():
@@ -282,7 +319,8 @@ class Inventory:
             need = round(needed, 3)
             buffer_needed = round(buffer_usage.get(product_id, 0.0), 3)
             have = round(stock.get(product_id, 0.0), 3)
-            coming = round(on_order.get(product_id, 0.0), 3)
+            coming = round(on_order.get(product_id, 0.0)
+                           + covering.get(product_id, 0.0), 3)
             short = round(need + buffer_needed - have - coming, 3)
             if short < MIN_SHORTFALL:
                 continue

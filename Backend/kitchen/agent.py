@@ -817,6 +817,7 @@ def add_reorder(state: BasketState | None, product_id: str, quantity: float, uni
         # flagged: a substitution the chef did not ask for needs a human.
         lines = [build_line(ranked[0], need, ranked)]
         lines[0].flags.append("differs_from_request")
+        lines[0].replaces_product_id = product_id
         lines[0].reason = (f"{summary.name} cannot be ordered for {requested_date}, "
                            f"so this is the closest that can; " + lines[0].reason)
     else:

@@ -111,7 +111,11 @@ async def lifespan(_: FastAPI):
     # Orders go back into the ledger too, or a restart would drop the on-order
     # figure to zero while the orders themselves sat in the database.
     for record in stored_orders.values():
-        _book_on_order(record)
+        # The basket a substitution was recorded on is restored too, so the
+        # ledger comes back the same as it went down.
+        basket = next((b.basket for b in stored_baskets.values()
+                       if b.basket.order_id == record.order_id), None)
+        _book_on_order(record, _substitutions(basket))
     if stored_mandate:
         kitchen.mandate = stored_mandate
     if stored_baskets or stored_orders:
@@ -143,7 +147,20 @@ def _assign_number(record: OrderRecord) -> OrderRecord:
     return record
 
 
-def _book_on_order(record: OrderRecord) -> None:
+def _substitutions(basket) -> dict[str, str]:
+    """Which line stands in for which product the kitchen actually wanted.
+
+    The agent offers the closest orderable product when the one asked for
+    cannot be had that day. Without this the ledger books the substitute, the
+    shortage it was bought to answer stays open, and the running-low panel goes
+    on asking for cream that has just been ordered.
+    """
+    return {line.product_id: line.replaces_product_id
+            for line in (basket.lines if basket else [])
+            if getattr(line, "replaces_product_id", None)}
+
+
+def _book_on_order(record: OrderRecord, covers: dict[str, str] | None = None) -> None:
     """Tell the kitchen's own ledger that these goods are coming.
 
     On order, not stock: they become stock when they arrive, which is what
@@ -169,7 +186,8 @@ def _book_on_order(record: OrderRecord) -> None:
     for product_id, _, unit in lines:
         inventory.units.setdefault(product_id, unit)
     inventory.add_on_order(record.order_id, lines,
-                           record.delivery_date or record.requested_date)
+                           record.delivery_date or record.requested_date,
+                           covers=covers)
 
 
 def _save() -> None:
@@ -394,7 +412,7 @@ def _auto_order(state: agent.BasketState | None, steps: list) -> str:
 
     if result.order is not None:
         orders[result.order.order_id] = _assign_number(result.order)
-        _book_on_order(result.order)
+        _book_on_order(result.order, _substitutions(state.basket))
         audit.log.record("auto_order", basket_id=state.basket.basket_id, actor="agent",
                          order_id=result.order.order_id, crossed_gateway=True,
                          result={"net_total": result.order.net_total, "rule": rule},
@@ -618,7 +636,7 @@ def approve_basket(basket_id: str, req: ApproveRequest) -> OrderResponse:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     if result.order is not None:
         orders[result.order.order_id] = _assign_number(result.order)
-        _book_on_order(result.order)
+        _book_on_order(result.order, _substitutions(state.basket))
     audit.log.record_steps(getattr(result, "steps", []) or [], basket_id,
                            order_id=result.order.order_id if result.order else "")
     audit.log.record("approve", basket_id=basket_id, actor="human",

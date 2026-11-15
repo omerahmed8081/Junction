@@ -172,6 +172,10 @@ class BasketLine(BaseModel):
     # what was asked for
     need_value: float
     need_unit: str                              # "L" | "KG" | a sales unit
+    # Set when the agent could not order the product the kitchen asked for and
+    # offered the closest that could be. The prose reason says so too; this is
+    # the same fact in a form the ledger can use.
+    replaces_product_id: str | None = None
 
     # how we got from the need to a quantity (app/units.py)
     sales_unit: str

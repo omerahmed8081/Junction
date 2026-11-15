@@ -411,3 +411,64 @@ def test_numbering_follows_the_highest_order_in_hand():
     finally:
         main.orders.clear()
         main.orders.update(held)
+
+
+# ---------------------------- a substitute answers the shortage it was bought for
+
+
+def test_a_substitute_answers_the_shortage_it_was_bought_for():
+    """The cream on the demo: the 3,3 dl could not be ordered, the agent offered
+    the 2 dl UHT, and the running-low panel went on asking for cream that had
+    just been bought, because the ledger books by product id."""
+    inv = Inventory.from_seed()
+    until = suggestions.window_until(inv)
+    short = {s["product_id"]: s for s in inv.shortfalls(until)}
+    assert CREAM in short, "the seeded restaurant is not short of cream"
+    gap = short[CREAM]["shortfall"]
+
+    substitute = "999001"                       # a cream the ledger has never seen
+    inv.units[substitute] = inv.units.get(CREAM, "L")
+    inv.add_on_order("o_sub", [(substitute, gap * 2, inv.units[CREAM])],
+                     date(2026, 11, 16), covers={substitute: CREAM})
+
+    assert CREAM not in {s["product_id"] for s in inv.shortfalls(until)}
+
+
+def test_the_ledger_still_says_what_is_actually_arriving():
+    """The shortage is answered, but nobody is told that cream is coming when
+    it is not. `on_order_totals` stays literal; only `shortfalls` reads cover."""
+    inv = Inventory.from_seed()
+    cream_before = inv.on_order_totals().get(CREAM, 0.0)
+    substitute = "999001"
+    inv.units[substitute] = inv.units.get(CREAM, "L")
+    inv.add_on_order("o_sub", [(substitute, 20.0, inv.units[CREAM])],
+                     date(2026, 11, 16), covers={substitute: CREAM})
+
+    assert inv.on_order_totals().get(CREAM, 0.0) == cream_before, "the ledger was told a lie"
+    assert inv.on_order_totals()[substitute] == 20.0
+    assert inv.covering_totals()[CREAM] == 20.0
+
+
+def test_a_substitute_in_another_unit_does_not_count():
+    """Two litres of cream say nothing about a shortage measured in kilograms,
+    and guessing would put a wrong number where every number is explained."""
+    inv = Inventory.from_seed()
+    until = suggestions.window_until(inv)
+    short = {s["product_id"]: s for s in inv.shortfalls(until)}
+    assert CREAM in short
+    assert inv.units.get(CREAM) == "L", inv.units.get(CREAM)
+
+    inv.units["999002"] = "KG"
+    inv.add_on_order("o_sub", [("999002", 999.0, "KG")], date(2026, 11, 16),
+                     covers={"999002": CREAM})
+
+    assert CREAM in {s["product_id"] for s in inv.shortfalls(until)}
+    assert CREAM not in inv.covering_totals()
+
+
+def test_an_ordinary_delivery_covers_nothing():
+    inv = Inventory.from_seed()
+    inv.add_on_order("o_plain", [(CREAM, 5.0, inv.units.get(CREAM, "L"))],
+                     date(2026, 11, 16))
+    assert inv.covering_totals() == {}
+    assert inv.on_order_totals()[CREAM] > 0
