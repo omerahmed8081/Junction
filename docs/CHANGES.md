@@ -7,6 +7,24 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Sunday 15 November
 
+### 09:40 - clean_slate reset the wrong machine's services
+
+The tables were always cleared, orders included. What was not cleared was the
+memory of a service running somewhere else: `KITCHEN_BASE_URL` is unset, so
+running the script from a laptop against the shared database posted the reset
+to `localhost:8002` while the deployed kitchen carried on holding its baskets,
+orders and mandate - and wrote them back into `kitchen.state` on its next save.
+
+Audit rows did not come back, because they are written as they happen and
+never re-saved from memory. Hence "it clears the logs but not the orders",
+which looked like the orders were being missed and was the opposite: they were
+cleared and then restored by a process nobody had told.
+
+`--kitchen` and `--gateway` now point it at whichever services are running, and
+a service that does not answer is reported as NO ANSWER with a warning saying
+plainly that it will undo the clean slate. It used to say "not running (nothing
+in memory to clear)", which was a guess, and in this case a wrong one.
+
 ### 09:05 - a substitute answers the shortage it was bought for
 
 Order the cream the Running low panel is asking for, and it kept asking. The

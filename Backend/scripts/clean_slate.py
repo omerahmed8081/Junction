@@ -3,6 +3,17 @@
     python scripts/clean_slate.py                 # show what would go
     python scripts/clean_slate.py --yes           # actually do it
 
+Point it at whichever services are running against this database:
+
+    python scripts/clean_slate.py --yes --kitchen http://31.22.104.193 \
+                                       --gateway http://31.22.104.193
+
+Without that it resets the services on localhost, and a deployed kitchen that
+nobody told keeps its baskets, orders and mandate in memory and writes them
+back into kitchen.state on its next save. The audit rows stay cleared, because
+they are written as they happen and never re-saved - which is exactly what
+"it clears the logs but not the orders" looks like.
+
 Clears both audit logs, the gateway's orders and used quote ids, the kitchen's
 state (baskets, orders, mandate, logged services), the old state file if one is
 still lying about, and - if the services are running - what they hold in memory,
@@ -145,26 +156,35 @@ def files(apply: bool) -> int:
     return 0
 
 
-def running_services(apply: bool) -> int:
-    """The gateway keeps its orders, used quote ids and weekly spend in memory.
+def running_services(apply: bool, kitchen_url: str, gateway_url: str) -> int:
+    """Both services hold state in memory that no table can reach.
 
-    Nothing outside the process can clear those, so if it is up we ask it to.
-    If it is not up, they are already gone - memory does not survive a stop.
+    The kitchen holds baskets, orders and the mandate; the gateway holds its
+    orders, used quote ids and the weekly spend. Truncating the tables under a
+    running service does not clear those, and the kitchen writes its memory
+    back on the next save, so this asks them to let go first.
+
+    Returns the number that could not be reached, because that is the case
+    worth shouting about: a service running somewhere this was not pointed at
+    will undo the clean slate a moment later.
     """
     if not apply:
-        print("  running services     would be asked to reset (if they are up)")
+        print(f"  kitchen                  would be asked to reset ({kitchen_url})")
+        print(f"  gateway                  would be asked to reset ({gateway_url})")
         return 0
+    missed = 0
     for name, url, path, headers in (
-        ("kitchen", KITCHEN_URL, "/api/demo/reset", {}),
-        ("gateway", GATEWAY_URL, "/gateway/demo/reset", {"X-API-Key": AGENT_KEY}),
+        ("kitchen", kitchen_url, "/api/demo/reset", {}),
+        ("gateway", gateway_url, "/gateway/demo/reset", {"X-API-Key": AGENT_KEY}),
     ):
         try:
-            response = httpx.post(f"{url}{path}", headers=headers, timeout=15)
+            response = httpx.post(f"{url.rstrip('/')}{path}", headers=headers, timeout=15)
             response.raise_for_status()
-            print(f"  {name:<25} reset in place")
-        except Exception:                                       # noqa: BLE001
-            print(f"  {name:<25} not running (nothing in memory to clear)")
-    return 0
+            print(f"  {name:<25} reset in place ({url})")
+        except Exception as exc:                                # noqa: BLE001
+            missed += 1
+            print(f"  {name:<25} NO ANSWER at {url} ({type(exc).__name__})")
+    return missed
 
 
 def main() -> int:
@@ -174,6 +194,10 @@ def main() -> int:
                     help="also clear revoked mandates (a stopped agent would order again)")
     ap.add_argument("--rules", action="store_true",
                     help="also clear the kitchen's standing rules (a setting, kept by default)")
+    ap.add_argument("--kitchen", default=KITCHEN_URL,
+                    help=f"where the kitchen is running (default {KITCHEN_URL})")
+    ap.add_argument("--gateway", default=GATEWAY_URL,
+                    help=f"where the gateway is running (default {GATEWAY_URL})")
     args = ap.parse_args()
 
     print("A clean slate for the demo." if args.yes else "Dry run. Add --yes to clear.\n")
@@ -183,7 +207,8 @@ def main() -> int:
     # what we just cleared. Asking first empties the memory; the truncation
     # then sweeps up anything a service that was down had left behind.
     print("Services:")
-    bad = running_services(args.yes)
+    unreachable = running_services(args.yes, args.kitchen, args.gateway)
+    bad = 0
     print("Database:")
     bad += database(args.yes, args.rules, args.revocations)
     print("Files:")
@@ -193,6 +218,12 @@ def main() -> int:
     if not args.yes:
         print("Nothing was changed. Run again with --yes to clear.")
         return 0
+    if unreachable:
+        print("WARNING: a service did not answer, so whatever it holds in memory was")
+        print("not cleared. If it is running against this database somewhere else, it")
+        print("will write that memory back and the orders will reappear. Point this at")
+        print("it with --kitchen and --gateway, or stop it and run again.")
+        print()
     if bad:
         print("Finished with problems; look above.")
         return 1

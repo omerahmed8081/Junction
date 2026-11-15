@@ -117,6 +117,7 @@ That pulls, installs any new Python packages, rebuilds the frontend, reinstalls 
 | Code (backend or frontend) | `bash /opt/tta/deploy/update.sh` |
 | A new table in `sql/audit.sql` | `python scripts/apply_sql.py` from your laptop, then `update.sh`. `--check` first lists what exists |
 | A value in `.env` | edit `/opt/tta/Backend/.env`, then `systemctl restart tta-kitchen tta-gateway` |
+| Clearing the demo while the server is up | `python scripts/clean_slate.py --yes --kitchen http://YOUR_SERVER_IP --gateway http://YOUR_SERVER_IP`. Without those it resets localhost, and the deployed kitchen writes its memory back |
 | Before pushing anything | `python -m pytest tests/ -q`, then `python scripts/end_to_end.py` and `python scripts/check_i18n.py`. All three are offline and take seconds |
 | Cut-offs have passed and nothing can be ordered | check with `python scripts/cutoff_check.py --gateway http://YOUR_SERVER_IP/gateway`; if they are fixed and past, set `AIMO_CUTOFF_NOW` in `.env` and restart the gateway |
 | `deploy/Caddyfile` or a `.service` file | `bash /opt/tta/deploy/update.sh` (it reinstalls both) |
