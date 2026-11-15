@@ -7,6 +7,35 @@ behaviour, a file that moved. Add to the top when you push.
 
 ## Sunday 15 November
 
+### 08:30 - one order, end to end, before deploying
+
+"The inventory does not change when I order something" is invisible to a test
+of the ledger and invisible to a test of ordering: the wiring between them is
+what breaks, and each part passes on its own.
+
+`scripts/end_to_end.py` drives chat, confirm and approve through
+`kitchen.main`'s own endpoint functions, with the real quote, signing and order
+code behind a stub that skips only the HTTP hop, then looks at what the kitchen
+believes afterwards: goods on order, not counted as stock, the suggestion gone,
+the Inventory endpoint agreeing, and the ledger rebuilding to the same figures
+after a restart. No Aiven, no Valio, no browser. Takes a second.
+
+Taking the ledger wiring back out makes it fail on three of those, which is the
+check that it is testing the application rather than itself - the first version
+of this called the booking from its own helper and passed with the endpoint
+gutted.
+
+It is deliberately not a pytest file. Importing `tests/test_ordering.py` swaps
+the signing keys module-wide, which is fine in a process devoted to this and
+breaks two dozen other tests when pytest collects them together. So it runs on
+its own and `python -m pytest tests/` stays the gate.
+
+Run all three before pushing:
+
+    python -m pytest tests/ -q
+    python scripts/end_to_end.py
+    python scripts/check_i18n.py
+
 ### 07:55 - a stated moment to judge cut-offs at
 
 `scripts/cutoff_check.py` asked the live gateway the question that decides all

@@ -117,6 +117,7 @@ That pulls, installs any new Python packages, rebuilds the frontend, reinstalls 
 | Code (backend or frontend) | `bash /opt/tta/deploy/update.sh` |
 | A new table in `sql/audit.sql` | `python scripts/apply_sql.py` from your laptop, then `update.sh`. `--check` first lists what exists |
 | A value in `.env` | edit `/opt/tta/Backend/.env`, then `systemctl restart tta-kitchen tta-gateway` |
+| Before pushing anything | `python -m pytest tests/ -q`, then `python scripts/end_to_end.py` and `python scripts/check_i18n.py`. All three are offline and take seconds |
 | Cut-offs have passed and nothing can be ordered | check with `python scripts/cutoff_check.py --gateway http://YOUR_SERVER_IP/gateway`; if they are fixed and past, set `AIMO_CUTOFF_NOW` in `.env` and restart the gateway |
 | `deploy/Caddyfile` or a `.service` file | `bash /opt/tta/deploy/update.sh` (it reinstalls both) |
 | The catalogue or labels | run the loader from your laptop against Aiven, as before; nothing on the server |

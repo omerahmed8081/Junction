@@ -190,6 +190,27 @@ def test_health_and_the_public_key_need_no_key():
         assert all("d" not in k for k in keys.json()["keys"])
 
 
+def test_product_cutoff_filter_uses_the_stated_demo_time(monkeypatch):
+    """Search must use the same disclosed clock as the delivery answer.
+
+    This product's recorded window closed years before the real clock, but is
+    still open at the stated demo instant. If the search filter ignores that
+    instant, it removes the product before the agent can build a basket.
+    """
+    class CutoffAimo:
+        def availability(self, product_ids, requested_date, *, customer=None):
+            return {pid: {
+                "closingTime": "2000-01-01T15:00:00+0200",
+                "salesBlock": False,
+                "scheduleLines": [{"salesBlock": False, "availableAmount": 10,
+                                   "availableDate": requested_date.isoformat(), "salesUnit": "ST"}],
+            } for pid in product_ids}
+
+    monkeypatch.setenv("AIMO_CUTOFF_NOW", "1999-12-31T14:00:00+02:00")
+    monkeypatch.setattr(main, "_aimo", CutoffAimo())
+    assert main.orderable_by([PRODUCT], date(2026, 11, 17)) == {PRODUCT}
+
+
 if __name__ == "__main__":
     passed = 0
     for name, fn in sorted(globals().items()):

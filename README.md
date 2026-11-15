@@ -19,7 +19,7 @@ Backend/
   shared/     units, money, schemas, timeparse, signing   both services import it, it imports neither
   gateway/    Aimo's side: catalogue, price and availability, quotes, orders
   kitchen/    the kitchen's side: agent, policy, ordering, inventory, suggestions, trace
-  tests/      161 tests, all offline
+  tests/      automated backend tests, all offline
   scripts/    tools, below
   Data/       the product catalogue (gitignored, 84 MB) and the seeded restaurant
   sql/        audit.sql: the audit tables, run once against Aiven
@@ -41,16 +41,10 @@ pip install -r requirements.txt
 copy .env.example .env                                   # then fill it in
 ```
 
-Everything offline, with no database, model or network:
+Run the complete offline backend suite, with no database, model or network:
 
 ```
-python tests/test_units.py && python tests/test_money.py && python tests/test_timeparse.py
-python tests/test_signing.py && python tests/test_agents.py && python tests/test_audit.py && python tests/test_need.py
-python tests/test_edits.py && python tests/test_chat_dates.py
-python tests/test_aimo_client.py
-python tests/test_delivery.py
-python tests/test_agent.py && python tests/test_inventory.py && python tests/test_orders.py
-python tests/test_ordering.py
+python -m pytest -q
 
 python scripts/sample_basket.py --order                  # a sentence to a placed order
 python scripts/sample_basket.py --order --stock-moves 400 # the basket repairing itself
@@ -97,6 +91,7 @@ silently corrupts the API key.
 | `AGENT_API_KEY` | kitchen | The key this kitchen presents to the gateway. Defaults to `demo-kitchen-key` |
 | **`GATEWAY_ISSUER`** | both | The gateway's public name, signed into every quote and written on every mandate, e.g. `http://your-host/gateway`. **Not** `GATEWAY_URL`, which is where the kitchen reaches the gateway and must stay `http://localhost:8001`. Unset, quotes are issued by `localhost` |
 | `AIMO_CACHE_SECONDS` | gateway | How long an answer from Aimo is reused. Default 60. The order-time re-check never uses the cache |
+| `AIMO_CUTOFF_NOW` | gateway | Demo-only ISO timestamp with an offset. Judges Aimo's recorded `closingTime` at that stated moment; leave unset for the real clock. The gateway prints a warning when this is enabled, and the demo should disclose it |
 | `AIMO_CUSTOMER_MAP` | gateway | `ours=theirs,...`: which Aimo customer each gateway customer is priced as. One with no entry is priced on `AIMO_CUSTOMER_ID` |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | kitchen | A wrong model name falls back to the rules parser. The chat reply's `parser` field and the kitchen log both say which one ran |
 | `GATEWAY_URL` | kitchen | Where the gateway is, server to server |

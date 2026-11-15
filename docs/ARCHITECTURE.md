@@ -15,16 +15,17 @@ the only part that changes. Every change to the code is one line in
 
 ## Status
 
-Last checked **15 November 2026**. **350 backend tests pass** (`python -m pytest -q`), and
-`npm run build` passes. Read-only live checks from the development environment also passed:
-the catalogue database (17,546 products), Aimo ping/price/availability, and one Gemini parse.
+Last checked **15 November 2026**. **357 backend tests pass** (`python -m pytest -q`), and
+`npm run build` passes. Read-only live checks also passed: the catalogue database
+(17,546 products), Aimo ping/price/availability, one Gemini parse, and the demo gateway's
+search and delivery endpoints.
 
 | Block | Section | State |
 |---|---|---|
 | 1. Spine: request to a priced, editable basket | 8, 12 | **Done** |
 | 2a. Quote and order | 4, 6 | **Implemented and covered by offline tests.** Confirm, approve, order. A refusal repairs the basket and suggests cover rather than ending in an error. The live Aimo order path has not been exercised in this check. |
 | 2b. Mandate, signed approval, single-use quotes | 6, 7 | **Implemented and covered by offline tests.** The kitchen issues and signs; the gateway verifies. |
-| 3. Exceptions | 10 | **Implemented** except the deterministic scenario switch. Past cutoff, not deliverable, sales block, unknown size, price errors, stock changed between quote and order, expired quote, partial delivery split across products. |
+| 3. Exceptions | 10 | **Implemented.** `AIMO_CUTOFF_NOW` can replay a disclosed cutoff time; a full scenario switch for stock and delivery exceptions is not built. |
 | 4. Trace view | 12 | **Done.** Both services persist audit rows; Activity reads them, and an order view joins both sides. |
 | 5. Signed quotes | 6 | **Done.** Signed at confirm, Ed25519 JWS, single use, re-checked at order, tampering refused as a security event. |
 | 6. Second client | 13 | **Gateway support exists** with a separate demo identity and customer; a separate client UI/rehearsal is not part of the current demo. |
@@ -47,17 +48,21 @@ uvicorn kitchen.main:app --reload --port 8002
 
 **Known gaps**
 
-1. **The full live order path and production deployment remain unverified.** Offline tests
-   cover quote, approval and order behavior. The live checks above were read-only; run
+1. **The full live order path and production deployment remain unverified.** The demo
+   gateway is reachable and read-only API checks passed. Offline tests cover quote,
+   approval and order behavior. Run
    `scripts/smoke_test.py` on the demo host before the presentation to exercise the full
    flow. That script places an order against the Aimo mock API.
-2. **Only one product was checked live in this pass.** Product `464306` returned a usable
-   price and availability for the requested date. Check the rest of the seed products and
-   their cut-offs before choosing the final stage request; use
+2. **The live product check is still narrow.** Product search returned 14 lactose-free milk
+   candidates. Availability for cream (`461490`) and milk (`464306`) kept the same cut-off
+   across 16–20 November: cream's 12 November cutoff had passed, while milk's 15 November
+   cutoff had not yet passed at check time. Check the rest of the seed products and their
+   prices before choosing the final stage request; use
    `python scripts/find_products.py --text cream --price 2026-11-17` for cream.
-3. **The deterministic scenario switch is still missing.** Live availability can change,
-   and the `stock_changed` case currently has a rehearsal path only in
-   `sample_basket.py --stock-moves`.
+3. **A full deterministic scenario switch is still missing.** `AIMO_CUTOFF_NOW` replays
+   only the cutoff comparison against Aimo's returned timestamp; it does not simulate
+   stock changes or other delivery exceptions. Disclose it if enabled. The
+   `stock_changed` case currently has a rehearsal path only in `sample_basket.py --stock-moves`.
 
 ## 0. Decisions locked
 

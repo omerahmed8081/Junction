@@ -132,9 +132,10 @@ def aimo() -> AimoClient:
 def orderable_by(product_ids: list[str], by: date, customer: str | None = None) -> set[str]:
     """Ids that can still be ordered for delivery by this date: deliverable, and cutoff not passed."""
     raw = aimo().availability(product_ids, by, customer=customer)
+    now = delivery.cutoff_now()
     keep = set()
     for pid in product_ids:
-        answer = answer_delivery(raw.get(pid), 1, by)
+        answer = answer_delivery(raw.get(pid), 1, by, now=now)
         if answer["can_fulfil"] != "none" and not answer.get("past_closing_time"):
             keep.add(pid)
     return keep
