@@ -18,7 +18,7 @@ import os
 import re
 import uuid
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from kitchen.gateway_client import GatewayClient
 from kitchen.need import ParsedNeed
@@ -660,6 +660,36 @@ def _can_cover(candidate: Candidate) -> bool:
             and delivery.fulfil_amount >= candidate.conversion.quantity_sales_units - 1e-9)
 
 
+# How many days past the one asked for the agent will look when the only thing
+# in the way is that day's cut-off. Three covers a weekend.
+LOOK_AHEAD_DAYS = 3
+
+# Reasons that are about the day rather than the product. One of these among
+# the dropped candidates is enough to make a later day worth asking about: the
+# others were never going to work anyway, since a product blocked for sale or
+# without a price is in the same state tomorrow.
+DAY_REASONS = {"past_cutoff", "past_closing_time"}
+
+
+def _first_day_that_works(need: ParsedNeed, gateway: GatewayClient,
+                          steps: list[AgentStep]) -> tuple[list[Candidate], date | None]:
+    """The first day this need could actually be delivered, within a few days.
+
+    "Try a later date" is not an answer when the agent is the one holding the
+    cut-off times. The chef asked for a day, that day's cut-off had gone, and
+    the kitchen still needs the cream - so the agent finds the day that works
+    and says which one it moved to.
+    """
+    for days in range(1, LOOK_AHEAD_DAYS + 1):
+        later = need.requested_date + timedelta(days=days)
+        ranked, _ = find_candidates(need.model_copy(update={"requested_date": later}),
+                                    gateway, steps,
+                                    extra_ids=[need.product_id] if need.product_id else None)
+        if ranked:
+            return ranked, later
+    return [], None
+
+
 def add_need(state: BasketState | None, need: ParsedNeed, gateway: GatewayClient,
              role: str | None = None) -> tuple[BasketState, str, list[AgentStep]]:
     """Add one line for this need to the basket (a new basket when state is None)."""
@@ -675,6 +705,19 @@ def add_need(state: BasketState | None, need: ParsedNeed, gateway: GatewayClient
     # already chosen, and second-guessing that is not the agent's job.
     ranked, reasons = find_candidates(
         need, gateway, steps, extra_ids=[need.product_id] if need.product_id else None)
+    moved_to = None
+    if not ranked and (set(reasons) & DAY_REASONS) and not state.basket.lines:
+        # Only when the basket is still empty. Moving the day under lines that
+        # already carry a price and a delivery answer for the old day would
+        # quietly make those figures wrong; that is what `_redate` is for, and
+        # it is the chef's decision, not the agent's.
+        ranked, moved_to = _first_day_that_works(need, gateway, steps)
+        if moved_to is not None:
+            need = need.model_copy(update={"requested_date": moved_to})
+            state.basket.requested_date = moved_to
+            _step(steps, "change_date",
+                  f"the cut-off for that day had passed, so moved to {moved_to}")
+
     if not ranked:
         _refresh(state.basket)
         return state, _explain_empty(need, reasons), steps

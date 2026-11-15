@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -257,3 +257,90 @@ if __name__ == "__main__":
         if name.startswith("test_") and callable(fn):
             fn(); print("ok  ", name); passed += 1
     print(f"\n{passed} passed")
+
+
+# --------------------------------- a day whose cut-off has gone is not a dead end
+
+
+class CutoffGateway(RecordedGateway):
+    """Everything is past its cut-off until `open_from`, then normal.
+
+    This is the shape of the real failure: the chef asks for a day, that day's
+    cut-off has gone, and every candidate is dropped for the same reason.
+    """
+
+    def __init__(self, open_from: date):
+        self.open_from = open_from
+        self.asked: list[date] = []
+
+    def check_delivery(self, requested_date, items):
+        self.asked.append(requested_date)
+        answer = super().check_delivery(requested_date, items)
+        if requested_date >= self.open_from:
+            return answer
+        for row in answer.results:
+            row.delivery.can_fulfil = "none"
+            row.delivery.past_closing_time = True
+        return answer
+
+
+def test_the_agent_moves_to_the_first_day_that_works():
+    """It used to say "try a later date" and leave an empty basket, while
+    holding every cut-off time needed to work out which date."""
+    need = parse_with_rules("10 L lactose-free milk by Tuesday", today=SATURDAY)
+    wanted = need.requested_date
+    gateway = CutoffGateway(open_from=wanted + timedelta(days=1))
+
+    state, reply, steps = agent.add_need(None, need, gateway)
+
+    assert state.basket.lines, f"still nothing ordered: {reply}"
+    assert state.basket.requested_date == wanted + timedelta(days=1)
+    assert any(s.step == "change_date" for s in steps), "the chef is not told it moved"
+    assert gateway.asked[0] == wanted, "it did not try the day that was asked for first"
+
+
+def test_it_gives_up_rather_than_wandering_forward_for_ever():
+    need = parse_with_rules("10 L lactose-free milk by Tuesday", today=SATURDAY)
+    gateway = CutoffGateway(open_from=need.requested_date + timedelta(days=60))
+
+    state, reply, _ = agent.add_need(None, need, gateway)
+
+    assert not state.basket.lines
+    assert len(gateway.asked) <= agent.LOOK_AHEAD_DAYS + 1, gateway.asked
+    assert state.basket.requested_date == need.requested_date, "the day moved anyway"
+
+
+def test_a_basket_that_already_has_lines_is_never_moved_underneath_the_chef():
+    """Those lines carry a price and a delivery answer for the day they were
+    priced on. Moving the day under them would make those figures wrong."""
+    state, _, _ = basket_for("1,000 L lactose-free milk by Tuesday")
+    priced_on = state.basket.requested_date
+    assert state.basket.lines
+
+    need = parse_with_rules("10 L lactose-free milk by Tuesday", today=SATURDAY)
+    gateway = CutoffGateway(open_from=need.requested_date + timedelta(days=1))
+    agent.add_need(state, need, gateway)
+
+    assert state.basket.requested_date == priced_on, "the day moved under priced lines"
+    assert gateway.asked == [need.requested_date], "it looked further anyway"
+
+
+def test_a_product_that_is_blocked_is_not_retried_on_another_day():
+    """A later day fixes a cut-off. It does not fix a sales block or a missing
+    price, so looking again would just cost the chef time."""
+    need = parse_with_rules("10 L lactose-free milk by Tuesday", today=SATURDAY)
+
+    class Blocked(RecordedGateway):
+        def __init__(self): self.asked = []
+        def check_delivery(self, requested_date, items):
+            self.asked.append(requested_date)
+            answer = super().check_delivery(requested_date, items)
+            for row in answer.results:
+                row.delivery.can_fulfil = "none"
+                row.delivery.sales_block = True
+            return answer
+
+    gateway = Blocked()
+    state, _, _ = agent.add_need(None, need, gateway)
+    assert not state.basket.lines
+    assert gateway.asked == [need.requested_date], "it looked at other days for a blocked product"
