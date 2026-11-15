@@ -30,9 +30,21 @@ docs/
 Two FastAPI services, two Postgres schemas, talking over HTTP only. That separation is what
 makes "kitchen data stays with the kitchen" true in the code rather than only on a slide.
 
-## Running it
+## Running it from nothing
 
-**Python 3.11 or newer.** Aimo's timestamps use an offset with no colon, which 3.10 refuses.
+**You need four things before you start.** Three of them are not in this repository,
+because none of them belong in one.
+
+| | Where it comes from |
+|---|---|
+| **Python 3.11+** | Aimo's timestamps carry an offset with no colon, which 3.10 refuses to parse |
+| **Node 20+** | for the frontend |
+| **A Postgres database** | any will do. We used a free Aiven instance. The catalogue and the audit logs live here |
+| **`JUNCTION_API_KEY`** | the challenge portal. Without it nothing can be priced, and the demo cannot run |
+| `GEMINI_API_KEY` | *optional.* Google AI Studio. Without it the chat falls back to a rules parser that handles the demo sentences; the reply's `parser` field says which one answered |
+| **The 84 MB product file** | the challenge portal, saved as `Backend/Data/valio_aimo_junction26_product_data.json`. Gitignored on purpose — it is given data, not ours to redistribute |
+
+### 1. Install
 
 ```
 cd Backend
@@ -41,24 +53,61 @@ pip install -r requirements.txt
 copy .env.example .env                                   # then fill it in
 ```
 
-Run the complete offline backend suite, with no database, model or network:
+`.env.example` lists the seven variables that matter. Everything else in the table further
+down has a working default. Write the file with LF line endings and keep prose behind `#`.
+
+### 2. Set the database up, once
 
 ```
-python -m pytest -q
+python scripts/apply_sql.py                  # the audit, order and state tables
+python scripts/load_catalogue.py             # the 84 MB file into gateway.products, a few minutes
+python scripts/label_categories.py --from-file   # readable names for the 349 category codes
+python scripts/apply_sql.py --check          # what exists now, with row counts
+```
 
-python scripts/end_to_end.py                          # chat through order and inventory, offline
-python scripts/sample_basket.py --order                  # a sentence to a placed order
+`label_categories.py --from-file` reloads the labels we already worked out, committed as
+`Data/category_labels.json`, so it costs no model calls. Without the `--from-file` it asks
+Gemini again.
+
+### 3. Check it before trusting it
+
+All three are offline — no database, no model, no network — and take seconds:
+
+```
+python -m pytest -q                   # the backend suite
+python scripts/end_to_end.py          # one order: chat, signed quote, order, inventory
+python scripts/check_i18n.py          # every translation key and placeholder lines up
+```
+
+### 4. Run it
+
+Three terminals:
+
+```
+cd Backend  && uvicorn gateway.main:app --reload --port 8001   # Aimo's side, docs at /docs
+cd Backend  && uvicorn kitchen.main:app --reload --port 8002   # the kitchen's side
+cd Frontend && npm install && npm run dev                      # http://localhost:5173
+```
+
+Open <http://localhost:5173> and type *1,000 L lactose-free milk by Tuesday*.
+
+**If nothing can be ordered**, the catalogue's order cut-offs have passed — they are fixed
+timestamps in given data, and they do not move when you ask for a later delivery day:
+
+```
+python scripts/cutoff_check.py                 # says which of the two it is
+```
+
+If they are past, set `AIMO_CUTOFF_NOW` in `.env` to a moment before them and restart the
+gateway. It judges *only* whether a recorded cut-off counts as passed — prices, stock and
+every signature keep the real clock — and the gateway prints a banner while it is set. A
+demo using it should say so.
+
+Two more offline runs worth knowing, both without a database or a network:
+
+```
+python scripts/sample_basket.py --order                   # a sentence to a placed order
 python scripts/sample_basket.py --order --stock-moves 400 # the basket repairing itself
-```
-
-Both services, each in its own terminal with `.env` filled in:
-
-```
-uvicorn gateway.main:app --reload --port 8001     # docs at /docs
-uvicorn kitchen.main:app --reload --port 8002     # what the frontend calls
-
-# and the frontend, which proxies /api and /gateway to those two
-cd ../Frontend && npm run dev                     # http://localhost:5173
 ```
 
 ## Hosting it
@@ -122,7 +171,9 @@ sentence to placed order works. Add `--reset` to clear the demo state first.
 | `scripts/check_gemini.py` | Whether the model call works, and which models the key can use |
 | `scripts/apply_sql.py` | Apply `sql/audit.sql` to Aiven without needing psql; `--check` to look first |
 | `scripts/apply_sql.py --check` | What tables exist, with row counts |
-| `scripts/clean_slate.py` | Wipe the audit logs, the kitchen's state file and the gateway's memory. Dry run by default; `--yes` to do it |
+| `scripts/clean_slate.py` | Clear every table the demo writes, the old state file, and what the running services hold in memory. Dry run by default; `--yes` to do it, and `--kitchen`/`--gateway` to reach services that are not on localhost |
+| `scripts/check_i18n.py` | Every translation key and placeholder, checked against the call sites. TypeScript cannot see inside a translation string |
+| `scripts/smoke_test.py` | The whole demo path over HTTP against running services |
 | `scripts/generate_seed.py` | Regenerate the seeded restaurant |
 | `scripts/load_catalogue.py` | Load the product JSON into Postgres |
 | `scripts/label_categories.py` | Name the 349 category codes |
