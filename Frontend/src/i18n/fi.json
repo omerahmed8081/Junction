@@ -121,7 +121,7 @@
     "yoursHint": "Kirjattu tiedoksi. Voit tehdä tämän tilauksen itse."
   },
   "quote": {
-    "signed": "Aimo allekirjoitti tämän hinnan",
+    "signed": "Aimon allekirjoittama hinta",
     "validUntil": "voimassa klo {{time}} asti",
     "verified": "Allekirjoitus varmennettu",
     "expired": "Allekirjoitettu hinta vanheni klo {{time}}",
@@ -129,7 +129,7 @@
     "id": "Allekirjoitettu hinta {{id}}"
   },
   "outcome": {
-    "ordered": "Tilaus {{id}} tehty",
+    "ordered": "Tilaus #{{no}} tehty",
     "orderedHint": "Toimitus {{date}}. Aimon allekirjoittama vahvistus on tallennettu.",
     "adjusted": "Aimon vastaus muuttui. Päivitin ostoskorin.",
     "refused": "Aimo hylkäsi tilauksen",
@@ -275,9 +275,10 @@
     "lines": "Rivit",
     "documents": "Allekirjoitettu vahvistus",
     "everything": "Keittiön omasta lokista. Demon nollaus tyhjentää sen.",
-    "forOrder": "Mitä tapahtui tilaukselle {{id}}",
+    "forOrder": "Tilaus #{{no}}, vaihe vaiheelta",
     "showAll": "Näytä kaikki",
-    "bothSides": "Tämän tilauksen oma tarina, keittiön ja Aimon rivit yhdessä."
+    "bothSides": "Tämän tilauksen oma tarina, keittiön ja Aimon rivit yhdessä.",
+    "orderNo": "Tilaus #{{no}}"
   },
   "demo": {
     "title": "Demon hallinta",

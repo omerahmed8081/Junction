@@ -125,6 +125,24 @@ async def lifespan(_: FastAPI):
         pool.close()
 
 
+FIRST_ORDER_NUMBER = 1001
+
+
+def _assign_number(record: OrderRecord) -> OrderRecord:
+    """Give the order a short number for the screen, if it has none.
+
+    Counted from the orders this kitchen is holding rather than from a stored
+    counter, so there is still only one thing to clear: a demo reset empties
+    the orders and the numbering starts again at 1001. Replayed orders keep
+    the number they were given, which is why this returns early when one is
+    already set.
+    """
+    if record.number is None:
+        highest = max((o.number or 0) for o in orders.values()) if orders else 0
+        record.number = max(highest + 1, FIRST_ORDER_NUMBER)
+    return record
+
+
 def _book_on_order(record: OrderRecord) -> None:
     """Tell the kitchen's own ledger that these goods are coming.
 
@@ -375,7 +393,7 @@ def _auto_order(state: agent.BasketState | None, steps: list) -> str:
         return "I could not put it through on its own, so it is waiting for you."
 
     if result.order is not None:
-        orders[result.order.order_id] = result.order
+        orders[result.order.order_id] = _assign_number(result.order)
         _book_on_order(result.order)
         audit.log.record("auto_order", basket_id=state.basket.basket_id, actor="agent",
                          order_id=result.order.order_id, crossed_gateway=True,
@@ -599,7 +617,7 @@ def approve_basket(basket_id: str, req: ApproveRequest) -> OrderResponse:
     except GatewayError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     if result.order is not None:
-        orders[result.order.order_id] = result.order
+        orders[result.order.order_id] = _assign_number(result.order)
         _book_on_order(result.order)
     audit.log.record_steps(getattr(result, "steps", []) or [], basket_id,
                            order_id=result.order.order_id if result.order else "")

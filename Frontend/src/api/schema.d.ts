@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/api/.well-known/jwks.json": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Jwks
+         * @description The kitchen's public key, so the gateway can verify its mandates and approvals.
+         */
+        get: operations["jwks_api__well_known_jwks_json_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/.well-known/jwks.json": {
         parameters: {
             query?: never;
@@ -16,6 +36,23 @@ export interface paths {
          * @description The kitchen's public key, so the gateway can verify its mandates and approvals.
          */
         get: operations["jwks__well_known_jwks_json_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Health */
+        get: operations["health_api_health_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -110,6 +147,13 @@ export interface paths {
         /**
          * Edit Basket
          * @description Change a quantity, swap to an alternative, or remove a line.
+         *
+         *     Editing a basket Aimo has already signed is allowed and voids the quote:
+         *     the chef saw the price and changed their mind, which is the whole point of
+         *     confirming before approving. Editing one that is finished or stopped is
+         *     not, and had no check at all - so an order already placed with Aimo could
+         *     be edited through the API, and a basket blocked for a failed signature or
+         *     a security event could be edited quietly back into a draft.
          */
         patch: operations["edit_basket_api_basket__basket_id__patch"];
         trace?: never;
@@ -215,6 +259,9 @@ export interface paths {
         /**
          * Get Mandate
          * @description What this kitchen's agent is currently allowed to order.
+         *
+         *     404 when the owner has stopped the agent: there is genuinely no mandate,
+         *     and inventing one to fill the screen would say the opposite of the truth.
          */
         get: operations["get_mandate_api_mandate_get"];
         put?: never;
@@ -223,7 +270,19 @@ export interface paths {
          * @description Sign a new mandate. Only the owner may change what the agent can spend.
          */
         post: operations["issue_mandate_api_mandate_post"];
-        delete?: never;
+        /**
+         * Revoke Mandate
+         * @description Stop the agent: call its mandate back, at Aimo and here.
+         *
+         *     Aimo is told first and this only lets go of our copy once it has. The other
+         *     order would leave a mandate the kitchen has forgotten and Aimo still
+         *     accepts - the screen would say stopped while the token kept working, which
+         *     is worse than not having a stop button at all.
+         *
+         *     The agent orders nothing until the owner issues a new mandate. Baskets and
+         *     orders are untouched; this stops spending, it does not undo it.
+         */
+        delete: operations["revoke_mandate_api_mandate_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -294,6 +353,30 @@ export interface paths {
          *     is from, so "what Aimo sees" stays visible as the smaller half.
          */
         get: operations["order_audit_api_orders__order_id__audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/kitchen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whose Kitchen
+         * @description Who this kitchen is, for the title bar.
+         *
+         *     Here rather than hard-coded in the frontend, so a second kitchen - the
+         *     hospital - is a different KITCHEN_NAME on a second service and needs no
+         *     frontend change at all.
+         */
+        get: operations["whose_kitchen_api_kitchen_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -796,6 +879,8 @@ export interface components {
         MandateLimits: {
             /** Max Net Per Order */
             max_net_per_order: number;
+            /** Max Net Per Day */
+            max_net_per_day?: number | null;
             /** Max Net Per Week */
             max_net_per_week: number;
             /**
@@ -816,6 +901,8 @@ export interface components {
         MandateRequest: {
             /** Max Net Per Order */
             max_net_per_order?: number | null;
+            /** Max Net Per Day */
+            max_net_per_day?: number | null;
             /** Max Net Per Week */
             max_net_per_week?: number | null;
             /** Allowed Categories */
@@ -866,6 +953,8 @@ export interface components {
         OrderRecord: {
             /** Order Id */
             order_id: string;
+            /** Number */
+            number?: number | null;
             /** Quote Id */
             quote_id: string;
             /** Customer */
@@ -1165,7 +1254,51 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    jwks_api__well_known_jwks_json_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     jwks__well_known_jwks_json_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    health_api_health_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1377,7 +1510,9 @@ export interface operations {
     confirm_basket_api_basket__basket_id__confirm_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-kitchen-role"?: string | null;
+            };
             path: {
                 basket_id: string;
             };
@@ -1546,6 +1681,39 @@ export interface operations {
             };
         };
     };
+    revoke_mandate_api_mandate_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-kitchen-role"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     demo_reset_api_demo_reset_post: {
         parameters: {
             query?: never;
@@ -1633,6 +1801,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    whose_kitchen_api_kitchen_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };

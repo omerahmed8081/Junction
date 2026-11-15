@@ -429,6 +429,11 @@ class PlaceOrderRequest(BaseModel):
 
 class OrderRecord(BaseModel):
     order_id: str
+    # A short running number for people to say out loud. The kitchen gives it,
+    # Aimo never sees it, and `order_id` stays the identifier of record: it is
+    # what the gateway knows, what the audit rows join on, and what is inside
+    # the signed documents. None on the gateway's own copy.
+    number: int | None = None
     quote_id: str
     customer: str
     agent_id: str

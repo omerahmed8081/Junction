@@ -646,8 +646,11 @@ def add_need(state: BasketState | None, need: ParsedNeed, gateway: GatewayClient
              role: str | None = None) -> tuple[BasketState, str, list[AgentStep]]:
     """Add one line for this need to the basket (a new basket when state is None)."""
     steps: list[AgentStep] = []
-    _step(steps, "parse_need", f"{need.quantity:g} {need.unit} '{need.product_text}' {need.claims or ''} "
-          f"by {need.requested_date} ({need.parser})".replace("  ", " "))
+    # Which parser read the sentence is recorded as its own column on the audit
+    # row and as `parser` on the chat response, so it does not belong in the
+    # line the chef reads: "(gemini)" meant nothing to them.
+    _step(steps, "parse_need", f"{need.quantity:g} {need.unit} '{need.product_text}' "
+          f"{need.claims or ''} by {need.requested_date}".replace("  ", " "))
     state = state or BasketState(Basket(basket_id=f"b_{uuid.uuid4().hex[:10]}", requested_date=need.requested_date))
 
     # A product named by number is ordered, not ranked against: the chef has

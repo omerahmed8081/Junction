@@ -121,7 +121,7 @@
     "yoursHint": "Noted for the record. You can place this order yourself."
   },
   "quote": {
-    "signed": "Aimo signed this price",
+    "signed": "Price signed by Aimo",
     "validUntil": "valid until {{time}}",
     "verified": "Signature verified",
     "expired": "The signed price ran out at {{time}}",
@@ -129,7 +129,7 @@
     "id": "Signed price {{id}}"
   },
   "outcome": {
-    "ordered": "Order {{id}} placed",
+    "ordered": "Order #{{no}} placed",
     "orderedHint": "Delivery {{date}}. Aimo's signed confirmation is saved.",
     "adjusted": "Aimo's answer changed. I updated the basket.",
     "refused": "Aimo refused the order",
@@ -275,9 +275,10 @@
     "lines": "Lines",
     "documents": "Signed confirmation",
     "everything": "From the kitchen's own log. A demo reset clears it.",
-    "forOrder": "What happened to {{id}}",
+    "forOrder": "Order #{{no}}, step by step",
     "showAll": "Show everything",
-    "bothSides": "This order's own story, the kitchen's rows and Aimo's together."
+    "bothSides": "This order's own story, the kitchen's rows and Aimo's together.",
+    "orderNo": "Order #{{no}}"
   },
   "demo": {
     "title": "Demo controls",

@@ -20,6 +20,10 @@ export function ActivityPage() {
   const aimoOnly = params.get("view") === "aimo";
   const openOrder = params.get("order");
   const orders = useQuery({ queryKey: ["orders"], queryFn: api.orders });
+  // The URL carries Aimo's order id, which is the identifier of record. The
+  // heading says the short number instead, and falls back to the id for an
+  // order placed before numbering existed.
+  const openNumber = orders.data?.find((o) => o.order_id === openOrder)?.number;
   // From the kitchen's own log, not this browser: it survives a reload, it is
   // the same on any machine, and a demo reset clears it along with the orders.
   // Opening an order narrows this panel to that order's own story, with Aimo's
@@ -71,7 +75,7 @@ export function ActivityPage() {
                       setParams(next, { replace: true });
                     }}
                     className="flex min-h-11 cursor-pointer flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
-                    <span><span className="font-semibold">{o.order_id}</span> <span className="text-ink-soft">· {dayTime(o.placed_at)}</span></span>
+                    <span><span className="font-semibold">{o.number ? t("activity.orderNo", { no: o.number }) : o.order_id}</span> <span className="text-ink-soft">· {dayTime(o.placed_at)}</span></span>
                     <span className="tabular">{t("basket.delivery")} {day(o.delivery_date)} · <span className="font-semibold">{money(o.net_total)}</span> {t("basket.net").toLowerCase()}</span>
                   </summary>
                   <div className="border-t border-border p-4 text-sm">
@@ -79,7 +83,7 @@ export function ActivityPage() {
                     <ul className="mt-1 space-y-1">
                       {(o.lines ?? []).map((l) => <li key={l.product_id} className="tabular"><span lang="en">{l.name}</span> · {amount(l.quantity_sales_units, l.sales_unit)} · {money(l.line_net)}</li>)}
                     </ul>
-                    <p className="tabular mt-2 text-ink-soft">{t("basket.vat")} {money(o.vat_total)} · {t("basket.total")} {money(o.gross_total)} · {t("quote.id", { id: o.quote_id })}</p>
+                    <p className="tabular mt-2 text-ink-soft">{t("basket.vat")} {money(o.vat_total)} · {t("basket.total")} {money(o.gross_total)} · {t("quote.signed")} · <span lang="en">{o.order_id}</span></p>
                     {o.confirmation_jws && (
                       <details className="mt-1">
                         <summary className="inline-flex min-h-9 cursor-pointer items-center font-semibold text-link">{t("activity.documents")}</summary>
@@ -96,7 +100,7 @@ export function ActivityPage() {
         <Card className="p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-xl font-extrabold tracking-tight">
-              {openOrder ? t("activity.forOrder", { id: openOrder }) : t("activity.steps")}
+              {openOrder ? t("activity.forOrder", { no: openNumber ?? openOrder }) : t("activity.steps")}
             </h2>
             {openOrder && (
               <button type="button" className="min-h-9 cursor-pointer text-sm font-semibold text-link"

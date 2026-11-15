@@ -352,3 +352,62 @@ def test_ordering_what_is_running_low_stops_it_being_suggested_again():
         assert product_id not in again, "it is still being suggested after the order"
     finally:
         main.inventory = held
+
+
+# ------------------------------------------------- the number people say out loud
+
+
+def test_orders_are_numbered_from_1001_and_keep_their_number():
+    """`order_id` stays the identifier of record - it is what Aimo knows and
+    what the audit rows join on. The number is only for the screen."""
+    main = a_kitchen()
+    held = dict(main.orders)
+    try:
+        main.orders.clear()
+        first = main._assign_number(an_order("o_a"))
+        main.orders["o_a"] = first
+        second = main._assign_number(an_order("o_b"))
+        main.orders["o_b"] = second
+
+        assert (first.number, second.number) == (1001, 1002)
+        assert first.order_id == "o_a", "the real id was replaced"
+
+        # replayed at startup: the stored number stands
+        assert main._assign_number(first).number == 1001
+    finally:
+        main.orders.clear()
+        main.orders.update(held)
+
+
+def test_numbering_starts_again_after_a_reset():
+    """Counted from the orders in hand rather than a stored counter, so a demo
+    reset leaves nothing behind to clear."""
+    main = a_kitchen()
+    held = dict(main.orders)
+    try:
+        main.orders.clear()
+        main.orders["o_a"] = main._assign_number(an_order("o_a"))
+        main.orders.clear()                      # what demo_reset does
+        assert main._assign_number(an_order("o_c")).number == 1001
+    finally:
+        main.orders.clear()
+        main.orders.update(held)
+
+
+def test_numbering_follows_the_highest_order_in_hand():
+    """Which means a number could be reused if the newest order were removed on
+    its own. Nothing removes one on its own - the reset clears them all - so
+    this pins the behaviour rather than defending it. A stored counter would
+    avoid it and would be a second thing to clear; this was the trade.
+    """
+    main = a_kitchen()
+    held = dict(main.orders)
+    try:
+        main.orders.clear()
+        main.orders["o_a"] = main._assign_number(an_order("o_a"))
+        main.orders["o_b"] = main._assign_number(an_order("o_b"))
+        del main.orders["o_b"]                   # the newest one goes
+        assert main._assign_number(an_order("o_c")).number == 1002   # reused
+    finally:
+        main.orders.clear()
+        main.orders.update(held)
