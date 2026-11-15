@@ -384,7 +384,10 @@ def place_order(req: PlaceOrderRequest,
                 quote_jti=quote_jti, order_id=placed.order_id,
                 response={"order_id": placed.order_id, "net_total": placed.net_total,
                           "status": placed.status},
-                detail=f"order {placed.order_id} accepted, {placed.net_total} EUR net")
+                # Aimo's rows are shown to the chef as written: the merged
+                # order view does not put them through kitchen/narrate.py, so
+                # the euro sign belongs here rather than an "EUR" to convert.
+                detail=f"Aimo accepted the order: \u20ac{placed.net_total:,.2f} net")
         return placed
     except OrderRefused as exc:
         # 409 rather than 400: the request was well formed, the state said no.

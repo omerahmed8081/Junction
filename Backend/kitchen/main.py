@@ -636,8 +636,8 @@ def approve_basket(basket_id: str, req: ApproveRequest) -> OrderResponse:
 def _approval_sentence(result, role: str) -> str:
     """What a person reading the log a week later needs to see first."""
     if result.outcome == "ordered" and result.order is not None:
-        return (f"{role} approved; Aimo accepted order {result.order.order_id} "
-                f"for {result.order.net_total} EUR net")
+        return (f"{role} approved; Aimo accepted the order: "
+                f"EUR {result.order.net_total:,.2f} net ({result.order.order_id})")
     if result.outcome == "adjusted":
         return (f"{role} approved, but Aimo's answer had changed "
                 f"({result.refusal.reason if result.refusal else 'unknown'}): "

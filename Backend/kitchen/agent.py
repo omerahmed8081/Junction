@@ -492,6 +492,20 @@ def _cover_option(c: Candidate, need: ParsedNeed, units: float, shortfall: float
     )
 
 
+def _policy_detail(basket: Basket) -> str:
+    """The policy preview as one line of facts.
+
+    This used to format the reasons list straight into an f-string, so the
+    chef's log carried a Python list repr - brackets, quotes and all - which
+    `narrate.humanise` then had to strip back out again.
+    """
+    policy = basket.policy
+    if policy is None:
+        return "nothing to check yet"
+    reasons = "; ".join(policy.reasons) if policy.reasons else "within the chef limit"
+    return reasons if policy.level == "auto_ok" else f"{policy.level}: {reasons}"
+
+
 def preview_policy(basket: Basket) -> PolicyDecision | None:
     """Who will have to approve, shown on the draft. Binding only once it is decided on a quote."""
     if not basket.lines:
@@ -522,8 +536,12 @@ def preview_policy(basket: Basket) -> PolicyDecision | None:
     # reason about the order being wrong (kitchen/rules.py).
     allowed = rules.applies(rules.store.all(), basket, reasons)
     if allowed is not None:
-        return PolicyDecision(level="auto_ok", binding=False,
-                              reasons=[f"Your rule: {allowed.said()}"])
+        # One string, read in three places: the chip on the basket, the audit
+        # row for an automatic order, and the step below. Saying it plainly
+        # once is better than three near-misses.
+        return PolicyDecision(
+            level="auto_ok", binding=False,
+            reasons=[f"Your rule allows it: {allowed.said_short()}, no approval needed"])
     return PolicyDecision(level=level, reasons=reasons, binding=False)
 
 
@@ -685,7 +703,7 @@ def add_need(state: BasketState | None, need: ParsedNeed, gateway: GatewayClient
         state.needs[line.product_id] = need
     state.candidates.update({c.summary.product_id: c for c in ranked})
     _refresh(state.basket)
-    _step(steps, "policy_preview", f"{state.basket.policy.level}: {state.basket.policy.reasons or 'within the chef limit'}")
+    _step(steps, "policy_preview", _policy_detail(state.basket))
 
     approval = approval_sentence(state.basket.policy.level, role)
     net = sum(l.line_net for l in lines)
@@ -759,7 +777,7 @@ def add_reorder(state: BasketState | None, product_id: str, quantity: float, uni
         state.needs[line.product_id] = need
     state.candidates.update({c.summary.product_id: c for c in ranked})
     _refresh(state.basket)
-    _step(steps, "policy_preview", f"{state.basket.policy.level}: {state.basket.policy.reasons or 'within the chef limit'}")
+    _step(steps, "policy_preview", _policy_detail(state.basket))
 
     first = lines[0]
     lead = f"{reason} " if reason else ""
@@ -874,5 +892,5 @@ def apply_edits(state: BasketState, edits: list[LineEdit], gateway: GatewayClien
 
     _refresh(basket)
     if basket.policy:
-        _step(steps, "policy_preview", f"{basket.policy.level}: {basket.policy.reasons or 'within the chef limit'}")
+        _step(steps, "policy_preview", _policy_detail(basket))
     return " ".join(notes) or "Nothing changed.", steps

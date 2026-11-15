@@ -59,6 +59,20 @@ class Rule:
             return f"Approve {what} without asking."
         return f"Approve {what} up to EUR {self.max_net_per_order:,.2f} net without asking."
 
+    def said_short(self) -> str:
+        """The rule in a few words, for a line that has already said it is a
+        rule. `said()` is the full sentence for the rules screen."""
+        what = {
+            "any": "any order",
+            "category": f"category {self.value}",
+            "product": f"product {self.value}",
+            "claim": self.value.lower().replace("_", " "),
+            "name": self.value,
+        }.get(self.match, "any order")
+        if self.max_net_per_order is None:
+            return f"{what}, any amount"
+        return f"{what} up to EUR {self.max_net_per_order:,.2f}"
+
     def as_json(self) -> dict[str, Any]:
         return {"rule_id": self.rule_id, "name": self.name, "match": self.match,
                 "value": self.value, "max_net_per_order": self.max_net_per_order,

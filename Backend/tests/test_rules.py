@@ -396,3 +396,60 @@ def test_two_any_rules_with_one_ceiling_are_the_same_rule(app):
         second = client.post("/api/rules", json={**blanket, "name": "petty cash"},
                              headers=OWNER)
         assert second.status_code == 409
+
+
+# --------------------------------------------- how a rule reads on the screen
+
+
+def test_a_rule_reads_as_a_sentence_not_a_python_list():
+    """The policy step used to format the reasons list straight into an
+    f-string, so the chef's log carried brackets and quote marks that
+    `narrate.humanise` then stripped back out."""
+    from datetime import date
+
+    from kitchen import narrate
+    from kitchen.agent import _policy_detail
+    from shared.schemas import Basket, PolicyDecision
+
+    rule = rules.Rule(name="milk", match="name", value="milk", max_net_per_order=100.0)
+    basket = Basket(basket_id="b_1", requested_date=date(2026, 11, 16))
+    basket.policy = PolicyDecision(
+        level="auto_ok", binding=False,
+        reasons=[f"Your rule allows it: {rule.said_short()}, no approval needed"])
+
+    line = narrate.sentence("policy_preview", _policy_detail(basket))
+    assert line == ("Checked your own ordering rules: Your rule allows it: "
+                    "milk up to €100.00, no approval needed.")
+    for machinery in ("[", "]", "auto_ok", "'"):
+        assert machinery not in line, f"{machinery!r} is still in the chef's line"
+
+
+def test_a_rule_that_needs_a_person_still_names_who():
+    from datetime import date
+
+    from kitchen import narrate
+    from kitchen.agent import _policy_detail
+    from shared.schemas import Basket, PolicyDecision
+
+    basket = Basket(basket_id="b_1", requested_date=date(2026, 11, 16))
+    basket.policy = PolicyDecision(level="manager", binding=False,
+                                   reasons=["Over the EUR 500 chef limit"])
+    assert "manager" in _policy_detail(basket), "the level was dropped from the facts"
+
+
+def test_the_short_form_of_every_kind_of_rule():
+    """`said_short` is read beside words that already say it is a rule, so it
+    must not repeat 'Approve ... without asking'."""
+    for match, value, expected in (
+        ("name", "milk", "milk up to EUR 100.00"),
+        ("product", "464306", "product 464306 up to EUR 100.00"),
+        ("category", "12345", "category 12345 up to EUR 100.00"),
+        ("claim", "FREE_FROM_LACTOSE", "free from lactose up to EUR 100.00"),
+        ("any", "", "any order up to EUR 100.00"),
+    ):
+        rule = rules.Rule(match=match, value=value, max_net_per_order=100.0)
+        assert rule.said_short() == expected, rule.said_short()
+        assert "without asking" not in rule.said_short()
+
+    no_ceiling = rules.Rule(match="name", value="milk")
+    assert no_ceiling.said_short() == "milk, any amount"
